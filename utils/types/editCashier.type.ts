@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserPermissionSchema } from "./schema.type";
 
 export const EditCashierFormDataSchema = z.object({
   id: z.string(),
@@ -7,5 +8,6 @@ export const EditCashierFormDataSchema = z.object({
     .string()
     .length(4, "Access key must only be 4 characters")
     .optional(),
+  permissions: z.array(UserPermissionSchema.partial()),
 });
 export type EditCashierFormData = z.infer<typeof EditCashierFormDataSchema>;

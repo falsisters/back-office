@@ -1,10 +1,9 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { DeleteCashierFormData } from "../../../utils/types/deleteCashier.type";
 import { NestApiError } from "../../../utils/types/error.type";
 
-export const createCashier = async (formData: DeleteCashierFormData) => {
+export const createCashier = async (id: string) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
@@ -12,12 +11,11 @@ export const createCashier = async (formData: DeleteCashierFormData) => {
     throw new Error("Unauthorized");
   }
 
-  const response = await fetch(`${process.env.API_URL}/cashier/`, {
+  const response = await fetch(`${process.env.API_URL}/cashier/${id}`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
     method: "DELETE",
-    body: JSON.stringify(formData),
     cache: "no-cache",
   });
 
