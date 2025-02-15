@@ -136,4 +136,3 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
     </Dialog>
   )
 }
-
