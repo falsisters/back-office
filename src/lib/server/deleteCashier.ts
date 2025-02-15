@@ -1,8 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { APIError } from "../../../utils/types/error.type";
 import { DeleteCashierFormData } from "../../../utils/types/deleteCashier.type";
+import { NestApiError } from "../../../utils/types/error.type";
 
 export const createCashier = async (formData: DeleteCashierFormData) => {
   const cookieStore = await cookies();
@@ -12,7 +12,7 @@ export const createCashier = async (formData: DeleteCashierFormData) => {
     throw new Error("Unauthorized");
   }
 
-  const response = await fetch(`${process.env.API_URL}/cashier/create`, {
+  const response = await fetch(`${process.env.API_URL}/cashier/`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -22,8 +22,8 @@ export const createCashier = async (formData: DeleteCashierFormData) => {
   });
 
   if (!response.ok) {
-    const data: APIError = await response.json();
-    throw new Error(data.message);
+    const data: NestApiError = await response.json();
+    throw new Error(data.message[0] || "Unexpected error occured");
   }
 
   return response.json();

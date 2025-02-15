@@ -1,6 +1,6 @@
 "use server";
 
-import { APIError } from "../../../utils/types/error.type";
+import { NestApiError } from "../../../utils/types/error.type";
 import { cookies } from "next/headers";
 import { UserDataPayload } from "../../../utils/types/userData.type";
 
@@ -22,8 +22,8 @@ export const getUserData = async () => {
   });
 
   if (!response.ok) {
-    const data: APIError = await response.json();
-    throw new Error(data.message);
+    const data: NestApiError = await response.json();
+    throw new Error(data.message[0] || "Unexpected error occured");
   }
 
   const payload: UserDataPayload = await response.json();

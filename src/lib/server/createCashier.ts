@@ -1,8 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { APIError } from "../../../utils/types/error.type";
 import { CreateCashierFormData } from "../../../utils/types/createCashier.type";
+import { NestApiError } from "../../../utils/types/error.type";
 
 export const createCashier = async (formData: CreateCashierFormData) => {
   const cookieStore = await cookies();
@@ -22,8 +22,8 @@ export const createCashier = async (formData: CreateCashierFormData) => {
   });
 
   if (!response.ok) {
-    const data: APIError = await response.json();
-    throw new Error(data.message);
+    const data: NestApiError = await response.json();
+    throw new Error(data.message[0] || "Unexpected error occured");
   }
 
   return response.json();
