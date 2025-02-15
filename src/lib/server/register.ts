@@ -1,6 +1,6 @@
 "use server";
 
-import { APIError } from "../../../utils/types/error.type";
+import { NestApiError } from "../../../utils/types/error.type";
 import { cookies } from "next/headers";
 import {
   RegisterFormData,
@@ -16,8 +16,8 @@ export const register = async (formData: RegisterFormData) => {
   });
 
   if (!response.ok) {
-    const data: APIError = await response.json();
-    throw new Error(data.message);
+    const data: NestApiError = await response.json();
+    throw new Error(data.message[0] || "Unexpected error occured");
   }
 
   const payload: RegisterPayload = await response.json();

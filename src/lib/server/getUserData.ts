@@ -14,7 +14,7 @@ export const getUserData = async () => {
 
   const response = await fetch(`${process.env.API_URL}/auth/user`, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken.value}`,
     },
     next: {
       revalidate: 3600,
