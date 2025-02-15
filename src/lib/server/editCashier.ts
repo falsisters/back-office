@@ -14,7 +14,7 @@ export const createCashier = async (formData: EditCashierFormData) => {
 
   const response = await fetch(`${process.env.API_URL}/cashier/`, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken.value}`,
     },
     method: "PUT",
     body: JSON.stringify(formData),

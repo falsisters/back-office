@@ -14,7 +14,7 @@ export const createCashier = async (formData: DeleteCashierFormData) => {
 
   const response = await fetch(`${process.env.API_URL}/cashier/`, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken.value}`,
     },
     method: "DELETE",
     body: JSON.stringify(formData),

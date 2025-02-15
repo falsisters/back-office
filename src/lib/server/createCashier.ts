@@ -14,7 +14,7 @@ export const createCashier = async (formData: CreateCashierFormData) => {
 
   const response = await fetch(`${process.env.API_URL}/cashier/create`, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken.value}`,
     },
     method: "POST",
     body: JSON.stringify(formData),
