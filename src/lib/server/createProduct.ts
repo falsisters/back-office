@@ -18,6 +18,7 @@ export const createProduct = async (formData: CreateProductFormData) => {
     },
     method: "POST",
     body: JSON.stringify(formData),
+    cache: "no-cache",
   });
 
   if (!response.ok) {

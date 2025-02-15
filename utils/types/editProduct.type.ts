@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { PriceSchema, ProductSchema, ProfitSchema } from "./schema.type";
 
-export const CreateProductFormDataSchema = z.object({
+export const EditProductFormDataSchema = z.object({
   product: ProductSchema.extend({
     price: z.array(
       PriceSchema.extend({
@@ -11,4 +11,4 @@ export const CreateProductFormDataSchema = z.object({
   }).partial(),
 });
 
-export type CreateProductFormData = z.infer<typeof CreateProductFormDataSchema>;
+export type EditProductFormData = z.infer<typeof EditProductFormDataSchema>;
