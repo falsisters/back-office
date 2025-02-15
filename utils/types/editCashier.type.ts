@@ -2,7 +2,6 @@ import { z } from "zod";
 import { UserPermissionSchema } from "./schema.type";
 
 export const EditCashierFormDataSchema = z.object({
-  id: z.string(),
   name: z.string().min(4, "Name must be 4 or more characters").optional(),
   accessKey: z
     .string()
