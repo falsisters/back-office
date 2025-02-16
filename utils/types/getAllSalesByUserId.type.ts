@@ -4,22 +4,14 @@ import {
   ProductSchema,
   SaleItemSchema,
   SaleSchema,
-  UserSchema,
 } from "./schema.type";
 
 export const GetAllSalesByUserIdPayloadSchema = z.array(
-  UserSchema.extend({
-    Cashier: z.array(
-      CashierSchema.extend({
-        Sale: z.array(
-          SaleSchema.extend({
-            items: z.array(
-              SaleItemSchema.extend({
-                product: ProductSchema,
-              })
-            ),
-          })
-        ),
+  SaleSchema.extend({
+    cashier: CashierSchema,
+    items: z.array(
+      SaleItemSchema.extend({
+        ProductSchema,
       })
     ),
   })
