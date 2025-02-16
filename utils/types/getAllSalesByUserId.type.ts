@@ -1,11 +1,25 @@
 import { z } from "zod";
-import { ProductSchema, SaleItemSchema, SaleSchema } from "./schema.type";
+import {
+  CashierSchema,
+  ProductSchema,
+  SaleItemSchema,
+  SaleSchema,
+  UserSchema,
+} from "./schema.type";
 
 export const GetAllSalesByUserIdPayloadSchema = z.array(
-  SaleSchema.extend({
-    items: z.array(
-      SaleItemSchema.extend({
-        product: ProductSchema,
+  UserSchema.extend({
+    Cashier: z.array(
+      CashierSchema.extend({
+        Sale: z.array(
+          SaleSchema.extend({
+            items: z.array(
+              SaleItemSchema.extend({
+                product: ProductSchema,
+              })
+            ),
+          })
+        ),
       })
     ),
   })
