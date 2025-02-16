@@ -152,6 +152,7 @@ export const SaleItemSchema = z.object({
   productId: z.string(),
   qty: z.number(),
   price: z.number(),
+  type: ProductTypeEnum,
   createdAt: z.date(),
   updatedAt: z.date(),
 });
