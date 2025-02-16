@@ -109,7 +109,6 @@ export type Shift = z.infer<typeof ShiftSchema>;
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  stock: z.number(),
   minimumQty: z.number(),
   userId: z.string(),
   createdAt: z.date(),
@@ -120,6 +119,7 @@ export type Product = z.infer<typeof ProductSchema>;
 export const PriceSchema = z.object({
   id: z.string(),
   price: z.number(),
+  stock: z.number(),
   type: ProductTypeEnum,
   productId: z.string(),
   createdAt: z.date(),
@@ -162,6 +162,7 @@ export const DeliverySchema = z.object({
   id: z.string(),
   cashierId: z.string(),
   total: z.number(),
+  type: ProductTypeEnum,
   attachments: z.array(z.string()),
   createdAt: z.date(),
   updatedAt: z.date(),
