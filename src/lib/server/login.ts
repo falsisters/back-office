@@ -8,6 +8,10 @@ export const login = async (formData: LoginFormData) => {
   const cookieStore = await cookies();
   const response = await fetch(`${process.env.API_URL}/auth/login`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
     body: JSON.stringify(formData),
     cache: "no-cache",
   });

@@ -8,21 +8,49 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { createCashier } from "@/lib/server/createCashier"
+import { type CreateCashierFormData } from "../../utils/types/createCashier.type"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CashierPermissionType } from "../../utils/types/schema.type"
 
-const permissionTypes = ["PRICES", "DELIVERIES", "STOCKS", "PROFITS", "KAHON", "SALES_CHECK", "SALES_HISTORY"]
+const permissionTypes: CashierPermissionType[] = [
+  "PRICES",
+  "DELIVERIES",
+  "STOCKS",
+  "PROFITS",
+  "KAHON",
+  "SALES_CHECK",
+  "SALES_HISTORY",
+]
 
-interface CreateCashierProps {
-  onSubmit: (data: { name: string; accessKey: string; permissions: string[] }) => void
-}
-
-export function CreateCashier({ onSubmit }: CreateCashierProps) {
+export function CreateCashier() {
   const [name, setName] = useState("")
   const [accessKey, setAccessKey] = useState("")
-  const [permissions, setPermissions] = useState<string[]>([])
+  const [permissions, setPermissions] = useState<CashierPermissionType[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit({ name, accessKey, permissions })
+    setError(null)
+    setIsLoading(true)
+    const formData: CreateCashierFormData = {
+      name,
+      accessKey,
+      permissions: permissions.map((perm) => ({ name: perm })),
+    }
+
+    try {
+      await createCashier(formData)
+      setName("")
+      setAccessKey("")
+      setPermissions([])
+      alert("Cashier created successfully")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -31,14 +59,25 @@ export function CreateCashier({ onSubmit }: CreateCashierProps) {
         <CardTitle>Create New Cashier</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="accessKey">Access Key</Label>
-            <Input id="accessKey" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} required />
+            <Input
+              id="accessKey"
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              required
+              disabled={isLoading}
+            />
           </div>
           <div className="space-y-2">
             <Label>Permissions</Label>
@@ -48,16 +87,19 @@ export function CreateCashier({ onSubmit }: CreateCashierProps) {
                   <Checkbox
                     id={perm}
                     checked={permissions.includes(perm)}
-                    onCheckedChange={(checked: unknown) => {
+                    onCheckedChange={(checked) => {
                       setPermissions(checked ? [...permissions, perm] : permissions.filter((p) => p !== perm))
                     }}
+                    disabled={isLoading}
                   />
                   <Label htmlFor={perm}>{perm}</Label>
                 </div>
               ))}
             </div>
           </div>
-          <Button type="submit">Create Cashier</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Cashier"}
+          </Button>
         </form>
       </CardContent>
     </Card>

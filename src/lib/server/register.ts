@@ -11,6 +11,10 @@ export const register = async (formData: RegisterFormData) => {
   const cookieStore = await cookies();
   const response = await fetch(`${process.env.API_URL}/auth/register`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
     body: JSON.stringify(formData),
     cache: "no-cache",
   });

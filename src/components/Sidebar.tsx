@@ -2,14 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Users, ShoppingBag, FileText, Settings } from "lucide-react"
+import { Home, Users, ShoppingBag, FileText} from "lucide-react"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/cashiers", label: "Cashiers", icon: Users },
   { href: "/inventory", label: "Inventory", icon: ShoppingBag },
   { href: "/sales", label: "Sales Report", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 export function Sidebar() {
