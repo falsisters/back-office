@@ -12,7 +12,7 @@ export const getAllProductsByUserId = async () => {
     throw new Error("Unauthorized");
   }
 
-  const response = await fetch(`${process.env.API_URL}/product/`, {
+  const response = await fetch(`${process.env.API_URL}/product`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },

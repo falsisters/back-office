@@ -33,12 +33,20 @@ export function CreateCashier() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    
+    // Client-side validation
+    if (name.length < 4) {
+      setError("Name must be 4 or more characters")
+      return
+    }
+
     setIsLoading(true)
     const formData: CreateCashierFormData = {
       name,
       accessKey,
       permissions: permissions.map((perm) => ({ name: perm })),
     }
+
 
     try {
       await createCashier(formData)
@@ -67,8 +75,24 @@ export function CreateCashier() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading} />
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => {
+                setName(e.target.value)
+                // Clear error when user starts typing
+                if (e.target.value.length >= 4 && error === "Name must be 4 or more characters") {
+                  setError(null)
+                }
+              }} 
+              required 
+              disabled={isLoading} 
+            />
+            {name.length < 4 && (
+              <p className="text-sm text-red-500">Name must be 4 or more characters</p>
+            )}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="accessKey">Access Key</Label>
             <Input
@@ -105,4 +129,3 @@ export function CreateCashier() {
     </Card>
   )
 }
-

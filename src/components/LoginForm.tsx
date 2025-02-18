@@ -25,7 +25,7 @@ export default function LoginForm() {
       const formData: LoginFormData = { email, password }
       const validatedData = LoginFormDataSchema.parse(formData)
       await login(validatedData)
-      router.push("/inventory")
+      router.push("/")
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message)

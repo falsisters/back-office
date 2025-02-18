@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Users, ShoppingBag, FileText} from "lucide-react"
+import { Home, Users, ShoppingBag, FileText } from "lucide-react"
+import LogoutButton from "./LogoutButton"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -36,6 +37,9 @@ export function Sidebar() {
           ))}
         </ul>
       </nav>
+      <div className="p-4">
+        <LogoutButton />
+      </div>
     </div>
   )
 }

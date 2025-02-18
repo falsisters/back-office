@@ -12,7 +12,6 @@ export default async function LoginPage () {
     if (!(error instanceof Error && error.message === "Unauthorized")) {
       throw error;
     }
-    // Ignore unauthorized errors to show login form
   }
 
 

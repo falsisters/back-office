@@ -23,7 +23,7 @@ export const login = async (formData: LoginFormData) => {
 
   const payload: LoginPayload = await response.json();
 
-  cookieStore.set("token", payload.access_token);
+  cookieStore.set("access_token", payload.access_token);
   cookieStore.set("name", payload.name);
 
   return payload;
