@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { SearchBar } from "@/components/SearchBar";
-import { AddItemDialog } from "@/components/AddItem";
+import CreateProduct from "@/components/CreateProduct";
 import { ItemTable } from "@/components/ItemTable";
 import type { Product, Price } from "../../utils/types/schema.type";
 import { getAllProductsByUserId } from "@/lib/server/getAllProductsByUserId";
-import { createProduct } from "@/lib/server/createProduct";
 import { editProduct } from "@/lib/server/editProduct";
 import { deleteProduct } from "@/lib/server/deleteProduct";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,32 +45,6 @@ export function InventoryManagement() {
       )
   );
 
-  const handleAddProduct = async (newProduct: Omit<Product, "id" | "createdAt" | "updatedAt" | "userId">) => {
-    try {
-      const trimmedName = newProduct.name.trim();
-      
-      if (!trimmedName) {
-        setError("Product name cannot be empty");
-        return;
-      }
-
-      const requestData = {
-        name: trimmedName,
-        minimumQty: Number(newProduct.minimumQty),
-        price: [] 
-      };
-  
-      console.log('Sending product data:', JSON.stringify(requestData, null, 2));
-      
-      const createdProduct = await createProduct({
-        product: requestData
-      });
-      setProducts((prevProducts) => [...prevProducts, createdProduct]);
-    } catch (err) {
-      console.error('Error creating product:', err);
-      setError(err instanceof Error ? err.message : "Failed to add product");
-    }
-  };
 
   const handleAddProductPrice = async (
     productId: string,
@@ -152,13 +125,14 @@ export function InventoryManagement() {
       )}
       <div className="flex items-center justify-between">
         <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-        <AddItemDialog onAddItem={handleAddProduct} />
+        <CreateProduct onProductCreated={(product) => {
+  setProducts((prevProducts) => [...prevProducts, product]);
+}} />
       </div>
       <ItemTable
         items={filteredProducts}
         onUpdateItem={handleUpdateProduct}
         onDeleteItem={handleDeleteProduct}
-        onAddPrice={handleAddProductPrice}
       />
     </div>
   );

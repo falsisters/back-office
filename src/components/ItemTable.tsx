@@ -1,29 +1,26 @@
 "use client"
 
-import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
+import EditProduct from "./EditProduct"
 import type { Product, Price } from "../../utils/types/schema.type"
-import { AddProductPrice } from "@/components/AddProductPrice"
 
 interface ItemTableProps {
-  items: (Product & { prices?: Price[] })[]
-  onUpdateItem: (item: Product) => void
+  items: (Product & { Price?: Price[] })[]
+  onUpdateItem: (item: Product & { Price?: Price[] }) => void
   onDeleteItem: (id: string) => void
-  onAddPrice: (productId: string, price: Omit<Price, "id" | "createdAt" | "updatedAt">) => void
 }
 
-export function ItemTable({ items, onUpdateItem, onDeleteItem, onAddPrice }: ItemTableProps) {
-  const [editingItem, setEditingItem] = useState<Product | null>(null)
-  const closeRef = useRef<HTMLButtonElement>(null)
-
-  const handleUpdateItem = () => {
-    if (editingItem) {
-      onUpdateItem(editingItem)
-      setEditingItem(null)
-      closeRef.current?.click()
+export function ItemTable({ items, onUpdateItem, onDeleteItem }: ItemTableProps) {
+  const formatPriceType = (type: string) => {
+    switch (type) {
+      case "FIFTY_KG": return "50 KG"
+      case "TWENTY_FIVE_KG": return "25 KG"
+      case "FIVE_KG": return "5 KG"
+      case "PER_KILO": return "Per Kilo"
+      case "GANTANG": return "Gantang"
+      case "SPECIAL_PRICE": return "Special Price"
+      default: return type
     }
   }
 
@@ -44,65 +41,51 @@ export function ItemTable({ items, onUpdateItem, onDeleteItem, onAddPrice }: Ite
               <TableCell className="font-medium">{item.name}</TableCell>
               <TableCell>{item.minimumQty}</TableCell>
               <TableCell>
-                {item.prices?.map((p) => (
-                  <div key={p.id}>
-                    {p.type}: ₱{p.price.toFixed(2)} (Stock: {p.stock})
+                {item.Price && item.Price.length > 0 ? (
+                  <div className="space-y-1">
+                    {item.Price.map((p) => (
+                      <div key={p.id} className="text-sm">
+                        {formatPriceType(p.type)}: Pesos{p.price.toFixed(2)} (Stock: {p.stock})
+                      </div>
+                    ))}
                   </div>
-                )) || "No prices set"}
+                ) : (
+                  <span className="text-sm text-muted-foreground">No prices set</span>
+                )}
               </TableCell>
               <TableCell>
                 <div className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingItem(item)}>
+                  <EditProduct 
+                    product={item}
+                    onProductUpdated={onUpdateItem}
+                    trigger={
+                      <Button variant="outline" size="sm">
                         Edit
                       </Button>
-                    </DialogTrigger>
-                    {editingItem && (
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Product</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div>
-                            <p className="mb-2 text-sm font-medium">Product Name:</p>
-                            <Input
-                              value={editingItem.name}
-                              onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                              placeholder="Product name"
-                            />
-                          </div>
-                          <div>
-                            <p className="mb-2 text-sm font-medium">Minimum Quantity:</p>
-                            <Input
-                              type="number"
-                              value={editingItem.minimumQty}
-                              onChange={(e) => setEditingItem({ ...editingItem, minimumQty: Number(e.target.value) })}
-                              placeholder="Minimum quantity"
-                              min="1"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex justify-end gap-4">
-                          <DialogClose ref={closeRef} asChild>
-                            <Button variant="outline">Cancel</Button>
-                          </DialogClose>
-                          <Button onClick={handleUpdateItem}>Update Product</Button>
-                        </div>
-                      </DialogContent>
-                    )}
-                  </Dialog>
-                  <AddProductPrice productId={item.id} onAddPrice={(price) => onAddPrice(item.id, price)} />
-                  <Button variant="destructive" size="sm" onClick={() => onDeleteItem(item.id)}>
+                    }
+                  />
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={() => onDeleteItem(item.id)}
+                  >
                     Delete
                   </Button>
                 </div>
               </TableCell>
             </TableRow>
           ))}
+          {items.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={4} className="h-24 text-center">
+                No products found
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>
   )
 }
 
+export default ItemTable
