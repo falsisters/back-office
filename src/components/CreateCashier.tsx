@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,9 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { createCashier } from "@/lib/server/createCashier"
-import { type CreateCashierFormData } from "../../utils/types/createCashier.type"
+import type { CreateCashierFormData } from "../../utils/types/createCashier.type"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CashierPermissionType } from "../../utils/types/schema.type"
+import type { CashierPermissionType } from "../../utils/types/schema.type"
 
 const permissionTypes: CashierPermissionType[] = [
   "PRICES",
@@ -29,11 +28,13 @@ export function CreateCashier() {
   const [permissions, setPermissions] = useState<CashierPermissionType[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setHasAttemptedSubmit(true)
     setError(null)
-    
+
     // Client-side validation
     if (name.length < 4) {
       setError("Name must be 4 or more characters")
@@ -47,12 +48,12 @@ export function CreateCashier() {
       permissions: permissions.map((perm) => ({ name: perm })),
     }
 
-
     try {
       await createCashier(formData)
       setName("")
       setAccessKey("")
       setPermissions([])
+      setHasAttemptedSubmit(false)
       alert("Cashier created successfully")
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
@@ -75,20 +76,19 @@ export function CreateCashier() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input 
-              id="name" 
-              value={name} 
+            <Input
+              id="name"
+              value={name}
               onChange={(e) => {
                 setName(e.target.value)
-                // Clear error when user starts typing
-                if (e.target.value.length >= 4 && error === "Name must be 4 or more characters") {
+                if (hasAttemptedSubmit && e.target.value.length >= 4) {
                   setError(null)
                 }
-              }} 
-              required 
-              disabled={isLoading} 
+              }}
+              required
+              disabled={isLoading}
             />
-            {name.length < 4 && (
+            {hasAttemptedSubmit && name.length < 4 && (
               <p className="text-sm text-red-500">Name must be 4 or more characters</p>
             )}
           </div>
@@ -129,3 +129,4 @@ export function CreateCashier() {
     </Card>
   )
 }
+
