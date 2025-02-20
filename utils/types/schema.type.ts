@@ -21,7 +21,6 @@ export const ProductTypeEnum = z.enum([
   "FIVE_KG",
   "PER_KILO",
   "GANTANG",
-  "SPECIAL_PRICE",
 ]);
 export type ProductType = z.infer<typeof ProductTypeEnum>;
 
@@ -109,7 +108,6 @@ export type Shift = z.infer<typeof ShiftSchema>;
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  minimumQty: z.number(),
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -126,6 +124,16 @@ export const PriceSchema = z.object({
   updatedAt: z.date(),
 });
 export type Price = z.infer<typeof PriceSchema>;
+
+export const SpecialPriceSchema = z.object({
+  id: z.string(),
+  specialPrice: z.number(),
+  minimumQty: z.number(),
+  priceId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+export type SpecialPrice = z.infer<typeof SpecialPriceSchema>
 
 export const ProfitSchema = z.object({
   id: z.string(),
@@ -152,6 +160,7 @@ export const SaleItemSchema = z.object({
   productId: z.string(),
   qty: z.number(),
   price: z.number(),
+  isSpecialPrice: z.boolean(),
   type: ProductTypeEnum,
   createdAt: z.date(),
   updatedAt: z.date(),

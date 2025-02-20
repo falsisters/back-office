@@ -21,7 +21,7 @@ export const editProduct = async (
       "Content-Type": "application/json",
     },
     method: "PUT",
-    body: JSON.stringify(formData),
+    body: JSON.stringify(formData.product),
     cache: "no-cache",
   });
 

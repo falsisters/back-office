@@ -4,28 +4,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2 } from "lucide-react"
-import type { Price, ProductType, Profit } from "../../utils/types/schema.type"
+import type { ProductType } from "../../utils/types/schema.type"
+import type { EditProductFormData } from "../../utils/types/editProduct.type"
 
 interface PriceVariantsProps {
-  prices: Array<
-    Omit<Price, "id" | "createdAt" | "updatedAt" | "productId"> & {
-      profit: Omit<Profit, "id" | "createdAt" | "updatedAt" | "priceId">[]
-    }
-  >
-  setPrices: React.Dispatch<
-    React.SetStateAction<
-      Array<
-        Omit<Price, "id" | "createdAt" | "updatedAt" | "productId"> & {
-          profit: Omit<Profit, "id" | "createdAt" | "updatedAt" | "priceId">[]
-        }
-      >
-    >
-  >
+  prices: EditProductFormData["product"]["price"]
+  setPrices: React.Dispatch<React.SetStateAction<EditProductFormData["product"]["price"]>>
 }
 
 export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
   const handleAddPriceVariant = () => {
-    setPrices([...prices, { price: 0, stock: 0, type: "FIFTY_KG", profit: [{ profit: 0 }] }])
+    setPrices([...prices, { price: 0, stock: 0, type: "FIFTY_KG", profit: [], specialPrice: [] }])
   }
 
   const handleRemovePriceVariant = (index: number) => {
@@ -41,16 +30,28 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
   }
 
   const handleRemoveProfit = (priceIndex: number, profitIndex: number) => {
-    if (prices[priceIndex].profit.length > 1) {
-      const updatedPrices = [...prices]
-      updatedPrices[priceIndex].profit = updatedPrices[priceIndex].profit.filter((_, i) => i !== profitIndex)
-      setPrices(updatedPrices)
-    }
+    const updatedPrices = [...prices]
+    updatedPrices[priceIndex].profit = updatedPrices[priceIndex].profit.filter((_, i) => i !== profitIndex)
+    setPrices(updatedPrices)
+  }
+
+  const handleAddSpecialPrice = (priceIndex: number) => {
+    const updatedPrices = [...prices]
+    updatedPrices[priceIndex].specialPrice.push({ specialPrice: 0, minimumQty: 1 })
+    setPrices(updatedPrices)
+  }
+
+  const handleRemoveSpecialPrice = (priceIndex: number, specialPriceIndex: number) => {
+    const updatedPrices = [...prices]
+    updatedPrices[priceIndex].specialPrice = updatedPrices[priceIndex].specialPrice.filter(
+      (_, i) => i !== specialPriceIndex,
+    )
+    setPrices(updatedPrices)
   }
 
   const handlePriceChange = (
     index: number,
-    field: keyof Omit<Price, "id" | "createdAt" | "updatedAt" | "productId">,
+    field: keyof Omit<(typeof prices)[0], "profit" | "specialPrice">,
     value: string | number | ProductType,
   ) => {
     const updatedPrices = [...prices]
@@ -64,6 +65,17 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
   const handleProfitChange = (priceIndex: number, profitIndex: number, value: number) => {
     const updatedPrices = [...prices]
     updatedPrices[priceIndex].profit[profitIndex].profit = value
+    setPrices(updatedPrices)
+  }
+
+  const handleSpecialPriceChange = (
+    priceIndex: number,
+    specialPriceIndex: number,
+    field: "specialPrice" | "minimumQty",
+    value: number,
+  ) => {
+    const updatedPrices = [...prices]
+    updatedPrices[priceIndex].specialPrice[specialPriceIndex][field] = value
     setPrices(updatedPrices)
   }
 
@@ -105,7 +117,6 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                       <SelectItem value="FIVE_KG">5 KG</SelectItem>
                       <SelectItem value="PER_KILO">Per Kilo</SelectItem>
                       <SelectItem value="GANTANG">Gantang</SelectItem>
-                      <SelectItem value="SPECIAL_PRICE">Special Price</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -156,11 +167,50 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                         className="flex-1"
                       />
 
-                      {price.profit.length > 1 && (
-                        <Button variant="ghost" size="sm" onClick={() => handleRemoveProfit(priceIndex, profitIndex)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveProfit(priceIndex, profitIndex)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Special Price Section */}
+              <div className="mt-4 border-t pt-3">
+                <div className="flex justify-between items-center mb-2">
+                  <h5 className="text-sm font-medium">Special Prices</h5>
+                  <Button variant="ghost" size="sm" onClick={() => handleAddSpecialPrice(priceIndex)}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Special Price
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {price.specialPrice.map((sp, spIndex) => (
+                    <div key={spIndex} className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={sp.specialPrice}
+                        onChange={(e) =>
+                          handleSpecialPriceChange(priceIndex, spIndex, "specialPrice", Number(e.target.value))
+                        }
+                        min="0"
+                        step="0.01"
+                        placeholder="Special price"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={sp.minimumQty}
+                        onChange={(e) =>
+                          handleSpecialPriceChange(priceIndex, spIndex, "minimumQty", Number(e.target.value))
+                        }
+                        min="1"
+                        placeholder="Min. quantity"
+                        className="flex-1"
+                      />
+                      <Button variant="ghost" size="sm" onClick={() => handleRemoveSpecialPrice(priceIndex, spIndex)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                     </div>
                   ))}
                 </div>

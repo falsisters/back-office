@@ -1,11 +1,8 @@
-import type { Price, ProductType, Profit } from "../../utils/types/schema.type"
+import type { ProductType } from "../../utils/types/schema.type"
+import type { EditProductFormData } from "../../utils/types/editProduct.type"
 
 interface PriceSummaryProps {
-  prices: Array<
-    Omit<Price, "id" | "createdAt" | "updatedAt" | "productId"> & {
-      profit: Omit<Profit, "id" | "createdAt" | "updatedAt" | "priceId">[]
-    }
-  >
+  prices: EditProductFormData["product"]["price"]
 }
 
 export function PriceSummary({ prices }: PriceSummaryProps) {
@@ -21,8 +18,6 @@ export function PriceSummary({ prices }: PriceSummaryProps) {
         return "Per Kilo"
       case "GANTANG":
         return "Gantang"
-      case "SPECIAL_PRICE":
-        return "Special Price"
       default:
         return type
     }
@@ -38,10 +33,10 @@ export function PriceSummary({ prices }: PriceSummaryProps) {
               .filter((p) => p.price > 0)
               .map((p, i) => (
                 <li key={i}>
-                  {formatPriceType(p.type)}: Pesos{p.price.toFixed(2)} (Stock: {p.stock})
-                  {p.profit.length > 0 &&
-                    p.profit[0].profit > 0 &&
-                    ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
+                  {formatPriceType(p.type)}: Php{p.price.toFixed(2)} (Stock: {p.stock})
+                  {p.profit.length > 0 && ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
+                  {p.specialPrice.length > 0 &&
+                    ` and ${p.specialPrice.length} special price${p.specialPrice.length > 1 ? "s" : ""}`}
                 </li>
               ))}
           </ul>

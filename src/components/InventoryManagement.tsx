@@ -10,10 +10,10 @@ import { editProduct } from "@/lib/server/editProduct";
 import { deleteProduct } from "@/lib/server/deleteProduct";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import type { CreateProductFormData } from "../../utils/types/createProduct.type";
+import type { EditProductFormData } from "../../utils/types/editProduct.type";
 
 export function InventoryManagement() {
-  const [products, setProducts] = useState<(Product & { prices?: Price[] })[]>(
+  const [products, setProducts] = useState<(Product & { Price?: Price[] })[]>(
     []
   );
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,59 +40,30 @@ export function InventoryManagement() {
   const filteredProducts = products.filter(
     (product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.prices?.some((p) =>
+      product.Price?.some((p) =>
         p.type.toLowerCase().includes(searchTerm.toLowerCase())
       )
   );
 
-
-  const handleAddProductPrice = async (
-    productId: string,
-    newPrice: Omit<Price, "id" | "createdAt" | "updatedAt">
-  ) => {
+  const handleUpdateProduct = async (updatedProduct: Product & { Price?: Price[] }) => {
     try {
-      const productToUpdate = products.find((p) => p.id === productId);
-      if (!productToUpdate) throw new Error("Product not found");
-
-      const formData: CreateProductFormData = {
+      const productData: EditProductFormData = {
         product: {
-          name: productToUpdate.name,
-          minimumQty: productToUpdate.minimumQty,
-          price: [
-            ...(productToUpdate.prices || []).map((p) => ({
-              price: p.price,
-              type: p.type,
-              stock: p.stock,
-              profit: [],
-            })),
-            {
-              price: newPrice.price,
-              type: newPrice.type,
-              stock: newPrice.stock,
-              profit: [],
-            },
-          ],
-        },
+          name: updatedProduct.name,
+          price: updatedProduct.Price?.map(p => ({
+            price: p.price,
+            stock: p.stock,
+            type: p.type,
+            profit: p.Profit?.map((pr: { profit: unknown; }) => ({ profit: pr.profit })) || [],
+            specialPrice: p.SpecialPrice?.map((sp: { specialPrice: unknown; minimumQty: unknown; }) => ({ 
+              specialPrice: sp.specialPrice, 
+              minimumQty: sp.minimumQty 
+            })) || []
+          })) || []
+        }
       };
-
-      const updatedProduct = await editProduct(productId, formData);
-      setProducts((prevProducts) =>
-        prevProducts.map((product) =>
-          product.id === productId ? updatedProduct : product
-        )
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to add product price"
-      );
-    }
-  };
-
-  const handleUpdateProduct = async (updatedProduct: Product) => {
-    try {
-      const updated = await editProduct(updatedProduct.id, {
-        product: updatedProduct,
-      });
+      
+      const updated = await editProduct(updatedProduct.id, productData);
       setProducts(
         products.map((product) =>
           product.id === updated.id ? updated : product
@@ -126,8 +97,8 @@ export function InventoryManagement() {
       <div className="flex items-center justify-between">
         <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         <CreateProduct onProductCreated={(product) => {
-  setProducts((prevProducts) => [...prevProducts, product]);
-}} />
+          setProducts((prevProducts) => [...prevProducts, product]);
+        }} />
       </div>
       <ItemTable
         items={filteredProducts}
