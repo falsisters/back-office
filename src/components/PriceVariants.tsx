@@ -5,16 +5,31 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2 } from "lucide-react"
 import type { ProductType } from "../../utils/types/schema.type"
-import type { EditProductFormData } from "../../utils/types/editProduct.type"
 
 interface PriceVariantsProps {
-  prices: EditProductFormData["product"]["price"]
-  setPrices: React.Dispatch<React.SetStateAction<EditProductFormData["product"]["price"]>>
+  prices: Array<{
+    price: number
+    stock: number
+    type: ProductType
+    profit: Array<{ profit: number }>
+    specialPrice: Array<{ specialPrice: number; minimumQty: number }>
+  }>
+  setPrices: React.Dispatch<
+    React.SetStateAction<
+      Array<{
+        price: number
+        stock: number
+        type: ProductType
+        profit: Array<{ profit: number }>
+        specialPrice: Array<{ specialPrice: number; minimumQty: number }>
+      }>
+    >
+  >
 }
 
 export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
   const handleAddPriceVariant = () => {
-    setPrices([...prices, { price: 0, stock: 0, type: "FIFTY_KG", profit: [], specialPrice: [] }])
+    setPrices([...prices, { price: 0, stock: 0, type: "FIFTY_KG", profit: [{ profit: 0 }], specialPrice: [] }])
   }
 
   const handleRemovePriceVariant = (index: number) => {
@@ -30,9 +45,11 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
   }
 
   const handleRemoveProfit = (priceIndex: number, profitIndex: number) => {
-    const updatedPrices = [...prices]
-    updatedPrices[priceIndex].profit = updatedPrices[priceIndex].profit.filter((_, i) => i !== profitIndex)
-    setPrices(updatedPrices)
+    if (prices[priceIndex].profit.length > 1) {
+      const updatedPrices = [...prices]
+      updatedPrices[priceIndex].profit = updatedPrices[priceIndex].profit.filter((_, i) => i !== profitIndex)
+      setPrices(updatedPrices)
+    }
   }
 
   const handleAddSpecialPrice = (priceIndex: number) => {
@@ -167,9 +184,11 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                         className="flex-1"
                       />
 
-                      <Button variant="ghost" size="sm" onClick={() => handleRemoveProfit(priceIndex, profitIndex)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      {price.profit.length > 1 && (
+                        <Button variant="ghost" size="sm" onClick={() => handleRemoveProfit(priceIndex, profitIndex)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -187,6 +206,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                 <div className="space-y-2">
                   {price.specialPrice.map((sp, spIndex) => (
                     <div key={spIndex} className="flex items-center gap-2">
+                      <label className="text-sm">Special Price:</label>
                       <Input
                         type="number"
                         value={sp.specialPrice}
@@ -198,6 +218,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                         placeholder="Special price"
                         className="flex-1"
                       />
+                      <label className="text-sm">Minimun Qu:</label>
                       <Input
                         type="number"
                         value={sp.minimumQty}

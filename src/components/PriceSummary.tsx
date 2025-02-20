@@ -1,8 +1,13 @@
 import type { ProductType } from "../../utils/types/schema.type"
-import type { EditProductFormData } from "../../utils/types/editProduct.type"
 
 interface PriceSummaryProps {
-  prices: EditProductFormData["product"]["price"]
+  prices: Array<{
+    price: number
+    stock: number
+    type: ProductType
+    specialPrice: Array<{ specialPrice: number; minimumQty: number }>
+    profit: Array<{ profit: number }>
+  }>
 }
 
 export function PriceSummary({ prices }: PriceSummaryProps) {
@@ -33,7 +38,7 @@ export function PriceSummary({ prices }: PriceSummaryProps) {
               .filter((p) => p.price > 0)
               .map((p, i) => (
                 <li key={i}>
-                  {formatPriceType(p.type)}: Php{p.price.toFixed(2)} (Stock: {p.stock})
+                  {formatPriceType(p.type)}: Pesos{p.price.toFixed(2)} (Stock: {p.stock})
                   {p.profit.length > 0 && ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
                   {p.specialPrice.length > 0 &&
                     ` and ${p.specialPrice.length} special price${p.specialPrice.length > 1 ? "s" : ""}`}
