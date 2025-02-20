@@ -26,14 +26,14 @@ export function DeliveryItem({ delivery }: DeliveryItemProps) {
             </p>
           </div>
           <div>
-            <p>
+            <div>
               <strong>Status:</strong>{" "}
               {delivery.isFinished ? (
                 <Badge variant="default">Finished</Badge>
               ) : (
                 <Badge variant="destructive">In Progress</Badge>
               )}
-            </p>
+            </div>
             <p>
               <strong>Created:</strong> {new Date(delivery.createdAt).toLocaleString()}
             </p>
