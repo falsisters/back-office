@@ -11,7 +11,6 @@ import { toast } from "@/hooks/use-toast"
 import { BasicProductInfo } from "@/components/BasicProductInfo"
 import { PriceVariants } from "@/components/PriceVariants"
 import { PriceSummary } from "@/components/PriceSummary"
-import type { EditProductFormData } from "../../utils/types/editProduct.type"
 
 interface EditProductProps {
   product: Product & { Price?: Price[] }
@@ -25,23 +24,16 @@ export function EditProduct({ product, onProductUpdated, trigger }: EditProductP
     name: product.name,
   })
 
-    const [prices, setPrices] = useState<
-      Array<{
-        price: number
-        stock: number
-        type: ProductType
-        specialPrice: Array<{ specialPrice: number; minimumQty: number }>
-        profit: Array<{ profit: number }>
-      }>
-    >([
-      {
-        price: 0,
-        stock: 0,
-        type: "FIFTY_KG",
-        specialPrice: [],
-        profit: [],
-      },
-    ])
+  const [prices, setPrices] = useState<
+    Array<{
+      id?: string
+      price: number
+      stock: number
+      type: ProductType
+      specialPrice: Array<{ specialPrice: number; minimumQty: number }>
+      profit: Array<{ profit: number }>
+    }>
+  >([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string>("")
   const [open, setOpen] = useState(false)
@@ -50,25 +42,28 @@ export function EditProduct({ product, onProductUpdated, trigger }: EditProductP
   useEffect(() => {
     if (open && product.Price) {
       const initialPrices = product.Price.map((price) => ({
+        id: price.id,
         price: price.price,
         stock: price.stock,
         type: price.type,
-        profit: price.profit,
-        specialPrice: price.specialPrice,
-      }))
-
+        profit: price.Profit ? price.Profit.map((p) => ({ profit: p.profit })) : [{ profit: 0 }],
+        specialPrice: price.SpecialPrice
+          ? price.SpecialPrice.map((sp) => ({ specialPrice: sp.specialPrice, minimumQty: sp.minimumQty }))
+          : [],
+      }));
+  
       setPrices(
         initialPrices.length > 0
           ? initialPrices
           : [{ price: 0, stock: 0, type: "FIFTY_KG", profit: [{ profit: 0 }], specialPrice: [] }],
-      )
-
+      );
+  
       setEditedProduct({
         id: product.id,
         name: product.name,
-      })
+      });
     }
-  }, [open, product])
+  }, [open, product]);
 
   const handleInputChange = (field: "name", value: string) => {
     setEditedProduct((prev) => ({ ...prev, [field]: value }))
@@ -86,6 +81,7 @@ export function EditProduct({ product, onProductUpdated, trigger }: EditProductP
         return
       }
 
+      // Validate prices
       for (let i = 0; i < prices.length; i++) {
         if (prices[i].price <= 0) {
           setError(`Price for variant #${i + 1} must be greater than 0`)
@@ -99,11 +95,18 @@ export function EditProduct({ product, onProductUpdated, trigger }: EditProductP
         }
       }
 
-      const productData: EditProductFormData = {
+      const productData = {
         product: {
           name: trimmedName,
-          price: prices,
-        }
+          price: prices.map((price) => ({
+            id: price.id,
+            price: price.price,
+            stock: price.stock,
+            type: price.type,
+            profit: price.profit,
+            specialPrice: price.specialPrice,
+          })),
+        },
       }
 
       const updatedProduct = await editProduct(product.id, productData)

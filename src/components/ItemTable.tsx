@@ -1,8 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -10,51 +17,55 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import EditProduct from "./EditProduct"
-import type { Product, Price } from "../../utils/types/schema.type"
+} from "@/components/ui/dialog";
+import EditProduct from "./EditProduct";
+import type { Product, Price } from "../../utils/types/schema.type";
 
 interface ItemTableProps {
-  items: (Product & { Price?: Price[] })[]
-  onUpdateItem: (item: Product & { Price?: Price[] }) => void
-  onDeleteItem: (id: string) => void
+  items: (Product & { Price?: Price[] })[];
+  onUpdateItem: (item: Product & { Price?: Price[] }) => void;
+  onDeleteItem: (id: string) => void;
 }
 
-export function ItemTable({ items, onUpdateItem, onDeleteItem }: ItemTableProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [productToDelete, setProductToDelete] = useState<string | null>(null)
+export function ItemTable({
+  items,
+  onUpdateItem,
+  onDeleteItem,
+}: ItemTableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   const formatPriceType = (type: string) => {
     switch (type) {
       case "FIFTY_KG":
-        return "50 KG"
+        return "50 KG";
       case "TWENTY_FIVE_KG":
-        return "25 KG"
+        return "25 KG";
       case "FIVE_KG":
-        return "5 KG"
+        return "5 KG";
       case "PER_KILO":
-        return "Per Kilo"
+        return "Per Kilo";
       case "GANTANG":
-        return "Gantang"
+        return "Gantang";
       case "SPECIAL_PRICE":
-        return "Special Price"
+        return "Special Price";
       default:
-        return type
+        return type;
     }
-  }
+  };
 
   const handleDeleteClick = (id: string) => {
-    setProductToDelete(id)
-    setDeleteDialogOpen(true)
-  }
+    setProductToDelete(id);
+    setDeleteDialogOpen(true);
+  };
 
   const handleConfirmDelete = () => {
     if (productToDelete) {
-      onDeleteItem(productToDelete)
-      setDeleteDialogOpen(false)
-      setProductToDelete(null)
+      onDeleteItem(productToDelete);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
     }
-  }
+  };
 
   return (
     <>
@@ -76,12 +87,15 @@ export function ItemTable({ items, onUpdateItem, onDeleteItem }: ItemTableProps)
                     <div className="space-y-1">
                       {item.Price.map((p) => (
                         <div key={p.id} className="text-sm">
-                          {formatPriceType(p.type)}: Php{p.price.toFixed(2)} (Stock: {p.stock})
+                          {formatPriceType(p.type)}: Php{p.price.toFixed(2)}{" "}
+                          (Stock: {p.stock})
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">No prices set</span>
+                    <span className="text-sm text-muted-foreground">
+                      No prices set
+                    </span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -95,7 +109,11 @@ export function ItemTable({ items, onUpdateItem, onDeleteItem }: ItemTableProps)
                         </Button>
                       }
                     />
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(item.id)}>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteClick(item.id)}
+                    >
                       Delete
                     </Button>
                   </div>
@@ -118,11 +136,15 @@ export function ItemTable({ items, onUpdateItem, onDeleteItem }: ItemTableProps)
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this product? This action cannot be undone.
+              Are you sure you want to delete this product? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleConfirmDelete}>
@@ -132,8 +154,7 @@ export function ItemTable({ items, onUpdateItem, onDeleteItem }: ItemTableProps)
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
 
-export default ItemTable
-
+export default ItemTable;

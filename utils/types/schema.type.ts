@@ -114,16 +114,6 @@ export const ProductSchema = z.object({
 });
 export type Product = z.infer<typeof ProductSchema>;
 
-export const PriceSchema = z.object({
-  id: z.string(),
-  price: z.number(),
-  stock: z.number(),
-  type: ProductTypeEnum,
-  productId: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-export type Price = z.infer<typeof PriceSchema>;
 
 export const SpecialPriceSchema = z.object({
   id: z.string(),
@@ -143,6 +133,19 @@ export const ProfitSchema = z.object({
   updatedAt: z.date(),
 });
 export type Profit = z.infer<typeof ProfitSchema>;
+
+export const PriceSchema = z.object({
+  id: z.string(),
+  price: z.number(),
+  stock: z.number(),
+  type: ProductTypeEnum,
+  productId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  Profit: z.array(ProfitSchema), 
+  SpecialPrice: z.array(SpecialPriceSchema),
+});
+export type Price = z.infer<typeof PriceSchema>;
 
 export const SaleSchema = z.object({
   id: z.string(),

@@ -5,8 +5,8 @@ interface PriceSummaryProps {
     price: number
     stock: number
     type: ProductType
-    specialPrice: Array<{ specialPrice: number; minimumQty: number }>
     profit: Array<{ profit: number }>
+    specialPrice: Array<{ specialPrice: number; minimumQty: number }>
   }>
 }
 
@@ -39,7 +39,9 @@ export function PriceSummary({ prices }: PriceSummaryProps) {
               .map((p, i) => (
                 <li key={i}>
                   {formatPriceType(p.type)}: Pesos{p.price.toFixed(2)} (Stock: {p.stock})
-                  {p.profit.length > 0 && ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
+                  {p.profit.length > 0 &&
+                    p.profit[0].profit > 0 &&
+                    ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
                   {p.specialPrice.length > 0 &&
                     ` and ${p.specialPrice.length} special price${p.specialPrice.length > 1 ? "s" : ""}`}
                 </li>

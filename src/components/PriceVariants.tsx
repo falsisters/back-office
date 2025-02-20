@@ -218,7 +218,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                         placeholder="Special price"
                         className="flex-1"
                       />
-                      <label className="text-sm">Minimun Qu:</label>
+                      <label className="text-sm">Minimun Quantity:</label>
                       <Input
                         type="number"
                         value={sp.minimumQty}
