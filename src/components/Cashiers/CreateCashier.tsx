@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { createCashier } from "@/lib/server/createCashier"
-import type { CreateCashierFormData } from "../../utils/types/createCashier.type"
+import type { CreateCashierFormData } from "../../../utils/types/createCashier.type"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { CashierPermissionType } from "../../utils/types/schema.type"
+import type { CashierPermissionType } from "../../../utils/types/schema.type"
 
 const permissionTypes: CashierPermissionType[] = [
   "PRICES",

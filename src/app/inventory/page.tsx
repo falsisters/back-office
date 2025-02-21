@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { InventoryManagement } from "@/components/InventoryManagement"
+import { InventoryManagement } from "@/components/Products/InventoryManagement"
 import { getUserData } from "@/lib/server/getUserData"
 import { redirect } from "next/navigation"
 
@@ -10,12 +10,11 @@ export default async function Inventory() {
   try {
     userData = await getUserData();
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
+    if (!userData) {
       redirect("/");
     }
-    throw error;
+    console.error(error, "Unauthorized");
   }
-  const user = {id: userData.id}
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">

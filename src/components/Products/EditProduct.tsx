@@ -5,12 +5,12 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { Product, Price, ProductType } from "../../utils/types/schema.type"
+import type { Product, Price, ProductType } from "../../../utils/types/schema.type"
 import { editProduct } from "@/lib/server/editProduct"
 import { toast } from "@/hooks/use-toast"
-import { BasicProductInfo } from "@/components/BasicProductInfo"
-import { PriceVariants } from "@/components/PriceVariants"
-import { PriceSummary } from "@/components/PriceSummary"
+import { BasicProductInfo } from "@/components/Products/BasicProductInfo"
+import { PriceVariants } from "@/components/Products/PriceVariants"
+import { PriceSummary } from "@/components/Products/PriceSummary"
 
 interface EditProductProps {
   product: Product & { Price?: Price[] }

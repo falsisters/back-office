@@ -54,6 +54,7 @@ export const BillEnum = z.enum([
 ]);
 export type Bill = z.infer<typeof BillEnum>;
 
+
 // Models
 export const UserSchema = z.object({
   id: z.string(),
@@ -105,13 +106,22 @@ export const ShiftSchema = z.object({
 });
 export type Shift = z.infer<typeof ShiftSchema>;
 
+export const UploadSchema = z.object({
+  fileName: z.string(),
+  path: z.string(),
+  file: z.instanceof(File).optional(), 
+});
+export type Upload = z.infer<typeof UploadSchema>;
+
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
+  picture: z.array(UploadSchema),
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
+
 export type Product = z.infer<typeof ProductSchema>;
 
 

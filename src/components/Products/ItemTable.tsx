@@ -19,7 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import EditProduct from "./EditProduct";
-import type { Product, Price } from "../../utils/types/schema.type";
+import type { Product, Price } from "../../../utils/types/schema.type";
 
 interface ItemTableProps {
   items: (Product & { Price?: Price[] })[];

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { SearchBar } from "@/components/SearchBar";
-import CreateProduct from "@/components/CreateProduct";
-import { ItemTable } from "@/components/ItemTable";
-import type { Product, Price } from "../../utils/types/schema.type";
+import CreateProduct from "@/components/Products/CreateProduct";
+import { ItemTable } from "@/components/Products/ItemTable";
+import type { Product, Price } from "../../../utils/types/schema.type";
 import { getAllProductsByUserId } from "@/lib/server/getAllProductsByUserId";
 import { editProduct } from "@/lib/server/editProduct";
 import { deleteProduct } from "@/lib/server/deleteProduct";

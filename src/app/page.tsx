@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { redirect } from "next/navigation"
 
 export default async function Home() {
-  let userData
+  let userData;
   try {
-    userData = await getUserData()
+    userData = await getUserData();
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
-      redirect("/login")
+    if (!userData) {
+      redirect("/login");
     }
-    throw error
+    console.error(error, "Unauthorized");
   }
   const user = { name: userData.name }
 

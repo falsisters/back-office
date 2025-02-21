@@ -1,20 +1,17 @@
-import LoginForm from "@/components/LoginForm";
+import LoginForm from "@/components/Login/LoginForm";
 import { getUserData } from "@/lib/server/getUserData";
 import { redirect } from "next/navigation";
 
 export default async function LoginPage () {
+  let userData;
   try {
-    const userData = await getUserData();
-    if (userData) {
-      redirect('/');
-    }
+    userData = await getUserData();
   } catch (error) {
-    if (!(error instanceof Error && error.message === "Unauthorized")) {
-      throw error;
+    if (userData) {
+      redirect("/");
     }
+    console.error(error, "Unauthorized");
   }
-
-
   return (
     <LoginForm />
   )

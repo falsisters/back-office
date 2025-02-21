@@ -1,5 +1,5 @@
 import { getAllDeliveriesByUserId } from "@/lib/server/getAllDeliveriesByUserId"
-import { DeliveryItem } from "@/components/DeliveryItem"
+import { DeliveryItem } from "@/components/Deliveries/DeliveryItem"
 
 export async function DeliveryList() {
   const deliveries = await getAllDeliveriesByUserId()

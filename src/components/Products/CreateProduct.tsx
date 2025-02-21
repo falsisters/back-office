@@ -4,12 +4,12 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { Product, Price, ProductType } from "../../utils/types/schema.type"
+import type { Product, Price, ProductType } from "../../../utils/types/schema.type"
 import { createProduct } from "@/lib/server/createProduct"
 import { toast } from "@/hooks/use-toast"
-import { BasicProductInfo } from "./BasicProductInfo"
-import { PriceVariants } from "./PriceVariants"
-import { PriceSummary } from "./PriceSummary"
+import { BasicProductInfo } from "@/components/Products/BasicProductInfo"
+import { PriceVariants } from "@/components/Products/PriceVariants"
+import { PriceSummary } from "@/components/Products/PriceSummary"
 
 interface CreateProductProps {
   onProductCreated?: (product: Product & { Price?: Price[] }) => void

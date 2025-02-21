@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { Delivery, DeliveryItem as DeliveryItemType } from "../../utils/types/schema.type"
+import type { Delivery, DeliveryItem as DeliveryItemType } from "../../../utils/types/schema.type"
 
 interface DeliveryItemProps {
   delivery: Delivery & { items: (DeliveryItemType & { product: { name: string } })[]; cashier: { name: string } }
@@ -29,9 +29,9 @@ export function DeliveryItem({ delivery }: DeliveryItemProps) {
             <div>
               <strong>Status:</strong>{" "}
               {delivery.isFinished ? (
-                <Badge variant="default">Finished</Badge>
+                <Badge className="bg-red-500" >Finished</Badge>
               ) : (
-                <Badge variant="destructive">In Progress</Badge>
+                <Badge className="bg-blue-500">In Progress</Badge>
               )}
             </div>
             <p>
