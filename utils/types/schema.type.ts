@@ -116,7 +116,7 @@ export type Upload = z.infer<typeof UploadSchema>;
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  picture: z.array(UploadSchema),
+  picture: z.string().nullable(),
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),

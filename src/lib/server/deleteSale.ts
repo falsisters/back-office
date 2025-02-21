@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { NestApiError } from "../../../utils/types/error.type";
 
-export const deleteProduct = async (id: string) => {
+export const deleteSale = async (id: string) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 

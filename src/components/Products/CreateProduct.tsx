@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast"
 import { BasicProductInfo } from "@/components/Products/BasicProductInfo"
 import { PriceVariants } from "@/components/Products/PriceVariants"
 import { PriceSummary } from "@/components/Products/PriceSummary"
+import { UploadImage } from "@/components/Products/UploadImage"
 
 interface CreateProductProps {
   onProductCreated?: (product: Product & { Price?: Price[] }) => void
@@ -19,7 +20,7 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
   const [newProduct, setNewProduct] = useState<{ name: string }>({
     name: "",
   })
-
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [prices, setPrices] = useState<
     Array<{
       price: number
@@ -47,64 +48,59 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
 
   const handleSubmit = async () => {
     try {
-      setError("")
-      setSubmitting(true)
-
-      const trimmedName = newProduct.name.trim()
+      setError("");
+      setSubmitting(true);
+  
+      const trimmedName = newProduct.name.trim();
       if (!trimmedName) {
-        setError("Product name is required")
-        setSubmitting(false)
-        return
+        setError("Product name is required");
+        setSubmitting(false);
+        return;
       }
+  
       for (let i = 0; i < prices.length; i++) {
         if (prices[i].price <= 0) {
-          setError(`Price for variant #${i + 1} must be greater than 0`)
-          setSubmitting(false)
-          return
+          setError(`Price for variant #${i + 1} must be greater than 0`);
+          setSubmitting(false);
+          return;
         }
         if (prices[i].stock < 0) {
-          setError(`Stock for variant #${i + 1} cannot be negative`)
-          setSubmitting(false)
-          return
+          setError(`Stock for variant #${i + 1} cannot be negative`);
+          setSubmitting(false);
+          return;
         }
       }
-
-      const productData = {
-        product: {
-          name: trimmedName,
-          price: prices.map((price) => ({
-            price: price.price,
-            stock: price.stock,
-            type: price.type,
-            profit: price.profit,
-            specialPrice: price.specialPrice,
-          })),
-        },
+      const formData = new FormData();
+      formData.append("name", trimmedName);
+      formData.append("price", JSON.stringify(prices));
+  
+      if (selectedImage) {
+        formData.append("picture", selectedImage);
       }
-
-      const createdProduct = await createProduct(productData)
-
+  
+      const createdProduct = await createProduct(formData);
+  
       if (onProductCreated) {
-        onProductCreated(createdProduct)
+        onProductCreated(createdProduct);
       }
-
+  
       toast({
         title: "Product created successfully",
         description: `Added ${trimmedName} with ${prices.length} price variants`,
-      })
-
-      setNewProduct({ name: "" })
-      setPrices([{ price: 0, stock: 0, type: "FIFTY_KG", specialPrice: [], profit: [] }])
-
-      closeRef.current?.click()
+      });
+  
+      setNewProduct({ name: "" });
+      setPrices([{ price: 0, stock: 0, type: "FIFTY_KG", specialPrice: [], profit: [] }]);
+      setSelectedImage(null);
+  
+      closeRef.current?.click();
     } catch (err) {
-      console.error("Error creating product:", err)
-      setError(err instanceof Error ? err.message : "Failed to create product")
+      console.error("Error creating product:", err);
+      setError(err instanceof Error ? err.message : "Failed to create product");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
-
+  };
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -123,6 +119,7 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
 
         <div className="space-y-6">
           <BasicProductInfo product={newProduct} handleInputChange={handleInputChange} />
+          <UploadImage onFileChange={setSelectedImage} required />
           <PriceVariants prices={prices} setPrices={setPrices} />
           <PriceSummary prices={prices} />
         </div>

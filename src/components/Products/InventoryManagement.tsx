@@ -9,7 +9,6 @@ import { getAllProductsByUserId } from "@/lib/server/getAllProductsByUserId";
 import { editProduct } from "@/lib/server/editProduct";
 import { deleteProduct } from "@/lib/server/deleteProduct";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
 
 export function InventoryManagement() {
   const [products, setProducts] = useState<(Product & { Price?: Price[] })[]>([]);
@@ -78,7 +77,11 @@ export function InventoryManagement() {
   };
 
   if (isLoading) {
-    return <Spinner />;
+    <div className="fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50">
+    <div className="p-8 rounded-lg flex flex-col items-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-black"></div>
+    </div>
+  </div>
   }
 
   return (

@@ -1,55 +1,75 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import Image from "next/image"
 
-interface ImageUploadProps {
-  onImageSelected: (file: File) => void
-  currentImageUrl?: string
+interface UploadImageProps {
+  onFileChange: (file: File) => void
+  initialPreview?: string
+  required?: boolean
 }
 
-export function UploadImage({ onImageSelected, currentImageUrl }: ImageUploadProps) {
-  const [preview, setPreview] = useState<string | null>(currentImageUrl || null)
+export function UploadImage({ onFileChange, initialPreview, required }: UploadImageProps) {
+  const [preview, setPreview] = useState<string | null>(initialPreview || null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      onImageSelected(file)
       const reader = new FileReader()
-      reader.onloadend = () => {
+      reader.onload = () => {
         setPreview(reader.result as string)
+        onFileChange(file)
       }
       reader.readAsDataURL(file)
     }
-  }
+  }, [onFileChange])
+
+  const handleRemove = useCallback(() => {
+    setPreview(null)
+    if (inputRef.current) {
+      inputRef.current.value = ""
+    }
+  }, [])
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => document.getElementById("product-image")?.click()}
-        >
-          Select Image
-        </Button>
-        <input
-          type="file"
-          id="product-image"
-          className="hidden"
-          accept="image/*"
-          onChange={handleFileChange}
-        />
-      </div>
-      {preview && (
-        <div className="relative w-40 h-40">
+      {preview ? (
+        <div className="relative group">
           <Image
             src={preview}
-            alt="Product preview"
-            fill
-            className="object-cover rounded-md"
+            alt="Image Preview"
+            width={200} height={150} 
+            className="rounded-lg object-cover w-full h-48 border"
           />
+          <Button
+            variant="destructive"
+            size="sm"
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={handleRemove}
+          >
+            Remove
+          </Button>
+        </div>
+      ) : (
+        <div className="border-2 border-dashed rounded-lg p-6 text-center">
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+            id="upload-image"
+            ref={inputRef}
+            required={required}
+          />
+          <label
+            htmlFor="upload-image"
+            className="cursor-pointer inline-block px-4 py-2 bg-secondary text-secondary-foreground rounded-md"
+          >
+            Choose an image
+          </label>
         </div>
       )}
     </div>
