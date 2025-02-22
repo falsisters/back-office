@@ -1,4 +1,4 @@
-import type { ProductType } from "../../../utils/parsers/productType.parser"
+import type { ProductType } from "../../../utils/types/schema.type"
 import { parseProductType } from "../../../utils/parsers/productType.parser"
 
 interface PriceSummaryProps {

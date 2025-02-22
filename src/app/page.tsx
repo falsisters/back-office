@@ -25,7 +25,7 @@ export default async function Home() {
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6 p-6">
           <h2 className="text-2xl font-semibold text-gray-700">Welcome, {user.name}</h2>
-          <Link href="/inventory" className="w-full">
+          <Link href="/products" className="w-full">
             <Button size="lg" variant="default" className="w-full">
               Manage Inventory
             </Button>

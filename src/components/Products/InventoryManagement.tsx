@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SearchBar } from "@/components/SearchBar";
-import CreateProduct from "@/components/Products/CreateProduct";
+import { CreateProduct } from "@/components/Products/CreateProduct";
 import { ItemTable } from "@/components/Products/ItemTable";
 import type { Product, Price } from "../../../utils/types/schema.type";
 import { getAllProductsByUserId } from "@/lib/server/getAllProductsByUserId";
