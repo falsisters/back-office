@@ -4,32 +4,28 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2 } from "lucide-react"
-import type { ProductType } from "../../../utils/types/schema.type"
+import type { Price, ProductType, Profit, SpecialPrice } from "../../../utils/types/schema.type"
+import { Dispatch, SetStateAction } from "react"
 
 interface PriceVariantsProps {
-  prices: Array<{
-    price: number
-    stock: number
-    type: ProductType
-    profit: Array<{ profit: number }>
-    specialPrice: Array<{ specialPrice: number; minimumQty: number }>
-  }>
-  setPrices: React.Dispatch<
-    React.SetStateAction<
-      Array<{
-        price: number
-        stock: number
-        type: ProductType
-        profit: Array<{ profit: number }>
-        specialPrice: Array<{ specialPrice: number; minimumQty: number }>
-      }>
-    >
-  >
+  prices: Price[]
+  setPrices: Dispatch<SetStateAction<Price[]>>
 }
 
 export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
   const handleAddPriceVariant = () => {
-    setPrices([...prices, { price: 0, stock: 0, type: "FIFTY_KG", profit: [{ profit: 0 }], specialPrice: [] }])
+    const newVariant: Price = {
+      id: `variant-${Date.now()}`,
+      price: 0,
+      stock: 0,
+      type: "FIFTY_KG",
+      productId: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      profit: [],
+      specialPrice: [],
+    }
+    setPrices([...prices, newVariant])
   }
 
   const handleRemovePriceVariant = (index: number) => {
@@ -40,7 +36,14 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
 
   const handleAddProfit = (priceIndex: number) => {
     const updatedPrices = [...prices]
-    updatedPrices[priceIndex].profit.push({ profit: 0 })
+    const newProfit: Profit = {
+      id: `profit-${Date.now()}`,
+      profit: 0,
+      priceId: updatedPrices[priceIndex].id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    updatedPrices[priceIndex].profit.push(newProfit)
     setPrices(updatedPrices)
   }
 
@@ -54,7 +57,15 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
 
   const handleAddSpecialPrice = (priceIndex: number) => {
     const updatedPrices = [...prices]
-    updatedPrices[priceIndex].specialPrice.push({ specialPrice: 0, minimumQty: 1 })
+    const newSpecialPrice: SpecialPrice = {
+      id: `specialPrice-${Date.now()}`,
+      specialPrice: 0,
+      minimumQty: 1,
+      priceId: updatedPrices[priceIndex].id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    updatedPrices[priceIndex].specialPrice.push(newSpecialPrice)
     setPrices(updatedPrices)
   }
 
@@ -68,7 +79,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
 
   const handlePriceChange = (
     index: number,
-    field: keyof Omit<(typeof prices)[0], "profit" | "specialPrice">,
+    field: keyof Omit<Price, "Profit" | "SpecialPrice" | "id" | "productId" | "createdAt" | "updatedAt">,
     value: string | number | ProductType,
   ) => {
     const updatedPrices = [...prices]
@@ -107,7 +118,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
 
       <div className="space-y-4">
         {prices.map((price, priceIndex) => (
-          <Card key={priceIndex}>
+          <Card key={price.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-sm font-medium">Variant #{priceIndex + 1}</h4>
@@ -173,7 +184,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
 
                 <div className="space-y-2">
                   {price.profit.map((profit, profitIndex) => (
-                    <div key={profitIndex} className="flex items-center gap-2">
+                    <div key={profit.id} className="flex items-center gap-2">
                       <Input
                         type="number"
                         value={profit.profit}
@@ -205,7 +216,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
 
                 <div className="space-y-2">
                   {price.specialPrice.map((sp, spIndex) => (
-                    <div key={spIndex} className="flex items-center gap-2">
+                    <div key={sp.id} className="flex items-center gap-2">
                       <label className="text-sm">Special Price:</label>
                       <Input
                         type="number"
@@ -218,7 +229,7 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
                         placeholder="Special price"
                         className="flex-1"
                       />
-                      <label className="text-sm">Minimun Quantity:</label>
+                      <label className="text-sm">Minimum Quantity:</label>
                       <Input
                         type="number"
                         value={sp.minimumQty}
@@ -243,4 +254,3 @@ export function PriceVariants({ prices, setPrices }: PriceVariantsProps) {
     </div>
   )
 }
-

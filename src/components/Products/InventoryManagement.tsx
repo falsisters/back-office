@@ -49,8 +49,8 @@ export function InventoryManagement() {
             price: price.price,
             stock: price.stock,
             type: price.type,
-            profit: price.Profit?.map((p) => ({ profit: p.profit })) || [],
-            specialPrice: price.SpecialPrice?.map((sp) => ({
+            profit: price.profit?.map((p) => ({ profit: p.profit })) || [],
+            specialPrice: price.specialPrice?.map((sp) => ({
               specialPrice: sp.specialPrice,
               minimumQty: sp.minimumQty,
             })) || [],

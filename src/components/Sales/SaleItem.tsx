@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { deleteSale } from "@/lib/server/deleteSale"
+import { parseProductType } from "../../../utils/parsers/productType.parser"
 import type { Sale, SaleItem as SaleItemType, Cashier, Product } from "../../../utils/types/schema.type"
 
 interface SaleItemProps {
@@ -45,38 +46,46 @@ export function SaleItem({ sale, onDelete }: SaleItemProps) {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Sale #{sale.id}</CardTitle>
-          <Button variant="destructive" onClick={handleDeleteClick}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-medium">Sale #{sale.id}</CardTitle>
+          <Button variant="destructive" size="sm" onClick={handleDeleteClick}>
             Delete
           </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p>
-                <strong>Total:</strong> ${sale.total.toFixed(2)}
-              </p>
-              <p>
-                <strong>Cashier:</strong> {sale.cashier.name}
-              </p>
-            </div>
-            <div>
-              <div>
-                <strong>Payment Method:</strong> <Badge>{sale.paymentMethod}</Badge>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="px-2 py-1">
+                  Total: ${sale.total.toFixed(2)}
+                </Badge>
               </div>
-              <p>
-                <strong>Date:</strong> {new Date(sale.createdAt).toLocaleString()}
-              </p>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="px-2 py-1">
+                  Cashier: {sale.cashier.name}
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="px-2 py-1">
+                  Payment Method: {sale.paymentMethod}
+                </Badge>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="px-2 py-1">
+                  Date: {new Date(sale.createdAt).toLocaleString()}
+                </Badge>
+              </div>
             </div>
           </div>
           <div className="mt-4">
-            <h3 className="font-semibold mb-2">Items:</h3>
-            <ul className="list-disc list-inside">
+            <h3 className="font-medium text-sm mb-2">Items:</h3>
+            <ul className="space-y-1">
               {sale.items.map((item) => (
-                <li key={item.id}>
-                  {item.product.name} - {item.qty} x ${item.price.toFixed(2)} ({item.type})
-                  {item.isSpecialPrice && <Badge className="ml-2 bg-green-500">Special Price</Badge>}
+                <li key={item.id} className="text-sm">
+                  {item.product.name} - {item.qty} x ${item.price.toFixed(2)} ({parseProductType(item.type)})
+                  {item.isSpecialPrice && <Badge className="ml-2">Special Price</Badge>}
                 </li>
               ))}
             </ul>

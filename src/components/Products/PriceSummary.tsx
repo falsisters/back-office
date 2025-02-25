@@ -1,18 +1,11 @@
-import type { ProductType } from "../../../utils/types/schema.type"
+import type { Price } from "../../../utils/types/schema.type"
 import { parseProductType } from "../../../utils/parsers/productType.parser"
 
 interface PriceSummaryProps {
-  prices: Array<{
-    price: number
-    stock: number
-    type: ProductType
-    profit: Array<{ profit: number }>
-    specialPrice: Array<{ specialPrice: number; minimumQty: number }>
-  }>
+  prices: Price[]
 }
 
 export function PriceSummary({ prices }: PriceSummaryProps) {
-
   return (
     <>
       {prices.some((p) => p.price > 0) && (
@@ -23,7 +16,7 @@ export function PriceSummary({ prices }: PriceSummaryProps) {
               .filter((p) => p.price > 0)
               .map((p, i) => (
                 <li key={i}>
-                  {parseProductType(p.type)}: Pesos{p.price.toFixed(2)} (Stock: {p.stock})
+                  {parseProductType(p.type)}: Pesos {p.price.toFixed(2)} (Stock: {p.stock})
                   {p.profit.length > 0 &&
                     p.profit[0].profit > 0 &&
                     ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
@@ -37,4 +30,3 @@ export function PriceSummary({ prices }: PriceSummaryProps) {
     </>
   )
 }
-

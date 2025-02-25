@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type"
+import type { Sale, SaleItem as SaleItemType, Cashier, Product } from "../../../utils/types/schema.type";
 
 interface SalesSummaryProps {
-  sales: GetAllSalesByUserIdPayload
+  sales: (Sale & { 
+    items: (SaleItemType & { product: Product })[];
+    cashier: Cashier;
+  })[]
 }
-
 export function SalesSummary({ sales }: SalesSummaryProps) {
   const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0)
   const averageSale = totalSales / sales.length

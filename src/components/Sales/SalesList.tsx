@@ -13,10 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import type { Sale, SaleItem as SaleItemType, Cashier, Product } from "../../../utils/types/schema.type"
 
 export function SalesList() {
-  const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
+  const [sales, setSales] = useState<(Sale & { 
+    items: (SaleItemType & { product: Product })[];
+    cashier: Cashier;
+  })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -25,9 +28,14 @@ export function SalesList() {
   const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
-      const fetchedSales = await getAllSalesByUserId();
+      const data = await getAllSalesByUserId();
+      
+      const typedSales = data as unknown as (Sale & { 
+        items: (SaleItemType & { product: Product })[];
+        cashier: Cashier;
+      })[];
 
-      const filteredSales = fetchedSales.filter((sale) => {
+      const filteredSales = typedSales.filter((sale) => {
         const saleDate = new Date(sale.createdAt).toISOString().split("T")[0];
         return (
           saleDate === date &&
@@ -59,12 +67,7 @@ export function SalesList() {
   return (
     <>
       <div className="mb-4 flex gap-4">
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-auto"
-        />
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-auto" />
         <Select value={cashierId} onValueChange={setCashierId}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select Cashier" />
@@ -95,13 +98,15 @@ export function SalesList() {
       ) : (
         <>
           <SalesSummary sales={sales} />
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             {sales.map((sale) => (
-              <SaleItem key={sale.id} sale={sale} onDelete={fetchSales} />
+              <div key={sale.id} className="h-full">
+                <SaleItem sale={sale} onDelete={fetchSales} />
+              </div>
             ))}
           </div>
         </>
       )}
     </>
-  );
+  )
 }

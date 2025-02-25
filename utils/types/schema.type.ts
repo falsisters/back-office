@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import { z } from "zod";
 
 // Enums
@@ -109,14 +110,14 @@ export type Shift = z.infer<typeof ShiftSchema>;
 export const UploadSchema = z.object({
   fileName: z.string(),
   path: z.string(),
-  file: z.instanceof(File).optional(), 
+  file: z.instanceof(File), 
 });
 export type Upload = z.infer<typeof UploadSchema>;
 
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  picture: z.string().nullable(),
+  picture: UploadSchema,
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -152,8 +153,8 @@ export const PriceSchema = z.object({
   productId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  Profit: z.array(ProfitSchema), 
-  SpecialPrice: z.array(SpecialPriceSchema),
+  profit: z.array(ProfitSchema), 
+  specialPrice: z.array(SpecialPriceSchema),
 });
 export type Price = z.infer<typeof PriceSchema>;
 

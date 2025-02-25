@@ -1,98 +1,146 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { Product, Price, ProductType } from "../../../utils/types/schema.type"
-import { createProduct } from "@/lib/server/createProduct"
-import { toast } from "@/hooks/use-toast"
-import { BasicProductInfo } from "@/components/Products/BasicProductInfo"
-import { PriceVariants } from "@/components/Products/PriceVariants"
-import { PriceSummary } from "@/components/Products/PriceSummary"
-import { UploadImage } from "@/components/Products/UploadImage"
+import { useState, useRef, Dispatch, SetStateAction } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { Product, Price, Upload } from "../../../utils/types/schema.type";
+import { createProduct } from "@/lib/server/createProduct";
+import { toast } from "@/hooks/use-toast";
+import { BasicProductInfo } from "@/components/Products/BasicProductInfo";
+import { PriceVariants } from "@/components/Products/PriceVariants";
+import { PriceSummary } from "@/components/Products/PriceSummary";
+import { UploadImage } from "@/components/Products/UploadImage";
 
-interface CreateProductProps {
-  onProductCreated?: (product: Product & { Price?: Price[] }) => void
-}
+type ProductData = {
+  name: string;
+  price: Price[];
+  picture: Upload | null;
+};
 
-export function CreateProduct({ onProductCreated }: CreateProductProps) {
-  const [newProduct, setNewProduct] = useState<{ name: string }>({
-    name: "",
-  })
-  const [selectedImage, setSelectedImage] = useState<File | null>(null)
-  const [prices, setPrices] = useState<
-    Array<{
-      price: number
-      stock: number
-      type: ProductType
-      specialPrice: Array<{ specialPrice: number; minimumQty: number }>
-      profit: Array<{ profit: number }>
-    }>
-  >([
+const initialProductData: ProductData = {
+  name: "",
+  price: [
     {
+      id: `variant-${Date.now()}`,
       price: 0,
       stock: 0,
       type: "FIFTY_KG",
-      specialPrice: [],
+      productId: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
       profit: [],
+      specialPrice: [],
     },
-  ])
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string>("")
-  const closeRef = useRef<HTMLButtonElement>(null)
+  ],
+  picture: null,
+};
 
-  const handleInputChange = (field: "name", value: string) => {
-    setNewProduct((prev) => ({ ...prev, [field]: value }))
-  }
+export interface CreateProductProps {
+  onProductCreated?: (product: Product & { Price?: Price[] }) => void;
+}
+
+export function CreateProduct({ onProductCreated }: CreateProductProps) {
+  const [productData, setProductData] =
+    useState<ProductData>(initialProductData);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string>("");
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  const handleBasicInfoChange = (field: "name", value: string) => {
+    setProductData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handlePriceVariantsChange: Dispatch<SetStateAction<Price[]>> = (variantsOrUpdater) => {
+    setProductData((prev) => {
+      const newVariants = typeof variantsOrUpdater === 'function'
+        ? variantsOrUpdater(prev.price)
+        : variantsOrUpdater;
+      return { ...prev, price: newVariants };
+    });
+  };
+
+  const handleImageChange = (picture: Upload | null) => {
+    setProductData((prev) => ({ ...prev, picture }));
+  };
 
   const handleSubmit = async () => {
     try {
       setError("");
       setSubmitting(true);
-  
-      const trimmedName = newProduct.name.trim();
+
+      const trimmedName = productData.name.trim();
       if (!trimmedName) {
         setError("Product name is required");
         setSubmitting(false);
         return;
       }
-  
-      for (let i = 0; i < prices.length; i++) {
-        if (prices[i].price <= 0) {
+
+      if (!productData.picture) {
+        setError("Product image is required");
+        setSubmitting(false);
+        return;
+      }
+
+      if (productData.price.length === 0) {
+        setError("At least one price variant is required");
+        setSubmitting(false);
+        return;
+      }
+
+      for (let i = 0; i < productData.price.length; i++) {
+        const variant = productData.price[i];
+        if (variant.price <= 0) {
           setError(`Price for variant #${i + 1} must be greater than 0`);
           setSubmitting(false);
           return;
         }
-        if (prices[i].stock < 0) {
+        if (variant.stock < 0) {
           setError(`Stock for variant #${i + 1} cannot be negative`);
           setSubmitting(false);
           return;
         }
       }
+
       const formData = new FormData();
       formData.append("name", trimmedName);
-      formData.append("price", JSON.stringify(prices));
-  
-      if (selectedImage) {
-        formData.append("picture", selectedImage);
+      formData.append("price", JSON.stringify(productData.price))
+
+      if (productData.picture) {
+        formData.append("picture", productData.picture.file);
+        formData.append(
+          "picture",
+          JSON.stringify({
+            fileName: productData.picture.fileName,
+            path: "product",
+          })
+        );
       }
-  
+      console.log("Product:", productData);
+      console.log("Product name:", trimmedName);
+      console.log("Price variants:", JSON.stringify(productData.price));
+      console.log("Selected picture:", productData.picture);
+
       const createdProduct = await createProduct(formData);
-  
+
       if (onProductCreated) {
         onProductCreated(createdProduct);
       }
-  
+
       toast({
         title: "Product created successfully",
-        description: `Added ${trimmedName} with ${prices.length} price variants`,
+        description: `Added ${trimmedName} with ${productData.price.length} price variant(s)`,
       });
-  
-      setNewProduct({ name: "" });
-      setPrices([{ price: 0, stock: 0, type: "FIFTY_KG", specialPrice: [], profit: [] }]);
-      setSelectedImage(null);
-  
+
+      // Reset the product data
+      setProductData(initialProductData);
       closeRef.current?.click();
     } catch (err) {
       console.error("Error creating product:", err);
@@ -101,6 +149,7 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
       setSubmitting(false);
     }
   };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -118,10 +167,16 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
         )}
 
         <div className="space-y-6">
-          <BasicProductInfo product={newProduct} handleInputChange={handleInputChange} />
-          <UploadImage onFileChange={setSelectedImage} required />
-          <PriceVariants prices={prices} setPrices={setPrices} />
-          <PriceSummary prices={prices} />
+          <BasicProductInfo
+            product={productData}
+            handleInputChange={handleBasicInfoChange}
+          />
+          <UploadImage onFileChange={handleImageChange} required />
+          <PriceVariants
+            prices={productData.price}
+            setPrices={handlePriceVariantsChange}
+          />
+          <PriceSummary prices={productData.price} />
         </div>
 
         <div className="flex justify-end gap-4 mt-6">
@@ -134,8 +189,7 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
-export default CreateProduct
-
+export default CreateProduct;

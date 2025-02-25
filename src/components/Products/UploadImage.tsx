@@ -1,3 +1,4 @@
+// UploadImage.tsx
 "use client"
 
 import { useCallback, useState, useRef } from "react"
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import Image from "next/image"
 
 interface UploadImageProps {
-  onFileChange: (file: File) => void
+  onFileChange: (imageData: { fileName: string; path: string; file: File } | null) => void
   initialPreview?: string
   required?: boolean
 }
@@ -21,7 +22,11 @@ export function UploadImage({ onFileChange, initialPreview, required }: UploadIm
       const reader = new FileReader()
       reader.onload = () => {
         setPreview(reader.result as string)
-        onFileChange(file)
+        onFileChange({
+          fileName: file.name,
+          path: 'products',
+          file: file
+        })
       }
       reader.readAsDataURL(file)
     }
@@ -29,19 +34,20 @@ export function UploadImage({ onFileChange, initialPreview, required }: UploadIm
 
   const handleRemove = useCallback(() => {
     setPreview(null)
+    onFileChange(null)
     if (inputRef.current) {
       inputRef.current.value = ""
     }
-  }, [])
+  }, [onFileChange])
 
   return (
     <div className="space-y-4">
       {preview ? (
         <div className="relative group">
           <Image
-            src={preview}
+            src={preview || "/placeholder.svg"}
             alt="Image Preview"
-            width={200} height={150} 
+            width={200} height={150}
             className="rounded-lg object-cover w-full h-48 border"
           />
           <Button
