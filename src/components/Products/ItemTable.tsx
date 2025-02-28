@@ -1,15 +1,8 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -17,55 +10,59 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import EditProduct from "./EditProduct";
-import type { Product, Price } from "../../../utils/types/schema.type";
+} from "@/components/ui/dialog"
+import EditProduct from "./EditProduct"
+import type { Product, Price } from "../../../utils/types/schema.type"
+import { Loader2 } from "lucide-react"
 
 interface ItemTableProps {
-  items: (Product & { Price?: Price[] })[];
-  onUpdateItem: (item: Product & { Price?: Price[] }) => void;
-  onDeleteItem: (id: string) => void;
+  items: (Product & { Price?: Price[] })[]
+  onUpdateItem: (item: Product & { Price?: Price[] }) => void
+  onDeleteItem: (id: string) => void
+  isLoading: boolean
 }
 
-export function ItemTable({
-  items,
-  onUpdateItem,
-  onDeleteItem,
-}: ItemTableProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+export function ItemTable({ items, onUpdateItem, onDeleteItem, isLoading }: ItemTableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const formatPriceType = (type: string) => {
     switch (type) {
       case "FIFTY_KG":
-        return "50 KG";
+        return "50 KG"
       case "TWENTY_FIVE_KG":
-        return "25 KG";
+        return "25 KG"
       case "FIVE_KG":
-        return "5 KG";
+        return "5 KG"
       case "PER_KILO":
-        return "Per Kilo";
+        return "Per Kilo"
       case "GANTANG":
-        return "Gantang";
+        return "Gantang"
       case "SPECIAL_PRICE":
-        return "Special Price";
+        return "Special Price"
       default:
-        return type;
+        return type
     }
-  };
+  }
 
   const handleDeleteClick = (id: string) => {
-    setProductToDelete(id);
-    setDeleteDialogOpen(true);
-  };
+    setProductToDelete(id)
+    setDeleteDialogOpen(true)
+  }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (productToDelete) {
-      onDeleteItem(productToDelete);
-      setDeleteDialogOpen(false);
-      setProductToDelete(null);
+      setIsDeleting(true)
+      try {
+        await onDeleteItem(productToDelete)
+      } finally {
+        setIsDeleting(false)
+        setDeleteDialogOpen(false)
+        setProductToDelete(null)
+      }
     }
-  };
+  }
 
   return (
     <>
@@ -79,53 +76,54 @@ export function ItemTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>
-                  {item.Price && item.Price.length > 0 ? (
-                    <div className="space-y-1">
-                      {item.Price.map((p) => (
-                        <div key={p.id} className="text-sm">
-                          {formatPriceType(p.type)}: Php{p.price.toFixed(2)}{" "}
-                          (Stock: {p.stock})
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">
-                      No prices set
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <EditProduct
-                      product={item}
-                      onProductUpdated={onUpdateItem}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                      }
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(item.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-24 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  <span className="mt-2 text-sm text-muted-foreground">Loading products...</span>
                 </TableCell>
               </TableRow>
-            ))}
-            {items.length === 0 && (
+            ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={3} className="h-24 text-center">
                   No products found
                 </TableCell>
               </TableRow>
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>
+                    {item.Price && item.Price.length > 0 ? (
+                      <div className="space-y-1">
+                        {item.Price.map((p) => (
+                          <div key={p.id} className="text-sm">
+                            {formatPriceType(p.type)}: Php{p.price.toFixed(2)} (Stock: {p.stock})
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No prices set</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <EditProduct
+                        product={item}
+                        onProductUpdated={onUpdateItem}
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        }
+                      />
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(item.id)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -136,25 +134,26 @@ export function ItemTable({
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this product? This action cannot
-              be undone.
+              Are you sure you want to delete this product? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              Delete
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
-
-export default ItemTable;

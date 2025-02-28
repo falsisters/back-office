@@ -54,7 +54,7 @@ export function DeliveryList({ initialDeliveries }: DeliveryListProps) {
       ) : filteredDeliveries.length === 0 ? (
         <p>No deliveries found matching the current filters.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
           {filteredDeliveries.map((delivery) => (
             <div key={delivery.id} className="h-full">
               <DeliveryItem delivery={delivery} />

@@ -17,14 +17,15 @@ export default async function Home() {
   const user = { name: userData.name }
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4">
+    <div className="flex flex-col justify-center items-center min-h-screen p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-4xl font-bold mb-2 text-primary">FalSisters Rice Trading</CardTitle>
           <CardDescription className="text-lg">Back Office</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center gap-6 p-6">
-          <h2 className="text-2xl font-semibold text-gray-700">Welcome, {user.name}</h2>
+        <CardContent className="flex flex-col items-center p-6">
+          <h2 className="text-2xl font-semibold text-gray-700">Welcome!</h2>
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">{user.name}</h2>
           <Link href="/products" className="w-full">
             <Button size="lg" variant="default" className="w-full">
               Manage Inventory

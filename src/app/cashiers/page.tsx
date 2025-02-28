@@ -15,7 +15,6 @@ export default async function CreateCashierPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Create New Cashier</h1>
       <CreateCashier />
     </div>
   );

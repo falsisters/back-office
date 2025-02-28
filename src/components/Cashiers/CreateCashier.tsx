@@ -35,7 +35,6 @@ export function CreateCashier() {
     setHasAttemptedSubmit(true)
     setError(null)
 
-    // Client-side validation
     if (name.length < 4) {
       setError("Name must be 4 or more characters")
       return
@@ -63,70 +62,72 @@ export function CreateCashier() {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create New Cashier</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value)
-                if (hasAttemptedSubmit && e.target.value.length >= 4) {
-                  setError(null)
-                }
-              }}
-              required
-              disabled={isLoading}
-            />
-            {hasAttemptedSubmit && name.length < 4 && (
-              <p className="text-sm text-red-500">Name must be 4 or more characters</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="accessKey">Access Key</Label>
-            <Input
-              id="accessKey"
-              value={accessKey}
-              onChange={(e) => setAccessKey(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Permissions</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {permissionTypes.map((perm) => (
-                <div key={perm} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={perm}
-                    checked={permissions.includes(perm)}
-                    onCheckedChange={(checked) => {
-                      setPermissions(checked ? [...permissions, perm] : permissions.filter((p) => p !== perm))
-                    }}
-                    disabled={isLoading}
-                  />
-                  <Label htmlFor={perm}>{perm}</Label>
-                </div>
-              ))}
+    <div className="w-full max-w-2xl mx-auto p-4 md:p-0">
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Cashier</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  if (hasAttemptedSubmit && e.target.value.length >= 4) {
+                    setError(null)
+                  }
+                }}
+                required
+                disabled={isLoading}
+              />
+              {hasAttemptedSubmit && name.length < 4 && (
+                <p className="text-sm text-red-500">Name must be 4 or more characters</p>
+              )}
             </div>
-          </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Cashier"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+
+            <div className="space-y-2">
+              <Label htmlFor="accessKey">Access Key</Label>
+              <Input
+                id="accessKey"
+                value={accessKey}
+                onChange={(e) => setAccessKey(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Permissions</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {permissionTypes.map((perm) => (
+                  <div key={perm} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={perm}
+                      checked={permissions.includes(perm)}
+                      onCheckedChange={(checked) => {
+                        setPermissions(checked ? [...permissions, perm] : permissions.filter((p) => p !== perm))
+                      }}
+                      disabled={isLoading}
+                    />
+                    <Label htmlFor={perm}>{perm}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? "Creating..." : "Create Cashier"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
