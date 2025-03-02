@@ -9,13 +9,13 @@ export const createCashier = async (formData: CreateCashierFormData) => {
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) {
-    throw new Error("Unauthorized")
+    throw new Error("Unauthorized");
   }
 
   const response = await fetch(`${process.env.API_URL}/cashier/create`, {
     headers: {
-      'Authorization': `Bearer ${accessToken.value}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken.value}`,
+      "Content-Type": "application/json",
     },
     method: "POST",
     body: JSON.stringify(formData),
@@ -24,7 +24,11 @@ export const createCashier = async (formData: CreateCashierFormData) => {
 
   if (!response.ok) {
     const data: NestApiError = await response.json();
-    throw new Error(data.message[0] || "Unexpected error occured");
+    throw new Error(
+      Array.isArray(data.message)
+        ? data.message.join(", ")
+        : data.message || "Unexpected error occured"
+    );
   }
 
   return response.json();

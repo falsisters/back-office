@@ -19,7 +19,11 @@ export const getAllCashiersByUserId = async () => {
   });
   if (!response.ok) {
     const data: NestApiError = await response.json();
-    throw new Error(data.message[0] || "Unexpected error occured");
+    throw new Error(
+      Array.isArray(data.message)
+        ? data.message.join(", ")
+        : data.message || "Unexpected error occured"
+    );
   }
   const payload: GetAllCashiersByUserIdPayload = await response.json();
   return payload;

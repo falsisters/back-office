@@ -13,7 +13,7 @@ export const register = async (formData: RegisterFormData) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
     },
     body: JSON.stringify(formData),
     cache: "no-cache",
@@ -21,7 +21,11 @@ export const register = async (formData: RegisterFormData) => {
 
   if (!response.ok) {
     const data: NestApiError = await response.json();
-    throw new Error(data.message[0] || "Unexpected error occured");
+    throw new Error(
+      Array.isArray(data.message)
+        ? data.message.join(", ")
+        : data.message || "Unexpected error occured"
+    );
   }
 
   const payload: RegisterPayload = await response.json();
