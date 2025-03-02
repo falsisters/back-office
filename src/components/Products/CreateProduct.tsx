@@ -22,7 +22,7 @@ import { UploadImage } from "@/components/Products/UploadImage";
 type ProductData = {
   name: string;
   price: Price[];
-  picture: Upload | null;
+  picture: File | null;
 };
 
 const initialProductData: ProductData = {
@@ -58,17 +58,23 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
     setProductData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePriceVariantsChange: Dispatch<SetStateAction<Price[]>> = (variantsOrUpdater) => {
+  const handlePriceVariantsChange: Dispatch<SetStateAction<Price[]>> = (
+    variantsOrUpdater
+  ) => {
     setProductData((prev) => {
-      const newVariants = typeof variantsOrUpdater === 'function'
-        ? variantsOrUpdater(prev.price)
-        : variantsOrUpdater;
+      const newVariants =
+        typeof variantsOrUpdater === "function"
+          ? variantsOrUpdater(prev.price)
+          : variantsOrUpdater;
       return { ...prev, price: newVariants };
     });
   };
 
   const handleImageChange = (picture: Upload | null) => {
-    setProductData((prev) => ({ ...prev, picture }));
+    setProductData((prev) => ({
+      ...prev,
+      picture: picture ? picture.file : null,
+    }));
   };
 
   const handleSubmit = async () => {
@@ -111,17 +117,10 @@ export function CreateProduct({ onProductCreated }: CreateProductProps) {
 
       const formData = new FormData();
       formData.append("name", trimmedName);
-      formData.append("price", JSON.stringify(productData.price))
+      formData.append("price", JSON.stringify(productData.price));
 
       if (productData.picture) {
-        formData.append("picture", productData.picture.file);
-        formData.append(
-          "picture",
-          JSON.stringify({
-            fileName: productData.picture.fileName,
-            path: "product",
-          })
-        );
+        formData.append("picture", productData.picture);
       }
       console.log("Product:", productData);
       console.log("Product name:", trimmedName);
