@@ -1,18 +1,21 @@
-import LoginForm from "@/components/Login/LoginForm";
+import { CreateCashier } from "@/components/Cashiers/CreateCashier";
 import { getUserData } from "@/lib/server/getUserData";
 import { redirect } from "next/navigation";
 
-export default async function LoginPage () {
+export default async function CreateCashierPage() {
   let userData;
   try {
     userData = await getUserData();
   } catch (error) {
-    if (userData) {
+    if (!userData) {
       redirect("/");
     }
     console.error(error, "Unauthorized");
   }
+
   return (
-    <LoginForm />
-  )
+    <div>
+      <CreateCashier />
+    </div>
+  );
 }

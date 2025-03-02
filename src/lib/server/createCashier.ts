@@ -9,12 +9,13 @@ export const createCashier = async (formData: CreateCashierFormData) => {
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) {
-    throw new Error("Unauthorized");
+    throw new Error("Unauthorized")
   }
 
   const response = await fetch(`${process.env.API_URL}/cashier/create`, {
     headers: {
-      Authorization: `Bearer ${accessToken.value}`,
+      'Authorization': `Bearer ${accessToken.value}`,
+      'Content-Type': 'application/json',
     },
     method: "POST",
     body: JSON.stringify(formData),

@@ -1,33 +1,31 @@
-import type { Metadata } from "next";
-import { Roboto, Roboto_Mono } from "next/font/google";
-import "./globals.css";
+import type React from "react"
+import { Sidebar } from "@/components/Sidebar"
+import { getUserData } from "@/lib/server/getUserData"
+import "./globals.css"
 
-const roboto = Roboto({
-  weight: ["400", "700"],
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  let user = null
 
-const robotoMono = Roboto_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  try {
+    const userData = await getUserData();
+    user = {
+      email: userData.email,
+      id: userData.id,
+      name: userData.name
+    };
+  } catch (error) {
+    console.error(error, '')
+  }
 
-export const metadata: Metadata = {
-  title: "Back Office",
-  description: "Falsisters' Back Office Application",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
     <html lang="en">
-      <body className={`${roboto.variable} ${robotoMono.variable} antialiased`}>
-        {children}
+      <body>
+        <div className="flex h-screen">
+          {user && <Sidebar />}
+          <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        </div>
       </body>
     </html>
-  );
+  )
 }
+

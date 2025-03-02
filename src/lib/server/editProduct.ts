@@ -18,9 +18,10 @@ export const editProduct = async (
   const response = await fetch(`${process.env.API_URL}/product/${id}`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
+      "Content-Type": "application/json",
     },
     method: "PUT",
-    body: JSON.stringify(formData),
+    body: JSON.stringify(formData.product),
     cache: "no-cache",
   });
 

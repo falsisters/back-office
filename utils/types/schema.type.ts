@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import { z } from "zod";
 
 // Enums
@@ -21,7 +22,6 @@ export const ProductTypeEnum = z.enum([
   "FIVE_KG",
   "PER_KILO",
   "GANTANG",
-  "SPECIAL_PRICE",
 ]);
 export type ProductType = z.infer<typeof ProductTypeEnum>;
 
@@ -54,6 +54,7 @@ export const BillEnum = z.enum([
   "coins",
 ]);
 export type Bill = z.infer<typeof BillEnum>;
+
 
 // Models
 export const UserSchema = z.object({
@@ -106,26 +107,34 @@ export const ShiftSchema = z.object({
 });
 export type Shift = z.infer<typeof ShiftSchema>;
 
+export const UploadSchema = z.object({
+  fileName: z.string(),
+  path: z.string(),
+  file: z.instanceof(File), 
+});
+export type Upload = z.infer<typeof UploadSchema>;
+
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  minimumQty: z.number(),
+  picture: UploadSchema,
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
+
 export type Product = z.infer<typeof ProductSchema>;
 
-export const PriceSchema = z.object({
+
+export const SpecialPriceSchema = z.object({
   id: z.string(),
-  price: z.number(),
-  stock: z.number(),
-  type: ProductTypeEnum,
-  productId: z.string(),
+  specialPrice: z.number(),
+  minimumQty: z.number(),
+  priceId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
-});
-export type Price = z.infer<typeof PriceSchema>;
+})
+export type SpecialPrice = z.infer<typeof SpecialPriceSchema>
 
 export const ProfitSchema = z.object({
   id: z.string(),
@@ -135,6 +144,19 @@ export const ProfitSchema = z.object({
   updatedAt: z.date(),
 });
 export type Profit = z.infer<typeof ProfitSchema>;
+
+export const PriceSchema = z.object({
+  id: z.string(),
+  price: z.number(),
+  stock: z.number(),
+  type: ProductTypeEnum,
+  productId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  profit: z.array(ProfitSchema), 
+  specialPrice: z.array(SpecialPriceSchema),
+});
+export type Price = z.infer<typeof PriceSchema>;
 
 export const SaleSchema = z.object({
   id: z.string(),
@@ -152,6 +174,7 @@ export const SaleItemSchema = z.object({
   productId: z.string(),
   qty: z.number(),
   price: z.number(),
+  isSpecialPrice: z.boolean(),
   type: ProductTypeEnum,
   createdAt: z.date(),
   updatedAt: z.date(),
