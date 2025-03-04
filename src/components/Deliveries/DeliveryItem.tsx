@@ -7,20 +7,27 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getDeliveryById } from "@/lib/server/getDeliveryById";
 import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type";
+import { deleteDelivery } from "@/lib/server/deleteDelivery";
+import { Loader2, Trash2Icon } from "lucide-react";
 
 interface DeliveryItemProps {
   delivery: GetDeliveryByIdPayload;
+  onDelete: (deletedDeliveryId: string) => void;
 }
 
-export function DeliveryItem({ delivery }: DeliveryItemProps) {
+export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [detailedDelivery, setDetailedDelivery] =
     useState<GetDeliveryByIdPayload | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewDetails = async () => {
     try {
@@ -30,6 +37,19 @@ export function DeliveryItem({ delivery }: DeliveryItemProps) {
     } catch (error) {
       console.error("Failed to fetch delivery details:", error);
       alert("Failed to fetch delivery details. Please try again.");
+    }
+  };
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteDelivery(delivery.id);
+      onDelete(delivery.id);
+    } catch (error) {
+      console.error("Failed to delete sale:", error);
+      alert("Failed to delete sale. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -65,7 +85,16 @@ export function DeliveryItem({ delivery }: DeliveryItemProps) {
                   {new Date(delivery.timeFinished).toLocaleString()}
                 </p>
               )}
-              <Button onClick={handleViewDetails} >View Details</Button>
+              <div className="flex flex-row items-center justify-between">
+              <Button onClick={handleViewDetails}>View Details</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2Icon className="w-6 h-6" />
+              </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -152,6 +181,40 @@ export function DeliveryItem({ delivery }: DeliveryItemProps) {
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete Sale #{delivery.id}? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

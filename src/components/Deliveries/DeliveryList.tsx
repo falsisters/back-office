@@ -14,7 +14,7 @@ export function DeliveryList({ initialDeliveries }: DeliveryListProps) {
   const [deliveries, setDeliveries] = useState<GetAllDeliveriesByUserIdPayload>([])
   const [dateFilter, setDateFilter] = useState(() => {
     const today = new Date()
-    return today.toISOString().split("T")[0] // Format: YYYY-MM-DD
+    return today.toISOString().split("T")[0]
   })
   const [statusFilter, setStatusFilter] = useState("all")
 
@@ -29,6 +29,10 @@ export function DeliveryList({ initialDeliveries }: DeliveryListProps) {
       statusFilter === "all" ? true : statusFilter === "finished" ? delivery.isFinished : !delivery.isFinished
     return dateMatch && statusMatch
   })
+
+  const handleDeleteSale = (deletedSaleId: string) => {
+    setDeliveries(prevSales => prevSales.filter(sale => sale.id !== deletedSaleId));
+  };
 
   return (
     <>
@@ -57,7 +61,7 @@ export function DeliveryList({ initialDeliveries }: DeliveryListProps) {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
           {filteredDeliveries.map((delivery) => (
             <div key={delivery.id} className="h-full">
-              <DeliveryItem delivery={delivery} />
+              <DeliveryItem delivery={delivery} onDelete={handleDeleteSale}/>
             </div>
           ))}
         </div>
