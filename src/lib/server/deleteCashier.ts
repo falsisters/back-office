@@ -11,11 +11,13 @@ export const deleteCashier = async (id: string) => {
     throw new Error("Unauthorized");
   }
 
-  const response = await fetch(`${process.env.API_URL}/cashier/${id}`, {
+  const response = await fetch(`${process.env.API_URL}/cashier`, {
+    method: "DELETE",
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken.value}`,
     },
-    method: "DELETE",
+    body: JSON.stringify({ id }),
     cache: "no-cache",
   });
 
@@ -24,7 +26,7 @@ export const deleteCashier = async (id: string) => {
     throw new Error(
       Array.isArray(data.message)
         ? data.message.join(", ")
-        : data.message || "Unexpected error occured"
+        : data.message || "Unexpected error occurred"
     );
   }
 

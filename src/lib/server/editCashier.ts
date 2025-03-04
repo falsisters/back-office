@@ -5,8 +5,7 @@ import { NestApiError } from "../../../utils/types/error.type";
 import { EditCashierFormData } from "../../../utils/types/editCashier.type";
 
 export const editCashier = async (
-  id: string,
-  formData: EditCashierFormData
+  formData: EditCashierFormData & { id: string }
 ) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -15,9 +14,10 @@ export const editCashier = async (
     throw new Error("Unauthorized");
   }
 
-  const response = await fetch(`${process.env.API_URL}/cashier/${id}`, {
+  const response = await fetch(`${process.env.API_URL}/cashier`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
+      "Content-Type": "application/json"
     },
     method: "PUT",
     body: JSON.stringify(formData),

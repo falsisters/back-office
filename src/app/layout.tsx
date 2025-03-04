@@ -7,25 +7,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let user = null
 
   try {
-    const userData = await getUserData();
+    const userData = await getUserData()
     user = {
       email: userData.email,
       id: userData.id,
-      name: userData.name
-    };
+      name: userData.name,
+    }
   } catch (error) {
-    console.error(error, '')
+    console.error(error, "")
   }
 
   return (
     <html lang="en">
       <body>
-        <div className="flex h-screen">
-          {user && <Sidebar />}
-          <main className="flex-1 overflow-y-auto p-8">{children}</main>
-        </div>
+        {user ? (
+          <div className="min-h-screen flex flex-col md:flex-row">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto md:p-8 p-4">{children}</main>
+          </div>
+        ) : (
+          // When no user, render children without the sidebar
+          <div className="min-h-screen">
+            {children}
+          </div>
+        )}
       </body>
     </html>
   )
 }
-

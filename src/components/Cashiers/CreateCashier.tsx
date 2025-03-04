@@ -10,6 +10,7 @@ import { createCashier } from "@/lib/server/createCashier";
 import type { CreateCashierFormData } from "../../../utils/types/createCashier.type";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CashierPermissionType } from "../../../utils/types/schema.type";
+import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
+
 
 const permissionTypes: CashierPermissionType[] = [
   "PRICES",
@@ -30,7 +32,11 @@ const permissionTypes: CashierPermissionType[] = [
   "SALES_HISTORY",
 ];
 
-export function CreateCashier() {
+interface CreateCashierProps {
+  onCashierCreated: (newCashier: GetAllCashiersByUserIdPayload[number]) => void;
+}
+
+export function CreateCashier({ onCashierCreated }: CreateCashierProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [accessKey, setAccessKey] = useState("");
@@ -57,7 +63,27 @@ export function CreateCashier() {
     };
 
     try {
-      await createCashier(formData);
+      const newCashier = await createCashier(formData);
+      
+      const formattedCashier = {
+        id: newCashier.id,
+        name: newCashier.name,
+        accessKey: newCashier.accessKey || "",
+        secureCode: newCashier.secureCode || "",
+        userId: newCashier.userId || "",
+        createdAt: newCashier.createdAt || new Date(),
+        updatedAt: newCashier.updatedAt || new Date(),
+        permissions: permissions.map((perm) => ({
+          id: newCashier.permissions?.find((p: { name: string; }) => p.name === perm)?.id || `temp-${perm}`,
+          name: perm,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          cashierId: newCashier.id || ""
+        }))
+      } as GetAllCashiersByUserIdPayload[number];
+      
+      onCashierCreated(formattedCashier);
+      
       setName("");
       setAccessKey("");
       setPermissions([]);

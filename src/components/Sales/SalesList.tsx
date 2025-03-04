@@ -13,13 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Sale, SaleItem as SaleItemType, Cashier, Product } from "../../../utils/types/schema.type"
+import { Loader2 } from "lucide-react";
+import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
 
 export function SalesList() {
-  const [sales, setSales] = useState<(Sale & { 
-    items: (SaleItemType & { product: Product })[];
-    cashier: Cashier;
-  })[]>([]);
+  const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -29,21 +27,7 @@ export function SalesList() {
     try {
       setLoading(true);
       const data = await getAllSalesByUserId();
-      
-      const typedSales = data as unknown as (Sale & { 
-        items: (SaleItemType & { product: Product })[];
-        cashier: Cashier;
-      })[];
-
-      const filteredSales = typedSales.filter((sale) => {
-        const saleDate = new Date(sale.createdAt).toISOString().split("T")[0];
-        return (
-          saleDate === date &&
-          (cashierId === "all" || sale.cashier.id === cashierId)
-        );
-      });
-
-      setSales(filteredSales);
+      setSales(data);
       setError(null);
     } catch (err) {
       setError(
@@ -54,20 +38,37 @@ export function SalesList() {
     } finally {
       setLoading(false);
     }
-  }, [date, cashierId]);
+  }, []);
 
   useEffect(() => {
     fetchSales();
   }, [fetchSales]);
 
+  const handleDeleteSale = (deletedSaleId: string) => {
+    setSales(prevSales => prevSales.filter(sale => sale.id !== deletedSaleId));
+  };
+
+  const filteredSales = sales.filter((sale) => {
+    const saleDate = new Date(sale.createdAt).toISOString().split("T")[0];
+    return (
+      saleDate === date &&
+      (cashierId === "all" || sale.cashier.id === cashierId)
+    );
+  });
+
   const uniqueCashiers = Array.from(
-    new Set(sales.map((sale) => sale.cashier.id))
-  ).map((id) => sales.find((sale) => sale.cashier.id === id)!.cashier);
+    new Set(filteredSales.map((sale) => sale.cashier.id))
+  ).map((id) => filteredSales.find((sale) => sale.cashier.id === id)!.cashier);
 
   return (
     <>
       <div className="mb-4 flex gap-4">
-        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-auto" />
+        <Input 
+          type="date" 
+          value={date} 
+          onChange={(e) => setDate(e.target.value)} 
+          className="w-auto" 
+        />
         <Select value={cashierId} onValueChange={setCashierId}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select Cashier" />
@@ -84,24 +85,25 @@ export function SalesList() {
       </div>
 
       {loading ? (
-        <div className="fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="p-8 rounded-lg flex flex-col items-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-black"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-white" />
+            <p className="mt-4 text-white">Loading sales...</p>
           </div>
         </div>
       ) : error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      ) : sales.length === 0 ? (
+      ) : filteredSales.length === 0 ? (
         <p>No sales found for the selected date and cashier.</p>
       ) : (
         <>
-          <SalesSummary sales={sales} />
+          <SalesSummary sales={filteredSales} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {sales.map((sale) => (
+            {filteredSales.map((sale) => (
               <div key={sale.id} className="h-full">
-                <SaleItem sale={sale} onDelete={fetchSales} />
+                <SaleItem sale={sale} onDelete={handleDeleteSale} />
               </div>
             ))}
           </div>
