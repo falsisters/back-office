@@ -1,16 +1,17 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Sale, SaleItem as SaleItemType, Cashier, Product } from "../../../utils/types/schema.type";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
 
 interface SalesSummaryProps {
-  sales: (Sale & { 
-    items: (SaleItemType & { product: Product })[];
-    cashier: Cashier;
-  })[]
+  sales: GetAllSalesByUserIdPayload;
 }
+
 export function SalesSummary({ sales }: SalesSummaryProps) {
-  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0)
-  const averageSale = totalSales / sales.length
-  const totalItems = sales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.qty, 0), 0)
+  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const averageSale = sales.length > 0 ? totalSales / sales.length : 0;
+  const totalItems = sales.reduce(
+    (sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.qty, 0),
+    0
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -39,6 +40,5 @@ export function SalesSummary({ sales }: SalesSummaryProps) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-
