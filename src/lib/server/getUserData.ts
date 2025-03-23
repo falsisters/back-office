@@ -12,7 +12,7 @@ export const getUserData = async () => {
     throw new Error("Unauthorized");
   }
 
-  const response = await fetch(`${process.env.API_URL}/auth/user`, {
+  const response = await fetch(`${process.env.API_URL}/auth`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
