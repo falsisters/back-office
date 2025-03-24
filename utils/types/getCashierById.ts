@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { CashierPermissionSchema, CashierSchema } from "./schema.type";
+import { CashierSchema } from "./schema.type";
 
-export const GetCashierByIdPayloadSchema = CashierSchema.extend({
-  permissions: z.array(CashierPermissionSchema),
-});
+export const GetCashierByIdPayloadSchema = CashierSchema;
 
 export type GetCashierByIdPayload = z.infer<typeof GetCashierByIdPayloadSchema>;

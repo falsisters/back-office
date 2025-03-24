@@ -9,7 +9,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { CashierTable } from "./CashierTable"
+import { CashierTableRow } from "./CashierTable"
 import { CreateCashier } from "./CreateCashier"
 
 export function CashierList() {
@@ -119,7 +119,7 @@ export function CashierList() {
               </TableHeader>
               <TableBody>
                 {cashiers.map((cashier) => (
-                  <CashierTable 
+                  <CashierTableRow 
                     key={cashier.id} 
                     cashier={cashier} 
                     onDeleteCashier={handleDeleteCashier} 

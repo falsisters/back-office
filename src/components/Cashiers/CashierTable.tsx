@@ -1,3 +1,4 @@
+// components/CashierTable.tsx
 "use client";
 
 import { useState } from "react";
@@ -5,19 +6,17 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserCircle, Pencil, Trash2 } from "lucide-react";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
+import type { Cashier } from "../../../utils/types/schema.type";
 import { EditCashier } from "./EditCashier";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 
 interface CashierTableRowProps {
-  cashier: GetAllCashiersByUserIdPayload[number];
+  cashier: Cashier;
   onDeleteCashier: (id: string) => Promise<void>;
-  onUpdateCashier: (
-    updatedCashier: GetAllCashiersByUserIdPayload[number]
-  ) => void;
+  onUpdateCashier: (updatedCashier: Cashier) => void;
 }
 
-export function CashierTable({
+export function CashierTableRow({
   cashier,
   onDeleteCashier,
   onUpdateCashier,
@@ -38,12 +37,6 @@ export function CashierTable({
     }
   };
 
-  const handleCashierUpdated = (
-    updatedCashier: GetAllCashiersByUserIdPayload[number]
-  ) => {
-    onUpdateCashier(updatedCashier);
-  };
-
   return (
     <>
       <TableRow>
@@ -58,11 +51,11 @@ export function CashierTable({
           <div className="flex flex-wrap gap-1">
             {cashier.permissions.map((permission) => (
               <Badge
-                key={permission.id}
+                key={permission}
                 variant="outline"
                 className="capitalize"
               >
-                {permission.name}
+                {permission}
               </Badge>
             ))}
           </div>
@@ -91,10 +84,10 @@ export function CashierTable({
       </TableRow>
 
       <EditCashier
-        cashierId={cashier.id}
+        cashier={cashier}
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
-        onCashierUpdated={handleCashierUpdated}
+        onCashierUpdated={onUpdateCashier}
       />
 
       <DeleteConfirmationDialog

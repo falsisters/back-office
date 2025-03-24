@@ -1,37 +1,30 @@
+// server-actions/editCashier.ts
 "use server";
 
-import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { EditCashierType } from "../../../utils/types/editCashier.type";
 import { NestApiError } from "../../../utils/types/error.type";
-import { EditCashierFormData } from "../../../utils/types/editCashier.type";
+import { cookies } from "next/headers";
 
-export const editCashier = async (
-  formData: EditCashierFormData & { id: string }
-) => {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("access_token");
+export const editCashier = async (id: string, formData: EditCashierType) => {
+  const cookieStore = cookies();
+  const accessToken = (await cookieStore).get("access_token");
 
-  if (!accessToken) {
-    throw new Error("Unauthorized");
-  }
+  if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/cashier`, {
+  const response = await fetch(`${process.env.API_URL}/cashier/${id}`, {
+    method: "PATCH",
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    method: "PUT",
     body: JSON.stringify(formData),
-    cache: "no-cache",
   });
 
   if (!response.ok) {
-    const data: NestApiError = await response.json();
-    throw new Error(
-      Array.isArray(data.message)
-        ? data.message.join(", ")
-        : data.message || "Unexpected error occured"
-    );
+    const error: NestApiError = await response.json();
+    throw new Error(error.message?.toString() || "Failed to update cashier");
   }
-
+  revalidatePath("/cashiers")
   return response.json();
 };

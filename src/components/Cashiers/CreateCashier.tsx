@@ -1,16 +1,13 @@
+// components/CreateCashier.tsx
 "use client";
 
-import type React from "react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { createCashier } from "@/lib/server/createCashier";
-import type { CreateCashierFormData } from "../../../utils/types/createCashier.type";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { CashierPermissionType } from "../../../utils/types/schema.type";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
 import {
   Dialog,
   DialogContent,
@@ -20,75 +17,46 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
+import type { CashierPermissions } from "../../../utils/types/schema.type";
+import { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
 
-
-const permissionTypes: CashierPermissionType[] = [
-  "PRICES",
+const permissionTypes: CashierPermissions[] = [
+  "SALES",
   "DELIVERIES",
   "STOCKS",
-  "PROFITS",
+  "EDIT_PRICE",
   "KAHON",
-  "SALES_CHECK",
+  "PROFITS",
+  "ATTACHMENTS",
   "SALES_HISTORY",
 ];
 
-interface CreateCashierProps {
+export function CreateCashier({
+  onCashierCreated,
+}: {
   onCashierCreated: (newCashier: GetAllCashiersByUserIdPayload[number]) => void;
-}
-
-export function CreateCashier({ onCashierCreated }: CreateCashierProps) {
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [accessKey, setAccessKey] = useState("");
-  const [permissions, setPermissions] = useState<CashierPermissionType[]>([]);
+  const [permissions, setPermissions] = useState<CashierPermissions[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setHasAttemptedSubmit(true);
     setError(null);
 
-    if (name.length < 4) {
-      setError("Name must be 4 or more characters");
-      return;
-    }
-
-    setIsLoading(true);
-    const formData: CreateCashierFormData = {
-      name,
-      accessKey,
-      permissions: permissions.map((perm) => ({ name: perm })),
-    };
-
     try {
-      const newCashier = await createCashier(formData);
-      
-      const formattedCashier = {
-        id: newCashier.id,
-        name: newCashier.name,
-        accessKey: newCashier.accessKey || "",
-        secureCode: newCashier.secureCode || "",
-        userId: newCashier.userId || "",
-        createdAt: newCashier.createdAt || new Date(),
-        updatedAt: newCashier.updatedAt || new Date(),
-        permissions: permissions.map((perm) => ({
-          id: newCashier.permissions?.find((p: { name: string; }) => p.name === perm)?.id || `temp-${perm}`,
-          name: perm,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          cashierId: newCashier.id || ""
-        }))
-      } as GetAllCashiersByUserIdPayload[number];
-      
+      setIsLoading(true);
+      const formattedCashier = await createCashier({
+        name,
+        accessKey,
+        permissions,
+      });
+
       onCashierCreated(formattedCashier);
-      
-      setName("");
-      setAccessKey("");
-      setPermissions([]);
-      setHasAttemptedSubmit(false);
-      alert("Cashier created successfully");
+      resetForm();
       setOpen(false);
     } catch (err) {
       setError(
@@ -104,96 +72,82 @@ export function CreateCashier({ onCashierCreated }: CreateCashierProps) {
     setAccessKey("");
     setPermissions([]);
     setError(null);
-    setHasAttemptedSubmit(false);
   };
 
   return (
-    <div className="w-full max-w-2xl p-4 md:p-0">
-      <Dialog
-        open={open}
-        onOpenChange={(newOpen) => {
-          setOpen(newOpen);
-          if (!newOpen) resetForm();
-        }}
-      >
-        <DialogTrigger asChild>
-          <Button>
-            <PlusCircle />
-            Create New Cashier
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Create New Cashier</DialogTitle>
-            <DialogDescription>
-              Add a new cashier with custom permissions
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (hasAttemptedSubmit && e.target.value.length >= 4) {
-                    setError(null);
-                  }
-                }}
-                required
-                disabled={isLoading}
-              />
-              {hasAttemptedSubmit && name.length < 4 && (
-                <p className="text-sm text-red-500">
-                  Name must be 4 or more characters
-                </p>
-              )}
-            </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Create New Cashier
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Create New Cashier</DialogTitle>
+          <DialogDescription>
+            Add a new cashier with custom permissions
+          </DialogDescription>
+        </DialogHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="accessKey">Access Key</Label>
-              <Input
-                id="accessKey"
-                value={accessKey}
-                onChange={(e) => setAccessKey(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              minLength={4}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="accessKey">Access Key</Label>
+            <Input
+              id="accessKey"
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              maxLength={4}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Permissions</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {permissionTypes.map((perm) => (
+                <div key={perm} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={perm}
+                    checked={permissions.includes(perm)}
+                    onCheckedChange={(checked) => {
+                      setPermissions((prev) =>
+                        checked
+                          ? [...prev, perm]
+                          : prev.filter((p) => p !== perm)
+                      );
+                    }}
+                  />
+                  <Label htmlFor={perm} className="capitalize">
+                    {perm.toLowerCase().replace(/_/g, " ")}
+                  </Label>
+                </div>
+              ))}
             </div>
-            <div className="space-y-2">
-              <Label>Permissions</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {permissionTypes.map((perm) => (
-                  <div key={perm} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={perm}
-                      checked={permissions.includes(perm)}
-                      onCheckedChange={(checked) => {
-                        setPermissions(
-                          checked
-                            ? [...permissions, perm]
-                            : permissions.filter((p) => p !== perm)
-                        );
-                      }}
-                      disabled={isLoading}
-                    />
-                    <Label htmlFor={perm}>{perm}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Creating..." : "Create Cashier"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </div>
+
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Cashier"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
