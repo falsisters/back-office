@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { InventoryManagement } from "@/components/Products/InventoryManagement"
-import { getUserData } from "@/lib/server/getUserData"
-import { redirect } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import InventoryManagement from "@/components/Products/InventoryManagement";
+import { getUserData } from "@/lib/server/getUserData";
+import { redirect } from "next/navigation";
 
 export default async function Inventory() {
   let userData;
@@ -25,6 +25,5 @@ export default async function Inventory() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-

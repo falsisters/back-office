@@ -1,32 +1,79 @@
-import type { Price } from "../../../utils/types/schema.type"
-import { parseProductType } from "../../../utils/parsers/productType.parser"
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProductResponse } from '../../../utils/types/getAllProductsByUserId.type';
 
 interface PriceSummaryProps {
-  prices: Price[]
+  products: ProductResponse[];
 }
 
-export function PriceSummary({ prices }: PriceSummaryProps) {
+export const PriceSummary: React.FC<PriceSummaryProps> = ({ products }) => {
+  const calculateTotalInventoryValue = () => {
+    return products.reduce((total, product) => {
+      // Safe calculation for sack prices
+      const sackPriceValue = Array.isArray(product.SackPrice) 
+        ? product.SackPrice.reduce(
+            (sackTotal, sackPrice) => sackTotal + (sackPrice.price * sackPrice.stock),
+            0
+          )
+        : 0;
+      
+      // Safe calculation for per kilo prices
+      const perKiloValue = Array.isArray(product.perKiloPrice)
+        ? product.perKiloPrice.reduce(
+            (kiloTotal, kiloPrice) => kiloTotal + (kiloPrice.price * kiloPrice.stock),
+            0
+          )
+        : 0;
+      
+      return total + sackPriceValue + perKiloValue;
+    }, 0);
+  };
+
+  const calculateTotalStock = () => {
+    return products.reduce((total, product) => {
+      // Safe calculation for sack stock
+      const sackStock = Array.isArray(product.SackPrice)
+        ? product.SackPrice.reduce(
+            (sackTotal, sackPrice) => sackTotal + sackPrice.stock,
+            0
+          )
+        : 0;
+      
+      // Safe calculation for kilo stock  
+      const kiloStock = Array.isArray(product.perKiloPrice)
+        ? product.perKiloPrice.reduce(
+            (kiloTotal, kiloPrice) => kiloTotal + kiloPrice.stock,
+            0
+          )
+        : 0;
+      
+      return total + sackStock + kiloStock;
+    }, 0);
+  };
+
   return (
-    <>
-      {prices.some((p) => p.price > 0) && (
-        <div className="bg-slate-50 p-3 rounded-md">
-          <h4 className="text-sm font-medium mb-2">Price Summary</h4>
-          <ul className="text-sm space-y-1">
-            {prices
-              .filter((p) => p.price > 0)
-              .map((p, i) => (
-                <li key={i}>
-                  {parseProductType(p.type)}: Pesos {p.price.toFixed(2)} (Stock: {p.stock})
-                  {p.profit.length > 0 &&
-                    p.profit[0].profit > 0 &&
-                    ` with ${p.profit.length} profit setting${p.profit.length > 1 ? "s" : ""}`}
-                  {p.specialPrice.length > 0 &&
-                    ` and ${p.specialPrice.length} special price${p.specialPrice.length > 1 ? "s" : ""}`}
-                </li>
-              ))}
-          </ul>
+    <Card>
+      <CardHeader>
+        <CardTitle>Inventory Summary</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span>Total Products:</span>
+            <span>{products.length}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Total Inventory Value:</span>
+            <span>₱{calculateTotalInventoryValue().toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Total Stock Quantity:</span>
+            <span>{calculateTotalStock()}</span>
+          </div>
         </div>
-      )}
-    </>
-  )
-}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PriceSummary;

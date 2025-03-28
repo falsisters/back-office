@@ -1,194 +1,239 @@
-"use client";
-
-import { useState, useRef, Dispatch, SetStateAction } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
+import React, { useState } from 'react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { Product, Price, Upload } from "../../../utils/types/schema.type";
-import { createProduct } from "@/lib/server/createProduct";
-import { toast } from "@/hooks/use-toast";
-import { BasicProductInfo } from "@/components/Products/BasicProductInfo";
-import { PriceVariants } from "@/components/Products/PriceVariants";
-import { PriceSummary } from "@/components/Products/PriceSummary";
-import { UploadImage } from "@/components/Products/UploadImage";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { createProduct } from '@/lib/server/createProduct';
+import { SackTypeEnum } from '../../../utils/types/schema.type';
+import { z } from 'zod';
+import { useToast } from '@/hooks/use-toast';
 
-type ProductData = {
-  name: string;
-  price: Price[];
-  picture: File | null;
-};
-
-const initialProductData: ProductData = {
-  name: "",
-  price: [
-    {
-      id: `variant-${Date.now()}`,
-      price: 0,
-      stock: 0,
-      type: "FIFTY_KG",
-      productId: "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      profit: [],
-      specialPrice: [],
-    },
-  ],
-  picture: null,
-};
-
-export interface CreateProductProps {
-  onProductCreated?: (product: Product & { Price?: Price[] }) => void;
+interface CreateProductProps {
+  onProductCreated: () => void;
 }
 
-export function CreateProduct({ onProductCreated }: CreateProductProps) {
-  const [productData, setProductData] =
-    useState<ProductData>(initialProductData);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>("");
-  const closeRef = useRef<HTMLButtonElement>(null);
+const CreateProduct: React.FC<CreateProductProps> = ({ onProductCreated }) => {
+  const { toast } = useToast()
+  const [name, setName] = useState('');
+  const [picture, setPicture] = useState<File | null>(null);
+  const [sackPrices, setSackPrices] = useState<Array<{
+    type: z.infer<typeof SackTypeEnum>;
+    price: number;
+    stock: number;
+    specialPrice: {
+      price: number;
+      minimumQty: number;
+    };
+  }>>([]);
+  const [perKiloPrice, setPerKiloPrice] = useState({
+    price: 0,
+    stock: 0
+  });
 
-  const handleBasicInfoChange = (field: "name", value: string) => {
-    setProductData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handlePriceVariantsChange: Dispatch<SetStateAction<Price[]>> = (
-    variantsOrUpdater
-  ) => {
-    setProductData((prev) => {
-      const newVariants =
-        typeof variantsOrUpdater === "function"
-          ? variantsOrUpdater(prev.price)
-          : variantsOrUpdater;
-      return { ...prev, price: newVariants };
-    });
-  };
-
-  const handleImageChange = (picture: Upload | null) => {
-    setProductData((prev) => ({
-      ...prev,
-      picture: picture ? picture.file : null,
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
-      setError("");
-      setSubmitting(true);
-
-      const trimmedName = productData.name.trim();
-      if (!trimmedName) {
-        setError("Product name is required");
-        setSubmitting(false);
-        return;
-      }
-
-      if (!productData.picture) {
-        setError("Product image is required");
-        setSubmitting(false);
-        return;
-      }
-
-      if (productData.price.length === 0) {
-        setError("At least one price variant is required");
-        setSubmitting(false);
-        return;
-      }
-
-      for (let i = 0; i < productData.price.length; i++) {
-        const variant = productData.price[i];
-        if (variant.price <= 0) {
-          setError(`Price for variant #${i + 1} must be greater than 0`);
-          setSubmitting(false);
-          return;
-        }
-        if (variant.stock < 0) {
-          setError(`Stock for variant #${i + 1} cannot be negative`);
-          setSubmitting(false);
-          return;
-        }
-      }
-
+      // Create FormData for picture
       const formData = new FormData();
-      formData.append("name", trimmedName);
-      formData.append("price", JSON.stringify(productData.price));
-
-      if (productData.picture) {
-        formData.append("picture", productData.picture);
-      }
-      console.log("Product:", productData);
-      console.log("Product name:", trimmedName);
-      console.log("Price variants:", JSON.stringify(productData.price));
-      console.log("Selected picture:", productData.picture);
-
-      const createdProduct = await createProduct(formData);
-
-      if (onProductCreated) {
-        onProductCreated(createdProduct);
-      }
-
+      if (picture) formData.append('picture', picture);
+  
+      // Prepare the product data object
+      const productData = {
+        name,
+        sackPrice: sackPrices.map(sack => ({
+          price: sack.price,
+          stock: sack.stock,
+          type: sack.type,
+          specialPrice: {
+            price: sack.specialPrice.price,
+            minimumQty: sack.specialPrice.minimumQty
+          }
+        })),
+        perKiloPrice: perKiloPrice.price > 0 || perKiloPrice.stock > 0 
+          ? { price: perKiloPrice.price, stock: perKiloPrice.stock } 
+          : undefined
+      };
+  
+      // Call createProduct with both formData and productData
+      const result = await createProduct(formData, productData);
+  
+      console.log("Created Product: ", result)
+      onProductCreated();
+      toast({ title: "Product Created" });
+    } catch (error) {
       toast({
-        title: "Product created successfully",
-        description: `Added ${trimmedName} with ${productData.price.length} price variant(s)`,
+        title: "Error",
+        variant: "destructive",
+        description: error instanceof Error ? error.message : "Unknown error"
       });
-
-      // Reset the product data
-      setProductData(initialProductData);
-      closeRef.current?.click();
-    } catch (err) {
-      console.error("Error creating product:", err);
-      setError(err instanceof Error ? err.message : "Failed to create product");
-    } finally {
-      setSubmitting(false);
     }
   };
+  
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Create New Product</Button>
+        <Button>Create Product</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Product</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Product Name</Label>
+            <Input 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              required 
+            />
+          </div>
+          
+          <div>
+            <Label>Product Image</Label>
+            <Input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => setPicture(e.target.files?.[0] || null)} 
+              required 
+            />
+          </div>
 
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          {/* Sack Prices Section */}
+          <div className="space-y-4">
+            <Label>Sack Prices</Label>
+            {sackPrices.map((sackPrice, index) => (
+              <div key={index} className="space-y-2 border p-4 rounded-lg">
+                <div className="flex gap-2">
+                  <Select 
+                    value={sackPrice.type}
+                    onValueChange={(value) => {
+                      const newSackPrices = [...sackPrices];
+                      newSackPrices[index].type = value as z.infer<typeof SackTypeEnum>;
+                      setSackPrices(newSackPrices);
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Sack Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(SackTypeEnum.enum).map((type) => (
+                        <SelectItem key={type} value={type}>{type.replace('_', ' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input 
+                    type="number" 
+                    placeholder="Price" 
+                    value={sackPrice.price}
+                    onChange={(e) => {
+                      const newSackPrices = [...sackPrices];
+                      newSackPrices[index].price = Number(e.target.value);
+                      setSackPrices(newSackPrices);
+                    }}
+                  />
+                  <Input 
+                    type="number" 
+                    placeholder="Stock" 
+                    value={sackPrice.stock}
+                    onChange={(e) => {
+                      const newSackPrices = [...sackPrices];
+                      newSackPrices[index].stock = Number(e.target.value);
+                      setSackPrices(newSackPrices);
+                    }}
+                  />
+                </div>
+                
+                {/* Special Price Inputs */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Special Price</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Special Price"
+                      value={sackPrice.specialPrice.price}
+                      onChange={(e) => {
+                        const newSackPrices = [...sackPrices];
+                        newSackPrices[index].specialPrice.price = Number(e.target.value);
+                        setSackPrices(newSackPrices);
+                      }}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Minimum Quantity"
+                      value={sackPrice.specialPrice.minimumQty}
+                      onChange={(e) => {
+                        const newSackPrices = [...sackPrices];
+                        newSackPrices[index].specialPrice.minimumQty = Number(e.target.value);
+                        setSackPrices(newSackPrices);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button 
+              type="button" 
+              variant="outline"
+              className="w-full"
+              onClick={() => setSackPrices([...sackPrices, { 
+                type: 'FIFTY_KG', 
+                price: 0, 
+                stock: 0,
+                specialPrice: {
+                  price: 0,
+                  minimumQty: 0
+                }
+              }])}
+            >
+              Add Sack Price
+            </Button>
+          </div>
 
-        <div className="space-y-6">
-          <BasicProductInfo
-            product={productData}
-            handleInputChange={handleBasicInfoChange}
-          />
-          <UploadImage onFileChange={handleImageChange} required />
-          <PriceVariants
-            prices={productData.price}
-            setPrices={handlePriceVariantsChange}
-          />
-          <PriceSummary prices={productData.price} />
-        </div>
+          {/* Per Kilo Price Section */}
+          <div className="space-y-2">
+            <Label>Per Kilo Price</Label>
+            <div className="flex gap-2">
+              <Input 
+                type="number" 
+                placeholder="Price per Kilo" 
+                value={perKiloPrice.price}
+                onChange={(e) => setPerKiloPrice({
+                  ...perKiloPrice, 
+                  price: Number(e.target.value)
+                })}
+              />
+              <Input 
+                type="number" 
+                placeholder="Stock" 
+                value={perKiloPrice.stock}
+                onChange={(e) => setPerKiloPrice({
+                  ...perKiloPrice, 
+                  stock: Number(e.target.value)
+                })}
+              />
+            </div>
+          </div>
 
-        <div className="flex justify-end gap-4 mt-6">
-          <DialogClose ref={closeRef} asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating..." : "Create Product"}
-          </Button>
-        </div>
+          <Button type="submit" className="w-full">Create Product</Button>
+        </form>
       </DialogContent>
     </Dialog>
   );
-}
+};
 
 export default CreateProduct;
