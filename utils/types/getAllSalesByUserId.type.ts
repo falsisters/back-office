@@ -1,22 +1,29 @@
+// ../../../utils/types/getAllSalesByUserId.type.ts
 import { z } from "zod";
-import {
+import { 
   CashierSchema,
   ProductSchema,
+  SackTypeEnum,
   SaleItemSchema,
-  SaleSchema,
+  SaleSchema 
 } from "./schema.type";
 
 export const GetAllSalesByUserIdPayloadSchema = z.array(
   SaleSchema.extend({
     cashier: CashierSchema,
-    items: z.array(
+    SaleItem: z.array(
       SaleItemSchema.extend({
-        ProductSchema,
+        product: ProductSchema.extend({
+          SackPrice: z.array(z.object({
+            type: SackTypeEnum,
+            price: z.number(),
+            specialPrice: z.object({ price: z.number() }).optional()
+          })),
+          perKiloPrice: z.object({ price: z.number() }).optional()
+        })
       })
-    ),
+    )
   })
 );
 
-export type GetAllSalesByUserIdPayload = z.infer<
-  typeof GetAllSalesByUserIdPayloadSchema
->;
+export type GetAllSalesByUserIdPayload = z.infer<typeof GetAllSalesByUserIdPayloadSchema>;

@@ -1,4 +1,4 @@
-import { SalesList } from "@/components/Sales/SalesList";
+import SalesList from "@/components/Sales/SalesList";
 import { Spinner } from "@/components/ui/spinner";
 import { getUserData } from "@/lib/server/getUserData";
 import { redirect } from "next/navigation";
