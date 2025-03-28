@@ -1,37 +1,30 @@
+// @/lib/server/getAllSalesByUserId.ts
 "use server";
 
 import { cookies } from "next/headers";
-import { NestApiError } from "../../../utils/types/error.type";
 import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import { NestApiError } from "../../../utils/types/error.type";
 
 export const getAllSalesByUserId = async () => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
-  if (!accessToken) {
-    throw new Error("Unauthorized");
-  }
+  if (!accessToken) throw new Error("Unauthorized");
 
   const response = await fetch(`${process.env.API_URL}/sale/user`, {
-    headers: {
-      Authorization: `Bearer ${accessToken.value}`,
-    },
+    headers: { Authorization: `Bearer ${accessToken.value}` },
     method: "GET",
-    next: {
-      revalidate: 60,
-    },
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
     const data: NestApiError = await response.json();
     throw new Error(
-      Array.isArray(data.message)
-        ? data.message.join(", ")
-        : data.message || "Unexpected error occured"
+      Array.isArray(data.message) 
+        ? data.message.join(", ") 
+        : data.message || "Unexpected error occurred"
     );
   }
 
-  const payload: GetAllSalesByUserIdPayload = await response.json();
-
-  return payload;
+  return await response.json() as GetAllSalesByUserIdPayload;
 };
