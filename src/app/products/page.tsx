@@ -18,7 +18,7 @@ export default async function Inventory() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Card className="p-6">
         <CardHeader className="px-0">
-          <CardTitle className="text-2xl font-bold">Inventory Management</CardTitle>
+          <CardTitle className="text-2xl font-bold">Products</CardTitle>
         </CardHeader>
         <CardContent className="px-0">
           <InventoryManagement />

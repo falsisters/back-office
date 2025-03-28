@@ -1,9 +1,10 @@
+// createProduct.ts
 "use server";
 
-import { NestApiError } from "../../../utils/types/error.type";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
-export const createProduct = async (formData: FormData, productData: any) => {
+export const createProduct = async (formData: FormData) => {
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("access_token");
@@ -14,22 +15,17 @@ export const createProduct = async (formData: FormData, productData: any) => {
       headers: { 
         Authorization: `Bearer ${accessToken.value}`,
       },
-      body: JSON.stringify({
-        ...productData,
-        formData
-      })
+      body: formData
     });
 
     if (!response.ok) {
-      const error: NestApiError = await response.json();
-      throw new Error(error.message?.toString() || "Failed to create product");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to create product");
     }
-
-    return response.json();
+    revalidatePath("/products")
+    return await response.json();
   } catch (error) {
     console.error("Create product error:", error);
-    throw new Error(
-      error instanceof Error ? error.message : "Failed to create product"
-    );
+    throw error;
   }
 };

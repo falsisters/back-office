@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
 import EditProduct from "./EditProduct";
+import DeleteProduct from "./DeleteProduct";
 
 interface ItemTableProps {
   products: ProductResponse[];
@@ -54,10 +55,14 @@ const ItemTable: React.FC<ItemTableProps> = ({ products, onProductUpdate }) => {
                 : "No kilo prices"}
             </TableCell>
             <TableCell>
-              <div className="flex items-center justify-center">
-                <EditProduct 
-                  productId={product.id} 
-                  onProductUpdated={onProductUpdate} 
+              <div className="flex items-center gap-2">
+                <EditProduct
+                  productId={product.id}
+                  onProductUpdated={onProductUpdate}
+                />
+                <DeleteProduct
+                  productId={product.id}
+                  onProductDeleted={onProductUpdate}
                 />
               </div>
             </TableCell>

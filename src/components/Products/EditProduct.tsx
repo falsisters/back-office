@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,15 +20,26 @@ import {
 } from "@/components/ui/select";
 import { editProduct } from "@/lib/server/editProduct";
 import { getProductById } from "@/lib/server/getProductById";
-import { GetProductByIdResponse } from "../../../utils/types/getProductById.type";
-import { SackTypeEnum } from "../../../utils/types/schema.type";
-import { z } from "zod";
+import { SackType } from "../../../utils/types/schema.type";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
 
 interface EditProductProps {
   productId: string;
   onProductUpdated?: () => void;
+}
+
+interface SackPrice {
+  id?: string;
+  type: SackType;
+  price: number;
+  stock: number;
+  specialPrice?: {
+    id?: string;
+    price?: number;
+    minimumQty?: number;
+  };
 }
 
 const EditProduct: React.FC<EditProductProps> = ({
@@ -37,47 +48,26 @@ const EditProduct: React.FC<EditProductProps> = ({
 }) => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [product, setProduct] = useState<GetProductByIdResponse | null>(null);
+  const [product, setProduct] = useState<ProductResponse | null>(null);
   const [name, setName] = useState("");
   const [picture, setPicture] = useState<File | null>(null);
-  const [sackPrices, setSackPrices] = useState<
-    Array<{
-      id?: string;
-      type: z.infer<typeof SackTypeEnum>;
-      price: number;
-      stock: number;
-      specialPrice?: {
-        price?: number;
-        minimumQty?: number;
-      };
-    }>
-  >([]);
+  const [sackPrices, setSackPrices] = useState<SackPrice[]>([]);
   const [perKiloPrice, setPerKiloPrice] = useState<{
     id?: string;
     price: number;
     stock: number;
-  }>({
-    id: undefined,
-    price: 0,
-    stock: 0,
-  });
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleDialogOpen = async () => {
-    setIsDialogOpen(true);
+  const loadProduct = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
-
     try {
       const result = await getProductById(productId);
-
       if (result.data) {
         const fetchedProduct = result.data;
         setProduct(fetchedProduct);
         setName(fetchedProduct.name);
 
-        // Set Sack Prices
         setSackPrices(
           fetchedProduct.SackPrice.map((sp) => ({
             id: sp.id,
@@ -86,6 +76,7 @@ const EditProduct: React.FC<EditProductProps> = ({
             stock: sp.stock,
             specialPrice: sp.specialPrice
               ? {
+                  id: sp.specialPrice.id,
                   price: sp.specialPrice.price,
                   minimumQty: sp.specialPrice.minimumQty,
                 }
@@ -93,43 +84,34 @@ const EditProduct: React.FC<EditProductProps> = ({
           }))
         );
 
-        // Set Per Kilo Price
-        if (
-          fetchedProduct.perKiloPrice &&
-          fetchedProduct.perKiloPrice.length > 0
-        ) {
-          const perKilo = fetchedProduct.perKiloPrice[0];
+        if (fetchedProduct.perKiloPrice) {
           setPerKiloPrice({
-            id: perKilo.id,
-            price: perKilo.price,
-            stock: perKilo.stock,
+            id: fetchedProduct.perKiloPrice.id,
+            price: fetchedProduct.perKiloPrice.price,
+            stock: fetchedProduct.perKiloPrice.stock,
           });
         }
-      } else if (result.error) {
-        setError(result.error);
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        });
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch product";
-      setError(errorMessage);
+    } catch (error) {
+      console.error("Error: ", error)
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Failed to load product",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [productId, toast]);
+
+  useEffect(() => {
+    if (isDialogOpen && !product) {
+      loadProduct();
+    }
+  }, [isDialogOpen, product, loadProduct]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       const formData = new FormData();
       formData.append("name", name);
@@ -138,232 +120,234 @@ const EditProduct: React.FC<EditProductProps> = ({
         formData.append("picture", picture);
       }
 
-      formData.append(
-        "sackPrices",
-        JSON.stringify(
-          sackPrices.map((sp) => ({
-            id: sp.id,
-            price: sp.price,
-            stock: sp.stock,
-            type: sp.type,
-            specialPrice: sp.specialPrice,
-          }))
-        )
-      );
+      const sackPricesData = sackPrices.map((sp) => ({
+        id: sp.id,
+        price: sp.price,
+        stock: sp.stock,
+        type: sp.type,
+        specialPrice: sp.specialPrice
+          ? {
+              id: sp.specialPrice.id,
+              price: sp.specialPrice.price,
+              minimumQty: sp.specialPrice.minimumQty,
+            }
+          : undefined,
+      }));
+      formData.append("sackPrice", JSON.stringify(sackPricesData));
 
-      formData.append(
-        "perKiloPrice",
-        JSON.stringify({
-          id: perKiloPrice.id,
-          price: perKiloPrice.price,
-          stock: perKiloPrice.stock,
-        })
-      );
+      if (perKiloPrice) {
+        formData.append(
+          "perKiloPrice",
+          JSON.stringify({
+            id: perKiloPrice.id,
+            price: perKiloPrice.price,
+            stock: perKiloPrice.stock,
+          })
+        );
+      }
 
-      const result = await editProduct(productId, formData);
-      console.log("Product Updated: ", result);
+      await editProduct(productId, formData);
 
       toast({
-        title: "Product Updated",
-        description: "The product has been successfully updated.",
+        title: "Success",
+        description: "Product updated successfully",
       });
 
       onProductUpdated?.();
       setIsDialogOpen(false);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update product";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Update failed",
         variant: "destructive",
       });
-      console.error("Error: ", error);
     }
   };
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" onClick={handleDialogOpen}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsDialogOpen(true)}
+        >
           Edit
         </Button>
       </DialogTrigger>
-      <DialogHeader>
-        <DialogTitle></DialogTitle>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          {isLoading ? (
-            <div>Loading...</div>
-          ) : error ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Error</DialogTitle>
-              </DialogHeader>
-              <p>{error}</p>
-              <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
-            </>
-          ) : product ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Edit Product: {product.name}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label>Product Name</Label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Product</DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : product ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Product Name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
 
-                <div>
-                  <Label>Current Product Image</Label>
-                  <div className="relative w-full h-48 mb-4">
-                    <Image
-                      src={product.picture}
-                      alt={product.name}
-                      fill
-                      className="object-cover rounded-md"
-                    />
-                  </div>
-                  <Label>Update Product Image</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setPicture(e.target.files?.[0] || null)}
-                  />
-                </div>
+            <div>
+              <Label>Current Image</Label>
+              <div className="relative w-full h-48 mb-4">
+                <Image
+                  src={product.picture}
+                  alt={product.name}
+                  fill
+                  className="object-cover rounded-md"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              </div>
+              <Label>New Image (optional)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPicture(e.target.files?.[0] || null)}
+              />
+            </div>
 
-                {/* Sack Prices Section */}
-                <div>
-                  <Label>Sack Prices</Label>
-                  {sackPrices.map((sackPrice, index) => (
-                    <div
-                      key={sackPrice.id || index}
-                      className="flex space-x-2 mb-2"
+            <div className="space-y-4">
+              <Label>Sack Prices</Label>
+              {sackPrices.map((sp, index) => (
+                <div
+                  key={sp.id || index}
+                  className="space-y-2 border p-4 rounded-lg"
+                >
+                  <div className="flex gap-2">
+                    <Select
+                      value={sp.type}
+                      onValueChange={(value) => {
+                        const newPrices = [...sackPrices];
+                        newPrices[index].type = value as SackType;
+                        setSackPrices(newPrices);
+                      }}
                     >
-                      <Select
-                        value={sackPrice.type}
-                        onValueChange={(value) => {
-                          const newSackPrices = [...sackPrices];
-                          newSackPrices[index].type = value as z.infer<
-                            typeof SackTypeEnum
-                          >;
-                          setSackPrices(newSackPrices);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sack Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.values(SackTypeEnum.enum).map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        type="number"
-                        placeholder="Price"
-                        value={sackPrice.price}
-                        onChange={(e) => {
-                          const newSackPrices = [...sackPrices];
-                          newSackPrices[index].price = Number(e.target.value);
-                          setSackPrices(newSackPrices);
-                        }}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Stock"
-                        value={sackPrice.stock}
-                        onChange={(e) => {
-                          const newSackPrices = [...sackPrices];
-                          newSackPrices[index].stock = Number(e.target.value);
-                          setSackPrices(newSackPrices);
-                        }}
-                      />
-                      {/* Special Price Section */}
-                      <div className="flex space-x-2">
-                        <Input
-                          type="number"
-                          placeholder="Special Price"
-                          value={sackPrice.specialPrice?.price || ""}
-                          onChange={(e) => {
-                            const newSackPrices = [...sackPrices];
-                            newSackPrices[index].specialPrice = {
-                              ...newSackPrices[index].specialPrice,
-                              price: Number(e.target.value),
-                            };
-                            setSackPrices(newSackPrices);
-                          }}
-                        />
-                        <Input
-                          type="number"
-                          placeholder="Min Qty"
-                          value={sackPrice.specialPrice?.minimumQty || ""}
-                          onChange={(e) => {
-                            const newSackPrices = [...sackPrices];
-                            newSackPrices[index].specialPrice = {
-                              ...newSackPrices[index].specialPrice,
-                              minimumQty: Number(e.target.value),
-                            };
-                            setSackPrices(newSackPrices);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      setSackPrices([
-                        ...sackPrices,
-                        { type: "FIFTY_KG", price: 0, stock: 0 },
-                      ])
-                    }
-                  >
-                    Add Sack Price
-                  </Button>
-                </div>
-
-                {/* Per Kilo Price Section */}
-                <div>
-                  <Label>Per Kilo Price</Label>
-                  <div className="flex space-x-2">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sack Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FIFTY_KG">50 KG</SelectItem>
+                        <SelectItem value="TWENTY_FIVE_KG">25 KG</SelectItem>
+                        <SelectItem value="FIVE_KG">5 KG</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Input
                       type="number"
-                      placeholder="Price per Kilo"
-                      value={perKiloPrice.price}
-                      onChange={(e) =>
-                        setPerKiloPrice({
-                          ...perKiloPrice,
-                          price: Number(e.target.value),
-                        })
-                      }
+                      placeholder="Price"
+                      value={sp.price}
+                      onChange={(e) => {
+                        const newPrices = [...sackPrices];
+                        newPrices[index].price = Number(e.target.value);
+                        setSackPrices(newPrices);
+                      }}
+                      step="0.01"
                     />
                     <Input
                       type="number"
                       placeholder="Stock"
-                      value={perKiloPrice.stock}
-                      onChange={(e) =>
-                        setPerKiloPrice({
-                          ...perKiloPrice,
-                          stock: Number(e.target.value),
-                        })
-                      }
+                      value={sp.stock}
+                      onChange={(e) => {
+                        const newPrices = [...sackPrices];
+                        newPrices[index].stock = Number(e.target.value);
+                        setSackPrices(newPrices);
+                      }}
                     />
                   </div>
-                </div>
 
-                <Button type="submit">Update Product</Button>
-              </form>
-            </>
-          ) : null}
-        </DialogContent>
-      </DialogHeader>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">
+                      Special Price (optional)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Price"
+                        value={sp.specialPrice?.price || ""}
+                        onChange={(e) => {
+                          const newPrices = [...sackPrices];
+                          newPrices[index].specialPrice = {
+                            ...newPrices[index].specialPrice,
+                            price: Number(e.target.value),
+                          };
+                          setSackPrices(newPrices);
+                        }}
+                        step="0.01"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Min Qty"
+                        value={sp.specialPrice?.minimumQty || ""}
+                        onChange={(e) => {
+                          const newPrices = [...sackPrices];
+                          newPrices[index].specialPrice = {
+                            ...newPrices[index].specialPrice,
+                            minimumQty: Number(e.target.value),
+                          };
+                          setSackPrices(newPrices);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setSackPrices([
+                    ...sackPrices,
+                    {
+                      type: "FIFTY_KG",
+                      price: 0,
+                      stock: 0,
+                    },
+                  ])
+                }
+              >
+                Add Sack Price
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Per Kilo Price (optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Price"
+                  value={perKiloPrice?.price || ""}
+                  onChange={(e) =>
+                    setPerKiloPrice({
+                      ...(perKiloPrice || { price: 0, stock: 0 }),
+                      price: Number(e.target.value),
+                    })
+                  }
+                  step="0.01"
+                />
+                <Input
+                  type="number"
+                  placeholder="Stock"
+                  value={perKiloPrice?.stock || ""}
+                  onChange={(e) =>
+                    setPerKiloPrice({
+                      ...(perKiloPrice || { price: 0, stock: 0 }),
+                      stock: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full">
+              Update Product
+            </Button>
+          </form>
+        ) : null}
+      </DialogContent>
     </Dialog>
   );
 };

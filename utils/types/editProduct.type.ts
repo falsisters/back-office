@@ -6,10 +6,14 @@ export const EditProductFormDataSchema = ProductSchema.extend({
   picture: z.instanceof(File).optional(),
   sackPrices: z.array(
     SackPriceSchema.extend({
-      specialPrice: SpecialPriceSchema.partial()
+      id: z.string(),
+      specialPrice: SpecialPriceSchema.partial(),
     }).partial()
-  ),
-  perKiloPrice: PerKiloPriceSchema.partial()
+  ).optional(),
+  perKiloPrice: PerKiloPriceSchema.extend({
+    id: z.string(),
+  }).partial().optional(),
 }).partial();
+
 
 export type EditProductFormData = z.infer<typeof EditProductFormDataSchema>;
