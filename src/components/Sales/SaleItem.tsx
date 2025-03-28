@@ -1,138 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { deleteSale } from "@/lib/server/deleteSale";
-import { parseProductType } from "../../../utils/parsers/productType.parser";
-import { Loader2 } from "lucide-react";
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
-import { Trash2Icon } from "lucide-react";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 
-interface SaleItemProps {
-  sale: GetAllSalesByUserIdPayload[number];
-  onDelete: (deletedSaleId: string) => void;
-}
-
-export function SaleItem({ sale, onDelete }: SaleItemProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleConfirmDelete = async () => {
-    try {
-      setIsDeleting(true);
-      await deleteSale(sale.id);
-      onDelete(sale.id);
-    } catch (error) {
-      console.error("Failed to delete sale:", error);
-      alert("Failed to delete sale. Please try again.");
-    } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
+export default function SaleItem({ 
+  productName, 
+  items, 
+  allSales 
+}: { 
+  productName: string; 
+  items: GetAllSalesByUserIdPayload[number]['SaleItem']; 
+  allSales: GetAllSalesByUserIdPayload;
+}) {
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  let totalAmount = 0;
+  let checkTotal = 0;
+  let bankTransferTotal = 0;
+  
+  items.forEach(item => {
+    const sale = allSales.find(s => s.id === item.saleId);
+    if (!sale) return;
+    
+    const price = item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
+      ? item.product.SackPrice[0]?.specialPrice?.price
+      : (item.product.SackPrice[0]?.price || item.product.perKiloPrice?.price || 0);
+    
+    const itemTotal = price * item.quantity;
+    totalAmount += itemTotal;
+    
+    if (sale.paymentMethod === 'CHECK') {
+      checkTotal += itemTotal;
+    } else if (sale.paymentMethod === 'BANK_TRANSFER') {
+      bankTransferTotal += itemTotal;
     }
-  };
+  });
+  
+  const cashTotal = totalAmount - checkTotal - bankTransferTotal;
 
   return (
-    <>
-      <Card> 
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-medium">Sale #{sale.id}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="px-2 py-1">
-                  Total: ${sale.total.toFixed(2)}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="px-2 py-1">
-                  Cashier: {sale.cashier.name}
-                </Badge>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="px-2 py-1">
-                  Payment Method: {sale.paymentMethod}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="px-2 py-1">
-                  Date: {new Date(sale.createdAt).toLocaleString()}
-                </Badge>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <h3 className="font-medium text-sm mb-2">Items:</h3>
-            <ul className="space-y-1">
-              {sale.items.map((item) => (
-                <li key={item.id} className="text-sm">
-                  {item.product.name} - {item.qty} x ${item.price.toFixed(2)} (
-                  {parseProductType(item.type)})
-                  {item.isSpecialPrice && (
-                    <Badge className="ml-2">Special Price</Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <Button
-            className="mt-5"
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2Icon className="w-6 h-6"/>
-          </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>{productName}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <Table>
+            <TableBody>
+              {items.map(item => {
+                const sale = allSales.find(s => s.id === item.saleId);
+                const price = item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
+                  ? item.product.SackPrice[0]?.specialPrice?.price
+                  : (item.product.SackPrice[0]?.price || item.product.perKiloPrice?.price || 0);
+                const totalPrice = Math.floor(price * item.quantity);
+                const paymentInfo = sale?.paymentMethod !== 'CASH' 
+                  ? ` (${sale?.paymentMethod.replace('_', ' ')})`
+                  : '';
+                const specialPriceInfo = item.isSpecialPrice ? ' (special price)' : '';
+                const gantangInfo = item.isGantang ? ' (gantang)' : '';
+                
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">
+                      {item.quantity} {productName}{gantangInfo}{specialPriceInfo} = {totalPrice}{paymentInfo}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete Sale #{sale.id}? This action
-              cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Sale Summary</h3>
+            <Separator className="my-2" />
+            
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Total Quantity:</TableCell>
+                  <TableCell className="text-right">{totalQuantity}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Total Amount:</TableCell>
+                  <TableCell className="text-right">₱{Math.floor(totalAmount)}</TableCell>
+                </TableRow>
+                
+                {checkTotal > 0 && (
+                  <TableRow>
+                    <TableCell className="font-medium">CHECK Deduction:</TableCell>
+                    <TableCell className="text-right">- ₱{Math.floor(checkTotal)}</TableCell>
+                  </TableRow>
+                )}
+                
+                {bankTransferTotal > 0 && (
+                  <TableRow>
+                    <TableCell className="font-medium">BANK TRANSFER Deduction:</TableCell>
+                    <TableCell className="text-right">- ₱{Math.floor(bankTransferTotal)}</TableCell>
+                  </TableRow>
+                )}
+                
+                <TableRow className="border-t-2">
+                  <TableCell className="font-bold">NET TOTAL (CASH):</TableCell>
+                  <TableCell className="text-right font-bold">₱{Math.floor(cashTotal)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
