@@ -1,66 +1,84 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllProducts } from "@/lib/server/getAllProductsByUserId";
-import { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
-import CreateProduct from "./CreateProduct";
-import ItemTable from "./ItemTable";
-import { PriceSummary } from "./PriceSummary";
-import { Toaster } from "@/components/ui/toaster";
+import { useState, useEffect, useCallback } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getAllProducts } from "@/lib/server/getAllProductsByUserId"
+import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
+import CreateProduct from "./CreateProduct"
+import ItemTable from "./ItemTable"
+import PriceSummary from "./PriceSummary"
+import { Toaster } from "@/components/ui/toaster"
+import { Loader2, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-const InventoryManagement: React.FC = () => {
-  const [products, setProducts] = useState<ProductResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function InventoryManagement() {
+  const [products, setProducts] = useState<ProductResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const fetchProducts = useCallback(async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const result = await getAllProducts();
+      const result = await getAllProducts()
       if (result.data) {
-        setProducts(result.data);
-        setError(null);
+        setProducts(result.data)
+        setError(null)
       } else if (result.error) {
-        setError(result.error);
+        setError(result.error)
       }
     } catch (err) {
-      setError("Failed to fetch products");
-      console.error("Error: ", err);
+      setError("Failed to fetch products")
+      console.error("Error: ", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchProducts()
+  }, [fetchProducts])
 
-  const handleProductUpdate = () => {
-    fetchProducts();
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const handleProductUpdate = useCallback(() => {
+    setIsRefreshing(true)
+    fetchProducts().finally(() => setIsRefreshing(false))
+  }, [fetchProducts])
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory Management</CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-xl font-bold">Inventory Management</CardTitle>
+          <Button variant="outline" size="sm" onClick={handleProductUpdate} disabled={isRefreshing} className="gap-1">
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+            Refresh
+          </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6 pt-4">
           <CreateProduct onProductCreated={handleProductUpdate} />
-          <ItemTable 
-            products={products} 
-            onProductUpdate={handleProductUpdate} 
-          />
-          <PriceSummary products={products} />
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              <p className="text-sm text-muted-foreground">Loading inventory data...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-center">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+              <Button variant="outline" size="sm" onClick={handleProductUpdate} className="mt-2">
+                Try Again
+              </Button>
+            </div>
+          ) : (
+            <>
+              <ItemTable products={products} onProductUpdate={handleProductUpdate} />
+              <PriceSummary products={products} />
+            </>
+          )}
         </CardContent>
       </Card>
       <Toaster />
     </>
-  );
-};
+  )
+}
 
-export default InventoryManagement;

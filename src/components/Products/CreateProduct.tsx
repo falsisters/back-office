@@ -1,172 +1,410 @@
-import React, { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { createProduct } from '@/lib/server/createProduct';
-import { SackType } from '../../../utils/types/schema.type';
-import { useToast } from '@/hooks/use-toast';
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { createProduct } from "@/lib/server/createProduct"
+import type { SackType } from "../../../utils/types/schema.type"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2, Plus, Trash2 } from "lucide-react"
+import Image from "next/image"
 
 interface CreateProductProps {
-  onProductCreated: (newProduct: unknown) => void;
+  onProductCreated: (newProduct: unknown) => void
 }
 
-const CreateProduct: React.FC<CreateProductProps> = ({ onProductCreated }) => {
-  const { toast } = useToast();
-  const [name, setName] = useState('');
-  const [picture, setPicture] = useState<File | null>(null);
-  const [sackPrices, setSackPrices] = useState<Array<{
-    type: SackType;
-    price: number;
-    stock: number;
-    specialPrice?: {
-      price: number;
-      minimumQty: number;
-    };
-  }>>([]);
-  const [perKiloPrice, setPerKiloPrice] = useState<{ price: number; stock: number } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function CreateProduct({ onProductCreated }: CreateProductProps) {
+  const { toast } = useToast()
+  const [isOpen, setIsOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [picture, setPicture] = useState<File | null>(null)
+  const [picturePreview, setPicturePreview] = useState<string | null>(null)
+  const [sackPrices, setSackPrices] = useState<
+    Array<{
+      type: SackType
+      price: number
+      stock: number
+      specialPrice?: {
+        price: number
+        minimumQty: number
+      }
+    }>
+  >([])
+  const [perKiloPrice, setPerKiloPrice] = useState<{ price: number; stock: number } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const resetForm = () => {
+    setName("")
+    setPicture(null)
+    setPicturePreview(null)
+    setSackPrices([])
+    setPerKiloPrice(null)
+    setErrors({})
+  }
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!name.trim()) newErrors.name = "Product name is required"
+    if (!picture) newErrors.picture = "Product image is required"
+    if (sackPrices.length === 0) newErrors.sackPrices = "At least one sack price is required"
+
+    sackPrices.forEach((sack, index) => {
+      if (!sack.price) newErrors[`sackPrice_${index}_price`] = "Price is required"
+      if (!sack.stock) newErrors[`sackPrice_${index}_stock`] = "Stock is required"
+
+      if (sack.specialPrice?.price && !sack.specialPrice?.minimumQty) {
+        newErrors[`sackPrice_${index}_specialPrice_minimumQty`] = "Minimum quantity is required for special price"
+      }
+    })
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-  
+    e.preventDefault()
+
+    if (!validateForm()) return
+
+    setIsSubmitting(true)
+
     try {
-      const formData = new FormData();
-      if (picture) formData.append('picture', picture);
-      formData.append('name', name);
-      formData.append('sackPrice', JSON.stringify(sackPrices));
-      if (perKiloPrice) formData.append('perKiloPrice', JSON.stringify(perKiloPrice));
-  
-      const newProduct = await createProduct(formData);
-      onProductCreated(newProduct); // Add new product to the UI
-  
-      toast({ title: "Product Created Successfully" });
-  
-      // Reset the form fields
-      setName('');
-      setPicture(null);
-      setSackPrices([]);
-      setPerKiloPrice(null);
+      const formData = new FormData()
+      if (picture) formData.append("picture", picture)
+      formData.append("name", name)
+      formData.append("sackPrice", JSON.stringify(sackPrices))
+      if (perKiloPrice) formData.append("perKiloPrice", JSON.stringify(perKiloPrice))
+
+      const newProduct = await createProduct(formData)
+
+      // Optimistic UI update
+      onProductCreated(newProduct)
+
+      toast({
+        title: "Product Created Successfully",
+        description: `${name} has been added to your products`,
+      })
+
+      setIsOpen(false)
+      resetForm()
     } catch (error) {
       toast({
         title: "Error Creating Product",
         variant: "destructive",
-        description: error instanceof Error ? error.message : "Unknown error"
-      });
+        description: error instanceof Error ? error.message : "Unknown error",
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
-  
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setPicture(file)
+
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setPicturePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setPicturePreview(null)
+    }
+  }
+
+  const addSackPrice = () => {
+    setSackPrices([
+      ...sackPrices,
+      {
+        type: "FIFTY_KG",
+        price: 0,
+        stock: 0,
+      },
+    ])
+  }
+
+  const removeSackPrice = (index: number) => {
+    const newSackPrices = [...sackPrices]
+    newSackPrices.splice(index, 1)
+    setSackPrices(newSackPrices)
+  }
+
   return (
-    <Dialog>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open)
+        if (!open) resetForm()
+      }}
+    >
       <DialogTrigger asChild>
-        <Button disabled={isSubmitting}>Create Product</Button>
+        <Button className="gap-2">
+          <Plus size={16} />
+          Create Product
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create New Product</DialogTitle>
+          <DialogTitle className="text-xl">Create New Product</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Product Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div>
-            <Label>Product Image</Label>
-            <Input type="file" accept="image/*" onChange={(e) => setPicture(e.target.files?.[0] || null)} required />
-          </div>
-
-          <div className="space-y-4">
-            <Label>Sack Prices</Label>
-            {sackPrices.map((sack, index) => (
-              <div key={index} className="space-y-2 border p-4 rounded-lg">
-                <Label>Type</Label>
-                <Select value={sack.type} onValueChange={(value) => {
-                  const newSackPrices = [...sackPrices];
-                  newSackPrices[index].type = value as SackType;
-                  setSackPrices(newSackPrices);
-                }}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Sack Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FIFTY_KG">50 KG</SelectItem>
-                    <SelectItem value="TWENTY_FIVE_KG">25 KG</SelectItem>
-                    <SelectItem value="FIVE_KG">5 KG</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Label>Price</Label>
-                <Input type="number" placeholder="Price" value={sack.price || ''} onChange={(e) => {
-                  const newSackPrices = [...sackPrices];
-                  newSackPrices[index].price = Number(e.target.value);
-                  setSackPrices(newSackPrices);
-                }} min="0" step="0.01" />
-
-                <Label>Stock</Label>
-                <Input type="number" placeholder="Stock" value={sack.stock || ''} onChange={(e) => {
-                  const newSackPrices = [...sackPrices];
-                  newSackPrices[index].stock = Number(e.target.value);
-                  setSackPrices(newSackPrices);
-                }} min="0" />
-
-                <Label className="text-sm text-muted-foreground">Special Price (Optional)</Label>
-                <Input type="number" placeholder="Special Price" value={sack.specialPrice?.price || ''} onChange={(e) => {
-                  const newSackPrices = [...sackPrices];
-                  if (!newSackPrices[index].specialPrice) newSackPrices[index].specialPrice = { price: 0, minimumQty: 0 };
-                  newSackPrices[index].specialPrice!.price = Number(e.target.value);
-                  setSackPrices(newSackPrices);
-                }} min="0" step="0.01" />
-
-                <Input type="number" placeholder="Minimum Quantity" value={sack.specialPrice?.minimumQty || ''} onChange={(e) => {
-                  const newSackPrices = [...sackPrices];
-                  if (!newSackPrices[index].specialPrice) newSackPrices[index].specialPrice = { price: 0, minimumQty: 0 };
-                  newSackPrices[index].specialPrice!.minimumQty = Number(e.target.value);
-                  setSackPrices(newSackPrices);
-                }} min="0" />
-              </div>
-            ))}
-            <Button type="button" variant="outline" className="w-full" onClick={() => setSackPrices([...sackPrices, { type: 'FIFTY_KG', price: 0, stock: 0 }])}>
-              Add Sack Price
-            </Button>
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              Product Name
+            </Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={errors.name ? "border-destructive" : ""}
+            />
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label>Per Kilo Price (Optional)</Label>
-            <Input type="number" placeholder="Price per Kilo" value={perKiloPrice?.price || ''} onChange={(e) => setPerKiloPrice({
-              ...(perKiloPrice || { price: 0, stock: 0 }),
-              price: Number(e.target.value)
-            })} min="0" step="0.01" />
+            <Label htmlFor="picture" className="text-sm font-medium">
+              Product Image
+            </Label>
+            <Input
+              id="picture"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className={errors.picture ? "border-destructive" : ""}
+            />
+            {errors.picture && <p className="text-xs text-destructive mt-1">{errors.picture}</p>}
 
-            <Label>Stock</Label>
-            <Input type="number" placeholder="Stock" value={perKiloPrice?.stock || ''} onChange={(e) => setPerKiloPrice({
-              ...(perKiloPrice || { price: 0, stock: 0 }),
-              stock: Number(e.target.value)
-            })} min="0" />
+            {picturePreview && (
+              <div className="mt-2 relative w-full h-40">
+                <Image
+                  src={picturePreview || "/placeholder.svg"}
+                  alt="Preview"
+                  className="w-full h-full object-contain rounded-md border"
+                  width={50}
+                  height={50}
+                />
+              </div>
+            )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Product"}
-          </Button>
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Sack Prices</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addSackPrice} className="h-8 gap-1">
+                <Plus size={14} />
+                Add
+              </Button>
+            </div>
+
+            {errors.sackPrices && <p className="text-xs text-destructive">{errors.sackPrices}</p>}
+
+            {sackPrices.length === 0 ? (
+              <div className="text-center py-4 border border-dashed rounded-md">
+                <p className="text-sm text-muted-foreground">No sack prices added yet</p>
+                <Button type="button" variant="ghost" size="sm" onClick={addSackPrice} className="mt-2">
+                  Add Sack Price
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sackPrices.map((sack, index) => (
+                  <div key={index} className="space-y-3 border p-4 rounded-lg relative">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeSackPrice(index)}
+                      className="h-6 w-6 absolute top-2 right-2 text-destructive"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Type</Label>
+                        <Select
+                          value={sack.type}
+                          onValueChange={(value) => {
+                            const newSackPrices = [...sackPrices]
+                            newSackPrices[index].type = value as SackType
+                            setSackPrices(newSackPrices)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sack Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="FIFTY_KG">50 KG</SelectItem>
+                            <SelectItem value="TWENTY_FIVE_KG">25 KG</SelectItem>
+                            <SelectItem value="FIVE_KG">5 KG</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">Price (₱)</Label>
+                        <Input
+                          type="number"
+                          placeholder="Price"
+                          value={sack.price || ""}
+                          onChange={(e) => {
+                            const newSackPrices = [...sackPrices]
+                            newSackPrices[index].price = Number(e.target.value)
+                            setSackPrices(newSackPrices)
+                          }}
+                          min="0"
+                          step="0.01"
+                          className={errors[`sackPrice_${index}_price`] ? "border-destructive" : ""}
+                        />
+                        {errors[`sackPrice_${index}_price`] && (
+                          <p className="text-xs text-destructive">{errors[`sackPrice_${index}_price`]}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Stock</Label>
+                      <Input
+                        type="number"
+                        placeholder="Stock"
+                        value={sack.stock || ""}
+                        onChange={(e) => {
+                          const newSackPrices = [...sackPrices]
+                          newSackPrices[index].stock = Number(e.target.value)
+                          setSackPrices(newSackPrices)
+                        }}
+                        min="0"
+                        className={errors[`sackPrice_${index}_stock`] ? "border-destructive" : ""}
+                      />
+                      {errors[`sackPrice_${index}_stock`] && (
+                        <p className="text-xs text-destructive">{errors[`sackPrice_${index}_stock`]}</p>
+                      )}
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Special Price (Optional)</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Special Price (₱)</Label>
+                          <Input
+                            type="number"
+                            placeholder="Special Price"
+                            value={sack.specialPrice?.price || ""}
+                            onChange={(e) => {
+                              const newSackPrices = [...sackPrices]
+                              if (!newSackPrices[index].specialPrice) {
+                                newSackPrices[index].specialPrice = { price: 0, minimumQty: 0 }
+                              }
+                              newSackPrices[index].specialPrice!.price = Number(e.target.value)
+                              setSackPrices(newSackPrices)
+                            }}
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Minimum Quantity</Label>
+                          <Input
+                            type="number"
+                            placeholder="Min Qty"
+                            value={sack.specialPrice?.minimumQty || ""}
+                            onChange={(e) => {
+                              const newSackPrices = [...sackPrices]
+                              if (!newSackPrices[index].specialPrice) {
+                                newSackPrices[index].specialPrice = { price: 0, minimumQty: 0 }
+                              }
+                              newSackPrices[index].specialPrice!.minimumQty = Number(e.target.value)
+                              setSackPrices(newSackPrices)
+                            }}
+                            min="0"
+                            className={errors[`sackPrice_${index}_specialPrice_minimumQty`] ? "border-destructive" : ""}
+                          />
+                          {errors[`sackPrice_${index}_specialPrice_minimumQty`] && (
+                            <p className="text-xs text-destructive">
+                              {errors[`sackPrice_${index}_specialPrice_minimumQty`]}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Per Kilo Price (Optional)</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Price per Kilo (₱)</Label>
+                <Input
+                  type="number"
+                  placeholder="Price per Kilo"
+                  value={perKiloPrice?.price || ""}
+                  onChange={(e) =>
+                    setPerKiloPrice({
+                      ...(perKiloPrice || { price: 0, stock: 0 }),
+                      price: Number(e.target.value),
+                    })
+                  }
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Stock (KG)</Label>
+                <Input
+                  type="number"
+                  placeholder="Stock"
+                  value={perKiloPrice?.stock || ""}
+                  onChange={(e) =>
+                    setPerKiloPrice({
+                      ...(perKiloPrice || { price: 0, stock: 0 }),
+                      stock: Number(e.target.value),
+                    })
+                  }
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Product"
+              )}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default CreateProduct;

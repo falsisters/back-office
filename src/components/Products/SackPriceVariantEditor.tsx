@@ -1,175 +1,300 @@
-import React, { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { editProduct } from '@/lib/server/editProduct';
-import { useToast } from '@/hooks/use-toast';
-import { SackTypeEnum } from '../../../utils/types/schema.type';
-import { z } from 'zod';
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { editProduct } from "@/lib/server/editProduct"
+import { useToast } from "@/hooks/use-toast"
+import { SackTypeEnum } from "../../../utils/types/schema.type"
+import type { z } from "zod"
+import { Loader2, Plus, Trash2 } from "lucide-react"
 
 interface SackPriceVariantEditorProps {
-  productId: string;
+  productId: string
   currentSackPrices: Array<{
-    id: string;
-    type: z.infer<typeof SackTypeEnum>;
-    price: number;
-    stock: number;
+    id: string
+    type: z.infer<typeof SackTypeEnum>
+    price: number
+    stock: number
     specialPrice?: {
-      price?: number;
-      minimumQty?: number;
-    };
-  }>;
-  onPriceUpdated?: () => void;
+      price?: number
+      minimumQty?: number
+    }
+  }>
+  onPriceUpdated?: () => void
 }
 
-const SackPriceVariantEditor: React.FC<SackPriceVariantEditorProps> = ({ 
-  productId, 
-  currentSackPrices, 
-  onPriceUpdated 
-}) => {
+export default function SackPriceVariantEditor({
+  productId,
+  currentSackPrices,
+  onPriceUpdated,
+}: SackPriceVariantEditorProps) {
   const { toast } = useToast()
-  const [sackPrices, setSackPrices] = useState(currentSackPrices);
+  const [isOpen, setIsOpen] = useState(false)
+  const [sackPrices, setSackPrices] = useState(currentSackPrices)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (sackPrices.length === 0) {
+      newErrors.general = "At least one sack price is required"
+      return false
+    }
+
+    sackPrices.forEach((sack, index) => {
+      if (!sack.price) newErrors[`price_${index}`] = "Price is required"
+      if (sack.price < 0) newErrors[`price_${index}`] = "Price cannot be negative"
+
+      if (!sack.stock) newErrors[`stock_${index}`] = "Stock is required"
+      if (sack.stock < 0) newErrors[`stock_${index}`] = "Stock cannot be negative"
+
+      if (sack.specialPrice?.price && !sack.specialPrice?.minimumQty) {
+        newErrors[`specialPrice_minimumQty_${index}`] = "Minimum quantity is required for special price"
+      }
+    })
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
+    if (!validateForm()) return
+
+    setIsSubmitting(true)
+
     try {
-      const formData = new FormData();
-      formData.append('sackPrices', JSON.stringify(
-        sackPrices.map(sp => ({
-          id: sp.id,
-          type: sp.type,
-          price: sp.price,
-          stock: sp.stock,
-          specialPrice: sp.specialPrice
-        }))
-      ));
+      const formData = new FormData()
+      formData.append(
+        "sackPrices",
+        JSON.stringify(
+          sackPrices.map((sp) => ({
+            id: sp.id,
+            type: sp.type,
+            price: sp.price,
+            stock: sp.stock,
+            specialPrice: sp.specialPrice,
+          })),
+        ),
+      )
 
-      await editProduct(productId, formData);
-      
+      await editProduct(productId, formData)
+
+      // Optimistic UI update
+      onPriceUpdated?.()
+
       toast({
-        title: "Sack Prices Updated",
-      });
+        title: "Sack Prices Updated Successfully",
+        description: `Updated ${sackPrices.length} sack price variants`,
+      })
 
-      onPriceUpdated?.();
+      setIsOpen(false)
     } catch (error) {
       toast({
-        title: "Error",
-        variant: "destructive"
-      });
-      console.error("Error: ", error)
+        title: "Error Updating Prices",
+        description: error instanceof Error ? error.message : "Update failed",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-  };
+  }
 
-  const updateSackPrice = (index: number, field: keyof typeof sackPrices[0], value: unknown) => {
-    const newSackPrices = [...sackPrices];
+  const updateSackPrice = (index: number, field: keyof (typeof sackPrices)[0], value: unknown) => {
+    const newSackPrices = [...sackPrices]
     newSackPrices[index] = {
       ...newSackPrices[index],
-      [field]: value
-    };
-    setSackPrices(newSackPrices);
-  };
+      [field]: value,
+    }
+    setSackPrices(newSackPrices)
+  }
+
+  const addSackPrice = () => {
+    // Generate a temporary ID for new sack price
+    const newId = `temp-${Date.now()}`
+    setSackPrices([
+      ...sackPrices,
+      {
+        id: newId,
+        type: "FIFTY_KG" as z.infer<typeof SackTypeEnum>,
+        price: 0,
+        stock: 0,
+      },
+    ])
+  }
+
+  const removeSackPrice = (index: number) => {
+    const newSackPrices = [...sackPrices]
+    newSackPrices.splice(index, 1)
+    setSackPrices(newSackPrices)
+  }
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Edit Sack Prices</Button>
+        <Button variant="outline" size="sm">
+          Edit Sack Prices
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edit Sack Price Variants</DialogTitle>
+          <DialogTitle className="text-xl">Edit Sack Price Variants</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {sackPrices.map((sackPrice, index) => (
-            <div key={sackPrice.id} className="space-y-2 p-4 border rounded-md">
-              <div>
-                <Label>Sack Type</Label>
-                <Select 
-                  value={sackPrice.type}
-                  onValueChange={(value) => updateSackPrice(index, 'type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sack Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(SackTypeEnum.enum).map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label>Price</Label>
-                <Input 
-                  type="number" 
-                  value={sackPrice.price}
-                  onChange={(e) => updateSackPrice(index, 'price', Number(e.target.value))}
-                  required 
-                />
-              </div>
-              
-              <div>
-                <Label>Stock</Label>
-                <Input 
-                  type="number" 
-                  value={sackPrice.stock}
-                  onChange={(e) => updateSackPrice(index, 'stock', Number(e.target.value))}
-                  required 
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label>Special Price (Optional)</Label>
-                <div className="flex space-x-2">
-                  <Input 
-                    type="number" 
-                    placeholder="Special Price" 
-                    value={sackPrice.specialPrice?.price || ''}
-                    onChange={(e) => {
-                      const specialPrice = { 
-                        ...sackPrice.specialPrice, 
-                        price: Number(e.target.value) 
-                      };
-                      updateSackPrice(index, 'specialPrice', specialPrice);
-                    }}
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          {errors.general && (
+            <div className="bg-destructive/10 p-3 rounded-md border border-destructive/20">
+              <p className="text-sm text-destructive">{errors.general}</p>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Sack Prices</Label>
+            <Button type="button" variant="outline" size="sm" onClick={addSackPrice} className="h-8 gap-1">
+              <Plus size={14} />
+              Add Variant
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {sackPrices.map((sackPrice, index) => (
+              <div key={sackPrice.id} className="space-y-3 border p-4 rounded-lg relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeSackPrice(index)}
+                  className="h-6 w-6 absolute top-2 right-2 text-destructive"
+                  disabled={sackPrices.length === 1}
+                >
+                  <Trash2 size={14} />
+                </Button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sack Type</Label>
+                    <Select value={sackPrice.type} onValueChange={(value) => updateSackPrice(index, "type", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sack Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(SackTypeEnum.enum).map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type === "FIFTY_KG"
+                              ? "50 KG"
+                              : type === "TWENTY_FIVE_KG"
+                                ? "25 KG"
+                                : type === "FIVE_KG"
+                                  ? "5 KG"
+                                  : type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Price (₱)</Label>
+                    <Input
+                      type="number"
+                      value={sackPrice.price}
+                      onChange={(e) => updateSackPrice(index, "price", Number(e.target.value))}
+                      min="0"
+                      step="0.01"
+                      className={errors[`price_${index}`] ? "border-destructive" : ""}
+                    />
+                    {errors[`price_${index}`] && <p className="text-xs text-destructive">{errors[`price_${index}`]}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Stock</Label>
+                  <Input
+                    type="number"
+                    value={sackPrice.stock}
+                    onChange={(e) => updateSackPrice(index, "stock", Number(e.target.value))}
+                    min="0"
+                    className={errors[`stock_${index}`] ? "border-destructive" : ""}
                   />
-                  <Input 
-                    type="number" 
-                    placeholder="Minimum Quantity" 
-                    value={sackPrice.specialPrice?.minimumQty || ''}
-                    onChange={(e) => {
-                      const specialPrice = { 
-                        ...sackPrice.specialPrice, 
-                        minimumQty: Number(e.target.value) 
-                      };
-                      updateSackPrice(index, 'specialPrice', specialPrice);
-                    }}
-                  />
+                  {errors[`stock_${index}`] && <p className="text-xs text-destructive">{errors[`stock_${index}`]}</p>}
+                </div>
+
+                <Separator className="my-2" />
+
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Special Price (Optional)</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Special Price (₱)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Special Price"
+                        value={sackPrice.specialPrice?.price || ""}
+                        onChange={(e) => {
+                          const specialPrice = {
+                            ...sackPrice.specialPrice,
+                            price: Number(e.target.value),
+                          }
+                          updateSackPrice(index, "specialPrice", specialPrice)
+                        }}
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Minimum Quantity</Label>
+                      <Input
+                        type="number"
+                        placeholder="Min Qty"
+                        value={sackPrice.specialPrice?.minimumQty || ""}
+                        onChange={(e) => {
+                          const specialPrice = {
+                            ...sackPrice.specialPrice,
+                            minimumQty: Number(e.target.value),
+                          }
+                          updateSackPrice(index, "specialPrice", specialPrice)
+                        }}
+                        min="0"
+                        className={errors[`specialPrice_minimumQty_${index}`] ? "border-destructive" : ""}
+                      />
+                      {errors[`specialPrice_minimumQty_${index}`] && (
+                        <p className="text-xs text-destructive">{errors[`specialPrice_minimumQty_${index}`]}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
-          <Button type="submit">Update Sack Prices</Button>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Sack Prices"
+              )}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default SackPriceVariantEditor;
