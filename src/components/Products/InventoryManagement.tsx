@@ -1,130 +1,84 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { SearchBar } from "@/components/SearchBar";
-import { CreateProduct } from "@/components/Products/CreateProduct";
-import { ItemTable } from "@/components/Products/ItemTable";
-import type { Product, Price } from "../../../utils/types/schema.type";
-import { getAllProductsByUserId } from "@/lib/server/getAllProductsByUserId";
-import { editProduct } from "@/lib/server/editProduct";
-import { deleteProduct } from "@/lib/server/deleteProduct";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getAllProducts } from "@/lib/server/getAllProductsByUserId"
+import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
+import CreateProduct from "./CreateProduct"
+import ItemTable from "./ItemTable"
+import PriceSummary from "./PriceSummary"
+import { Toaster } from "@/components/ui/toaster"
+import { Loader2, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-export function InventoryManagement() {
-  const [products, setProducts] = useState<(Product & { Price?: Price[] })[]>(
-    []
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function InventoryManagement() {
+  const [products, setProducts] = useState<ProductResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true)
+    try {
+      const result = await getAllProducts()
+      if (result.data) {
+        setProducts(result.data)
+        setError(null)
+      } else if (result.error) {
+        setError(result.error)
+      }
+    } catch (err) {
+      setError("Failed to fetch products")
+      console.error("Error: ", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const data = await getAllProductsByUserId();
-        setProducts(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch products"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchProducts()
+  }, [fetchProducts])
 
-    fetchProducts();
-  }, []);
-
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.Price?.some((p) =>
-        p.type?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-  );
-
-  const handleUpdateProduct = async (
-    updatedProduct: Product & { Price?: Price[] }
-  ) => {
-    try {
-      setIsLoading(true);
-      const updated = await editProduct(updatedProduct.id, {
-        product: {
-          name: updatedProduct.name,
-          price:
-            updatedProduct.Price?.map((price) => ({
-              id: price.id,
-              price: price.price,
-              stock: price.stock,
-              type: price.type,
-              profit: price.profit?.map((p) => ({ profit: p.profit })) || [],
-              specialPrice:
-                price.specialPrice?.map((sp) => ({
-                  specialPrice: sp.specialPrice,
-                  minimumQty: sp.minimumQty,
-                })) || [],
-            })) || [],
-        },
-      });
-      setProducts(
-        products.map((product) =>
-          product.id === updated.id ? updated : product
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update product");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    try {
-      setIsLoading(true);
-      await deleteProduct(id);
-      setProducts(products.filter((product) => product.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete product");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
-        <div className="p-8 rounded-lg flex flex-col items-center">
-          <Loader2 className="h-12 w-12 animate-spin text-gray-800" />
-          <p className="mt-4 text-lg font-semibold text-gray-800">
-            Loading products...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const handleProductUpdate = useCallback(() => {
+    setIsRefreshing(true)
+    fetchProducts().finally(() => setIsRefreshing(false))
+  }, [fetchProducts])
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <div className="flex items-center justify-between">
-        <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-        <CreateProduct
-          onProductCreated={(product) => {
-            setProducts((prevProducts) => [...prevProducts, product]);
-          }}
-        />
-      </div>
-      <ItemTable
-        isLoading={isLoading}
-        items={filteredProducts}
-        onUpdateItem={handleUpdateProduct}
-        onDeleteItem={handleDeleteProduct}
-      />
-    </div>
-  );
+    <>
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-xl font-bold">Inventory Management</CardTitle>
+          <Button variant="outline" size="sm" onClick={handleProductUpdate} disabled={isRefreshing} className="gap-1">
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+            Refresh
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-4">
+          <CreateProduct onProductCreated={handleProductUpdate} />
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              <p className="text-sm text-muted-foreground">Loading inventory data...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-center">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+              <Button variant="outline" size="sm" onClick={handleProductUpdate} className="mt-2">
+                Try Again
+              </Button>
+            </div>
+          ) : (
+            <>
+              <ItemTable products={products} onProductUpdate={handleProductUpdate} />
+              <PriceSummary products={products} />
+            </>
+          )}
+        </CardContent>
+      </Card>
+      <Toaster />
+    </>
+  )
 }
+

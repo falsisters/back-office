@@ -1,4 +1,3 @@
-// server-actions/editCashier.ts
 "use server";
 
 import { revalidatePath } from "next/cache";

@@ -1,4 +1,3 @@
-// server-actions/getCashier.ts
 "use server";
 
 import { cookies } from "next/headers";

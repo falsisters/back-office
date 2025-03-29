@@ -1,159 +1,115 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
 import EditProduct from "./EditProduct"
-import type { Product, Price } from "../../../utils/types/schema.type"
-import { Loader2 } from "lucide-react"
+import DeleteProduct from "./DeleteProduct"
+import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
+import { parseProductType } from "../../../utils/parsers/productType.parser"
 
 interface ItemTableProps {
-  items: (Product & { Price?: Price[] })[]
-  onUpdateItem: (item: Product & { Price?: Price[] }) => void
-  onDeleteItem: (id: string) => void
-  isLoading: boolean
+  products: ProductResponse[]
+  onProductUpdate: () => void
 }
 
-export function ItemTable({ items, onUpdateItem, onDeleteItem, isLoading }: ItemTableProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [productToDelete, setProductToDelete] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const formatPriceType = (type: string) => {
-    switch (type) {
-      case "FIFTY_KG":
-        return "50 KG"
-      case "TWENTY_FIVE_KG":
-        return "25 KG"
-      case "FIVE_KG":
-        return "5 KG"
-      case "PER_KILO":
-        return "Per Kilo"
-      case "GANTANG":
-        return "Gantang"
-      case "SPECIAL_PRICE":
-        return "Special Price"
-      default:
-        return type
-    }
+export default function ItemTable({ products, onProductUpdate }: ItemTableProps) {
+  const handleProductDeleted = (productId: string) => {
+    // Immediately update the UI by filtering out the deleted product
+    onProductUpdate()
   }
 
-  const handleDeleteClick = (id: string) => {
-    setProductToDelete(id)
-    setDeleteDialogOpen(true)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (productToDelete) {
-      setIsDeleting(true)
-      try {
-        await onDeleteItem(productToDelete)
-      } finally {
-        setIsDeleting(false)
-        setDeleteDialogOpen(false)
-        setProductToDelete(null)
-      }
-    }
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-8 border rounded-md bg-muted/20">
+        <p className="text-muted-foreground mb-2">No products found</p>
+        <p className="text-sm text-muted-foreground">Add products using the Create Product button above</p>
+      </div>
+    )
   }
 
   return (
-    <>
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[20%]">Name</TableHead>
-              <TableHead className="w-[45%]">Prices</TableHead>
-              <TableHead className="w-[20%]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                  <span className="mt-2 text-sm text-muted-foreground">Loading products...</span>
-                </TableCell>
-              </TableRow>
-            ) : items.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">
-                  No products found
-                </TableCell>
-              </TableRow>
-            ) : (
-              items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>
-                    {item.Price && item.Price.length > 0 ? (
-                      <div className="space-y-1">
-                        {item.Price.map((p) => (
-                          <div key={p.id} className="text-sm">
-                            {formatPriceType(p.type)}: Php{p.price.toFixed(2)} (Stock: {p.stock})
-                          </div>
-                        ))}
+    <div className="border rounded-md overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="w-[250px]">Product</TableHead>
+            <TableHead>Sack Prices</TableHead>
+            <TableHead>Per Kilo Price</TableHead>
+            <TableHead className="text-right w-[120px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow key={product.id} className="hover:bg-muted/30">
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border">
+                    <Image
+                      src={product.picture || "/placeholder.svg"}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <span className="truncate">{product.name}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                {product.SackPrice && product.SackPrice.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {product.SackPrice.map((sackPrice) => (
+                      <div key={sackPrice.id} className="flex items-center gap-2 text-sm">
+                        <Badge variant="outline" className="font-normal">
+                          {parseProductType(sackPrice.type)}
+                        </Badge>
+                        <span className="font-medium">₱{sackPrice.price.toFixed(2)}</span>
+                        <span className="text-muted-foreground text-xs">(Stock: {sackPrice.stock})</span>
+                        {sackPrice.specialPrice && (
+                          <Badge variant="secondary" className="text-xs">
+                            Special: ₱{sackPrice.specialPrice.price.toFixed(2)}
+                            (Min: {sackPrice.specialPrice.minimumQty})
+                          </Badge>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No prices set</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <EditProduct
-                        product={item}
-                        onProductUpdated={onUpdateItem}
-                        trigger={
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        }
-                      />
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(item.id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this product? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">No sack prices</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {product.perKiloPrice && Array.isArray(product.perKiloPrice) && product.perKiloPrice.length > 0 ? (
+                  <div className="space-y-1">
+                    {product.perKiloPrice.map((kiloPrice) => (
+                      <div key={kiloPrice.id} className="flex items-center gap-2 text-sm">
+                        <Badge variant="outline" className="font-normal">
+                          Per Kilo
+                        </Badge>
+                        <span className="font-medium">₱{kiloPrice.price.toFixed(2)}</span>
+                        <span className="text-muted-foreground text-xs">(Stock: {kiloPrice.stock} kg)</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">No kilo prices</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <EditProduct productId={product.id} onProductUpdated={onProductUpdate} />
+                  <DeleteProduct
+                    productId={product.id}
+                    productName={product.name}
+                    onProductDeleted={() => handleProductDeleted(product.id)}
+                  />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
+

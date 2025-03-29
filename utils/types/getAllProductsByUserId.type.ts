@@ -1,17 +1,20 @@
 import { z } from "zod";
-import { PriceSchema, ProductSchema, ProfitSchema, SpecialPriceSchema } from "./schema.type";
+import { 
+  ProductSchema, 
+  SackPriceSchema, 
+  SpecialPriceSchema,
+  PerKiloPriceSchema 
+} from "./schema.type";
 
-export const GetAllProductsByUserIdPayloadSchema = z.array(
-  ProductSchema.extend({
-    price: z.array(
-      PriceSchema.extend({
-        profit: z.array(ProfitSchema),
-        specialPrice: z.array(SpecialPriceSchema)
-      })
-    ),
-  })
-);
+// Product response schema with related data
+export const ProductResponseSchema = ProductSchema.extend({
+  SackPrice: z.array(
+    SackPriceSchema.extend({
+      specialPrice: SpecialPriceSchema
+    })
+  ),
+  perKiloPrice: z.array(PerKiloPriceSchema)
+});
 
-export type GetAllProductsByUserIdPayload = z.infer<
-  typeof GetAllProductsByUserIdPayloadSchema
->;
+export type ProductResponse = z.infer<typeof ProductResponseSchema>;
+export type GetAllProductsResponse = ProductResponse[];

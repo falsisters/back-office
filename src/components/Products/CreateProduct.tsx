@@ -1,194 +1,410 @@
-"use client";
+"use client"
 
-import { useState, useRef, Dispatch, SetStateAction } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { Product, Price, Upload } from "../../../utils/types/schema.type";
-import { createProduct } from "@/lib/server/createProduct";
-import { toast } from "@/hooks/use-toast";
-import { BasicProductInfo } from "@/components/Products/BasicProductInfo";
-import { PriceVariants } from "@/components/Products/PriceVariants";
-import { PriceSummary } from "@/components/Products/PriceSummary";
-import { UploadImage } from "@/components/Products/UploadImage";
+import type React from "react"
 
-type ProductData = {
-  name: string;
-  price: Price[];
-  picture: File | null;
-};
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { createProduct } from "@/lib/server/createProduct"
+import type { SackType } from "../../../utils/types/schema.type"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2, Plus, Trash2 } from "lucide-react"
+import Image from "next/image"
 
-const initialProductData: ProductData = {
-  name: "",
-  price: [
-    {
-      id: `variant-${Date.now()}`,
-      price: 0,
-      stock: 0,
-      type: "FIFTY_KG",
-      productId: "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      profit: [],
-      specialPrice: [],
-    },
-  ],
-  picture: null,
-};
-
-export interface CreateProductProps {
-  onProductCreated?: (product: Product & { Price?: Price[] }) => void;
+interface CreateProductProps {
+  onProductCreated: (newProduct: unknown) => void
 }
 
-export function CreateProduct({ onProductCreated }: CreateProductProps) {
-  const [productData, setProductData] =
-    useState<ProductData>(initialProductData);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>("");
-  const closeRef = useRef<HTMLButtonElement>(null);
+export default function CreateProduct({ onProductCreated }: CreateProductProps) {
+  const { toast } = useToast()
+  const [isOpen, setIsOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [picture, setPicture] = useState<File | null>(null)
+  const [picturePreview, setPicturePreview] = useState<string | null>(null)
+  const [sackPrices, setSackPrices] = useState<
+    Array<{
+      type: SackType
+      price: number
+      stock: number
+      specialPrice?: {
+        price: number
+        minimumQty: number
+      }
+    }>
+  >([])
+  const [perKiloPrice, setPerKiloPrice] = useState<{ price: number; stock: number } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const handleBasicInfoChange = (field: "name", value: string) => {
-    setProductData((prev) => ({ ...prev, [field]: value }));
-  };
+  const resetForm = () => {
+    setName("")
+    setPicture(null)
+    setPicturePreview(null)
+    setSackPrices([])
+    setPerKiloPrice(null)
+    setErrors({})
+  }
 
-  const handlePriceVariantsChange: Dispatch<SetStateAction<Price[]>> = (
-    variantsOrUpdater
-  ) => {
-    setProductData((prev) => {
-      const newVariants =
-        typeof variantsOrUpdater === "function"
-          ? variantsOrUpdater(prev.price)
-          : variantsOrUpdater;
-      return { ...prev, price: newVariants };
-    });
-  };
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
 
-  const handleImageChange = (picture: Upload | null) => {
-    setProductData((prev) => ({
-      ...prev,
-      picture: picture ? picture.file : null,
-    }));
-  };
+    if (!name.trim()) newErrors.name = "Product name is required"
+    if (!picture) newErrors.picture = "Product image is required"
+    if (sackPrices.length === 0) newErrors.sackPrices = "At least one sack price is required"
 
-  const handleSubmit = async () => {
+    sackPrices.forEach((sack, index) => {
+      if (!sack.price) newErrors[`sackPrice_${index}_price`] = "Price is required"
+      if (!sack.stock) newErrors[`sackPrice_${index}_stock`] = "Stock is required"
+
+      if (sack.specialPrice?.price && !sack.specialPrice?.minimumQty) {
+        newErrors[`sackPrice_${index}_specialPrice_minimumQty`] = "Minimum quantity is required for special price"
+      }
+    })
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!validateForm()) return
+
+    setIsSubmitting(true)
+
     try {
-      setError("");
-      setSubmitting(true);
+      const formData = new FormData()
+      if (picture) formData.append("picture", picture)
+      formData.append("name", name)
+      formData.append("sackPrice", JSON.stringify(sackPrices))
+      if (perKiloPrice) formData.append("perKiloPrice", JSON.stringify(perKiloPrice))
 
-      const trimmedName = productData.name.trim();
-      if (!trimmedName) {
-        setError("Product name is required");
-        setSubmitting(false);
-        return;
-      }
+      const newProduct = await createProduct(formData)
 
-      if (!productData.picture) {
-        setError("Product image is required");
-        setSubmitting(false);
-        return;
-      }
-
-      if (productData.price.length === 0) {
-        setError("At least one price variant is required");
-        setSubmitting(false);
-        return;
-      }
-
-      for (let i = 0; i < productData.price.length; i++) {
-        const variant = productData.price[i];
-        if (variant.price <= 0) {
-          setError(`Price for variant #${i + 1} must be greater than 0`);
-          setSubmitting(false);
-          return;
-        }
-        if (variant.stock < 0) {
-          setError(`Stock for variant #${i + 1} cannot be negative`);
-          setSubmitting(false);
-          return;
-        }
-      }
-
-      const formData = new FormData();
-      formData.append("name", trimmedName);
-      formData.append("price", JSON.stringify(productData.price));
-
-      if (productData.picture) {
-        formData.append("picture", productData.picture);
-      }
-      console.log("Product:", productData);
-      console.log("Product name:", trimmedName);
-      console.log("Price variants:", JSON.stringify(productData.price));
-      console.log("Selected picture:", productData.picture);
-
-      const createdProduct = await createProduct(formData);
-
-      if (onProductCreated) {
-        onProductCreated(createdProduct);
-      }
+      // Optimistic UI update
+      onProductCreated(newProduct)
 
       toast({
-        title: "Product created successfully",
-        description: `Added ${trimmedName} with ${productData.price.length} price variant(s)`,
-      });
+        title: "Product Created Successfully",
+        description: `${name} has been added to your products`,
+      })
 
-      // Reset the product data
-      setProductData(initialProductData);
-      closeRef.current?.click();
-    } catch (err) {
-      console.error("Error creating product:", err);
-      setError(err instanceof Error ? err.message : "Failed to create product");
+      setIsOpen(false)
+      resetForm()
+    } catch (error) {
+      toast({
+        title: "Error Creating Product",
+        variant: "destructive",
+        description: error instanceof Error ? error.message : "Unknown error",
+      })
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setPicture(file)
+
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setPicturePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setPicturePreview(null)
+    }
+  }
+
+  const addSackPrice = () => {
+    setSackPrices([
+      ...sackPrices,
+      {
+        type: "FIFTY_KG",
+        price: 0,
+        stock: 0,
+      },
+    ])
+  }
+
+  const removeSackPrice = (index: number) => {
+    const newSackPrices = [...sackPrices]
+    newSackPrices.splice(index, 1)
+    setSackPrices(newSackPrices)
+  }
 
   return (
-    <Dialog>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open)
+        if (!open) resetForm()
+      }}
+    >
       <DialogTrigger asChild>
-        <Button>Create New Product</Button>
+        <Button className="gap-2">
+          <Plus size={16} />
+          Create Product
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create New Product</DialogTitle>
+          <DialogTitle className="text-xl">Create New Product</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              Product Name
+            </Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={errors.name ? "border-destructive" : ""}
+            />
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
+          </div>
 
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="picture" className="text-sm font-medium">
+              Product Image
+            </Label>
+            <Input
+              id="picture"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className={errors.picture ? "border-destructive" : ""}
+            />
+            {errors.picture && <p className="text-xs text-destructive mt-1">{errors.picture}</p>}
 
-        <div className="space-y-6">
-          <BasicProductInfo
-            product={productData}
-            handleInputChange={handleBasicInfoChange}
-          />
-          <UploadImage onFileChange={handleImageChange} required />
-          <PriceVariants
-            prices={productData.price}
-            setPrices={handlePriceVariantsChange}
-          />
-          <PriceSummary prices={productData.price} />
-        </div>
+            {picturePreview && (
+              <div className="mt-2 relative w-full h-40">
+                <Image
+                  src={picturePreview || "/placeholder.svg"}
+                  alt="Preview"
+                  className="w-full h-full object-contain rounded-md border"
+                  width={50}
+                  height={50}
+                />
+              </div>
+            )}
+          </div>
 
-        <div className="flex justify-end gap-4 mt-6">
-          <DialogClose ref={closeRef} asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating..." : "Create Product"}
-          </Button>
-        </div>
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Sack Prices</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addSackPrice} className="h-8 gap-1">
+                <Plus size={14} />
+                Add
+              </Button>
+            </div>
+
+            {errors.sackPrices && <p className="text-xs text-destructive">{errors.sackPrices}</p>}
+
+            {sackPrices.length === 0 ? (
+              <div className="text-center py-4 border border-dashed rounded-md">
+                <p className="text-sm text-muted-foreground">No sack prices added yet</p>
+                <Button type="button" variant="ghost" size="sm" onClick={addSackPrice} className="mt-2">
+                  Add Sack Price
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sackPrices.map((sack, index) => (
+                  <div key={index} className="space-y-3 border p-4 rounded-lg relative">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeSackPrice(index)}
+                      className="h-6 w-6 absolute top-2 right-2 text-destructive"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Type</Label>
+                        <Select
+                          value={sack.type}
+                          onValueChange={(value) => {
+                            const newSackPrices = [...sackPrices]
+                            newSackPrices[index].type = value as SackType
+                            setSackPrices(newSackPrices)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sack Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="FIFTY_KG">50 KG</SelectItem>
+                            <SelectItem value="TWENTY_FIVE_KG">25 KG</SelectItem>
+                            <SelectItem value="FIVE_KG">5 KG</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">Price (₱)</Label>
+                        <Input
+                          type="number"
+                          placeholder="Price"
+                          value={sack.price || ""}
+                          onChange={(e) => {
+                            const newSackPrices = [...sackPrices]
+                            newSackPrices[index].price = Number(e.target.value)
+                            setSackPrices(newSackPrices)
+                          }}
+                          min="0"
+                          step="0.01"
+                          className={errors[`sackPrice_${index}_price`] ? "border-destructive" : ""}
+                        />
+                        {errors[`sackPrice_${index}_price`] && (
+                          <p className="text-xs text-destructive">{errors[`sackPrice_${index}_price`]}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs">Stock</Label>
+                      <Input
+                        type="number"
+                        placeholder="Stock"
+                        value={sack.stock || ""}
+                        onChange={(e) => {
+                          const newSackPrices = [...sackPrices]
+                          newSackPrices[index].stock = Number(e.target.value)
+                          setSackPrices(newSackPrices)
+                        }}
+                        min="0"
+                        className={errors[`sackPrice_${index}_stock`] ? "border-destructive" : ""}
+                      />
+                      {errors[`sackPrice_${index}_stock`] && (
+                        <p className="text-xs text-destructive">{errors[`sackPrice_${index}_stock`]}</p>
+                      )}
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Special Price (Optional)</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Special Price (₱)</Label>
+                          <Input
+                            type="number"
+                            placeholder="Special Price"
+                            value={sack.specialPrice?.price || ""}
+                            onChange={(e) => {
+                              const newSackPrices = [...sackPrices]
+                              if (!newSackPrices[index].specialPrice) {
+                                newSackPrices[index].specialPrice = { price: 0, minimumQty: 0 }
+                              }
+                              newSackPrices[index].specialPrice!.price = Number(e.target.value)
+                              setSackPrices(newSackPrices)
+                            }}
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Minimum Quantity</Label>
+                          <Input
+                            type="number"
+                            placeholder="Min Qty"
+                            value={sack.specialPrice?.minimumQty || ""}
+                            onChange={(e) => {
+                              const newSackPrices = [...sackPrices]
+                              if (!newSackPrices[index].specialPrice) {
+                                newSackPrices[index].specialPrice = { price: 0, minimumQty: 0 }
+                              }
+                              newSackPrices[index].specialPrice!.minimumQty = Number(e.target.value)
+                              setSackPrices(newSackPrices)
+                            }}
+                            min="0"
+                            className={errors[`sackPrice_${index}_specialPrice_minimumQty`] ? "border-destructive" : ""}
+                          />
+                          {errors[`sackPrice_${index}_specialPrice_minimumQty`] && (
+                            <p className="text-xs text-destructive">
+                              {errors[`sackPrice_${index}_specialPrice_minimumQty`]}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Per Kilo Price (Optional)</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Price per Kilo (₱)</Label>
+                <Input
+                  type="number"
+                  placeholder="Price per Kilo"
+                  value={perKiloPrice?.price || ""}
+                  onChange={(e) =>
+                    setPerKiloPrice({
+                      ...(perKiloPrice || { price: 0, stock: 0 }),
+                      price: Number(e.target.value),
+                    })
+                  }
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Stock (KG)</Label>
+                <Input
+                  type="number"
+                  placeholder="Stock"
+                  value={perKiloPrice?.stock || ""}
+                  onChange={(e) =>
+                    setPerKiloPrice({
+                      ...(perKiloPrice || { price: 0, stock: 0 }),
+                      stock: Number(e.target.value),
+                    })
+                  }
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Product"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
-export default CreateProduct;
