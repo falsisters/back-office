@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -11,212 +11,194 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { getDeliveryById } from "@/lib/server/getDeliveryById";
-import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type";
-import { deleteDelivery } from "@/lib/server/deleteDelivery";
-import { Loader2, Trash2Icon } from "lucide-react";
+} from "@/components/ui/dialog"
+import { getDeliveryById } from "@/lib/server/getDeliveryById"
+import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type"
+import { deleteDelivery } from "@/lib/server/deleteDelivery"
+import { Loader2, Trash2Icon, TruckIcon, PackageIcon, ExternalLinkIcon } from "lucide-react"
+import { format } from "date-fns"
 
 interface DeliveryItemProps {
-  delivery: GetDeliveryByIdPayload;
-  onDelete: (deletedDeliveryId: string) => void;
+  delivery: GetDeliveryByIdPayload
+  onDelete: (deletedDeliveryId: string) => void
 }
 
 export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [detailedDelivery, setDetailedDelivery] =
-    useState<GetDeliveryByIdPayload | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [detailedDelivery, setDetailedDelivery] = useState<GetDeliveryByIdPayload | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleViewDetails = async () => {
     try {
-      const details = await getDeliveryById(delivery.id);
-      setDetailedDelivery(details);
-      setIsModalOpen(true);
+      setIsLoading(true)
+      const details = await getDeliveryById(delivery.id)
+      setDetailedDelivery(details)
+      setIsModalOpen(true)
     } catch (error) {
-      console.error("Failed to fetch delivery details:", error);
-      alert("Failed to fetch delivery details. Please try again.");
+      console.error("Failed to fetch delivery details:", error)
+      alert("Failed to fetch delivery details. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-  };
+  }
+
   const handleConfirmDelete = async () => {
     try {
-      setIsDeleting(true);
-      await deleteDelivery(delivery.id);
-      onDelete(delivery.id);
+      setIsDeleting(true)
+      // Optimistically update UI first
+      onDelete(delivery.id)
+
+      // Then perform the actual deletion
+      await deleteDelivery(delivery.id)
     } catch (error) {
-      console.error("Failed to delete sale:", error);
-      alert("Failed to delete sale. Please try again.");
+      console.error("Failed to delete delivery:", error)
+      alert("Failed to delete delivery. Please try again.")
     } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
     }
-  };
+  }
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="items-center text-xs md:text-lg">
-            <span>Delivery #{delivery.id}</span>
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TruckIcon className="w-5 h-5 text-blue-500" />
+              <span className="font-semibold">Delivery #{delivery.id.slice(-6)}</span>
+            </div>
+            <Badge variant="outline" className="font-normal">
+              {delivery.DeliveryItem?.length || 0} items
+            </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 text-xs md:text-lg">
-            <div>
-              <p className="mb-2">
-                <strong>Total:</strong> ${delivery.total.toFixed(2)}
-              </p>
-              <div className="mb-2">
-                <strong>Status:</strong>{" "}
-                {delivery.isFinished ? (
-                  <Badge className="bg-green-500">Finished</Badge>
-                ) : (
-                  <Badge className="bg-blue-500">In Progress</Badge>
-                )}
-              </div>
-              <p className="mb-2">
-                <strong>Created:</strong>{" "}
-                {new Date(delivery.createdAt).toLocaleString()}
-              </p>
-              {delivery.isFinished && delivery.timeFinished && (
-                <p className="mb-2">
-                  <strong>Finished:</strong>{" "}
-                  {new Date(delivery.timeFinished).toLocaleString()}
-                </p>
-              )}
-              <div className="flex flex-row items-center justify-between">
-              <Button onClick={handleViewDetails}>View Details</Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2Icon className="w-6 h-6" />
-              </Button>
-              </div>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="space-y-1">
+              <p className="font-medium text-muted-foreground">Driver</p>
+              <p className="font-semibold">{delivery.driverName}</p>
             </div>
+            <div className="space-y-1">
+              <p className="font-medium text-muted-foreground">Scheduled</p>
+              <p className="font-semibold">{format(new Date(delivery.deliveryTimeStart), "MMM dd, yyyy")}</p>
+              <p className="text-xs text-muted-foreground">{format(new Date(delivery.deliveryTimeStart), "HH:mm")}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-3">
+            <Button variant="outline" size="sm" onClick={handleViewDetails} disabled={isLoading} className="gap-1">
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                  View Details
+                </>
+              )}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)} className="gap-1">
+              <Trash2Icon className="w-3.5 h-3.5" />
+              Delete
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Delivery Details #{detailedDelivery?.id}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <TruckIcon className="w-6 h-6 text-blue-500" />
+              Delivery Details
+            </DialogTitle>
+            <DialogDescription className="text-sm">ID: {detailedDelivery?.id}</DialogDescription>
           </DialogHeader>
-          <div className="text-sm text-muted-foreground">
-            {detailedDelivery && (
-              <>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+
+          {detailedDelivery && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <div>
-                    <p>
-                      <strong>Total:</strong> $
-                      {detailedDelivery.total.toFixed(2)}
-                    </p>
-                    <p>
-                      <strong>Driver:</strong> {detailedDelivery.driver}
-                    </p>
-                    <p>
-                      <strong>Cashier:</strong> {detailedDelivery.cashier.name}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Driver Name</p>
+                    <p className="font-semibold">{detailedDelivery.driverName}</p>
                   </div>
                   <div>
-                    <div>
-                      <strong>Status:</strong>{" "}
-                      {detailedDelivery.isFinished ? (
-                        <Badge className="bg-green-500">Finished</Badge>
-                      ) : (
-                        <Badge className="bg-blue-500">In Progress</Badge>
-                      )}
-                    </div>
-                    <p>
-                      <strong>Created:</strong>{" "}
-                      {new Date(detailedDelivery.createdAt).toLocaleString()}
+                    <p className="text-sm font-medium text-muted-foreground">Scheduled Time</p>
+                    <p className="font-semibold">
+                      {format(new Date(detailedDelivery.deliveryTimeStart), "MMM dd, yyyy HH:mm")}
                     </p>
-                    {detailedDelivery.isFinished &&
-                      detailedDelivery.timeFinished && (
-                        <p>
-                          <strong>Finished:</strong>{" "}
-                          {new Date(
-                            detailedDelivery.timeFinished
-                          ).toLocaleString()}
-                        </p>
-                      )}
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Items:</h3>
-                  <ul className="list-disc list-inside">
-                    {detailedDelivery.items.map((item) => (
-                      <li key={item.id}>
-                        {item.product.name} - {item.qty} x $
-                        {item.price.toFixed(2)} ({item.type})
-                      </li>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Created At</p>
+                    <p className="font-semibold">
+                      {format(new Date(detailedDelivery.createdAt), "MMM dd, yyyy HH:mm")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Delivery Items</h3>
+                {detailedDelivery.DeliveryItem && detailedDelivery.DeliveryItem.length > 0 ? (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    {detailedDelivery.DeliveryItem.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <PackageIcon className="w-4 h-4 text-blue-500" />
+                            <p className="font-medium">{item.product.name}</p>
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-6">Product ID: {item.product.id.slice(-6)}</p>
+                        </div>
+                        <Badge className="px-3 py-1 text-sm">{item.quantity} KG</Badge>
+                      </div>
                     ))}
-                  </ul>
-                </div>
-                {detailedDelivery.attachments &&
-                  detailedDelivery.attachments.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Attachments:</h3>
-                      <ul className="list-disc list-inside">
-                        {detailedDelivery.attachments.map(
-                          (attachment, index) => (
-                            <li key={index}>
-                              <a
-                                href={attachment}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline"
-                              >
-                                Attachment {index + 1}
-                              </a>
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </div>
-                  )}
-              </>
-            )}
-          </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-24 border border-dashed rounded-md">
+                    <p className="text-muted-foreground">No items in this delivery</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
+
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete Sale #{delivery.id}? This action
-              cannot be undone.
+              Are you sure you want to delete Delivery #{delivery.id.slice(-6)}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
               {isDeleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Deleting...
                 </>
               ) : (
-                "Delete"
+                "Confirm Delete"
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
+

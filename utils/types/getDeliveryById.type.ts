@@ -8,7 +8,7 @@ import {
 
 export const GetDeliveryByIdPayloadSchema = DeliverySchema.extend({
   cashier: CashierSchema,
-  items: z.array(
+  DeliveryItem: z.array(
     DeliveryItemSchema.extend({
       product: ProductSchema,
     })

@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { NestApiError } from "../../../utils/types/error.type";
+import { revalidatePath } from "next/cache";
 
 export const deleteDelivery = async (id: string) => {
   const cookieStore = await cookies();
@@ -27,6 +28,7 @@ export const deleteDelivery = async (id: string) => {
         : data.message || "Unexpected error occured"
     );
   }
-
+    revalidatePath("/products");
+    revalidatePath(`/products/${id}`);
   return response.json();
 };

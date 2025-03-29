@@ -9,7 +9,7 @@ import {
 export const GetAllDeliveriesByUserIdPayloadSchema = z.array(
   DeliverySchema.extend({
     cashier: CashierSchema,
-    items: z.array(
+    DeliveryItem: z.array(
       DeliveryItemSchema.extend({
         product: ProductSchema,
       })
