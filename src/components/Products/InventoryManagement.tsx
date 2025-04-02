@@ -48,7 +48,7 @@ export default function InventoryManagement() {
     <>
       <Card className="shadow-md border-t-4 border-t-primary overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-          <CardTitle className="text-xl font-bold text-primary">Inventory Management</CardTitle>
+          <CardTitle className="text-2xl font-bold text-primary">Inventory Management</CardTitle>
           <Button
             variant="outline"
             size="sm"
