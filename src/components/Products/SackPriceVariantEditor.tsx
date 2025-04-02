@@ -141,13 +141,17 @@ export default function SackPriceVariantEditor({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
+        >
           Edit Sack Prices
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px] border-t-4 border-t-primary">
         <DialogHeader>
-          <DialogTitle className="text-xl">Edit Sack Price Variants</DialogTitle>
+          <DialogTitle className="text-xl text-primary font-bold">Edit Sack Price Variants</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -159,7 +163,13 @@ export default function SackPriceVariantEditor({
 
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Sack Prices</Label>
-            <Button type="button" variant="outline" size="sm" onClick={addSackPrice} className="h-8 gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addSackPrice}
+              className="h-8 gap-1 border-primary/30 text-primary hover:bg-primary/10"
+            >
               <Plus size={14} />
               Add Variant
             </Button>
@@ -167,13 +177,16 @@ export default function SackPriceVariantEditor({
 
           <div className="space-y-4">
             {sackPrices.map((sackPrice, index) => (
-              <div key={sackPrice.id} className="space-y-3 border p-4 rounded-lg relative">
+              <div
+                key={sackPrice.id}
+                className="space-y-3 border p-4 rounded-lg relative hover:shadow-sm transition-shadow"
+              >
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   onClick={() => removeSackPrice(index)}
-                  className="h-6 w-6 absolute top-2 right-2 text-destructive"
+                  className="h-6 w-6 absolute top-2 right-2 text-destructive hover:bg-destructive/10"
                   disabled={sackPrices.length === 1}
                 >
                   <Trash2 size={14} />
@@ -183,7 +196,7 @@ export default function SackPriceVariantEditor({
                   <div className="space-y-1">
                     <Label className="text-xs">Sack Type</Label>
                     <Select value={sackPrice.type} onValueChange={(value) => updateSackPrice(index, "type", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-primary">
                         <SelectValue placeholder="Sack Type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -210,7 +223,7 @@ export default function SackPriceVariantEditor({
                       onChange={(e) => updateSackPrice(index, "price", Number(e.target.value))}
                       min="0"
                       step="0.01"
-                      className={errors[`price_${index}`] ? "border-destructive" : ""}
+                      className={errors[`price_${index}`] ? "border-destructive" : "focus-visible:ring-primary"}
                     />
                     {errors[`price_${index}`] && <p className="text-xs text-destructive">{errors[`price_${index}`]}</p>}
                   </div>
@@ -223,7 +236,7 @@ export default function SackPriceVariantEditor({
                     value={sackPrice.stock}
                     onChange={(e) => updateSackPrice(index, "stock", Number(e.target.value))}
                     min="0"
-                    className={errors[`stock_${index}`] ? "border-destructive" : ""}
+                    className={errors[`stock_${index}`] ? "border-destructive" : "focus-visible:ring-primary"}
                   />
                   {errors[`stock_${index}`] && <p className="text-xs text-destructive">{errors[`stock_${index}`]}</p>}
                 </div>
@@ -248,6 +261,7 @@ export default function SackPriceVariantEditor({
                         }}
                         min="0"
                         step="0.01"
+                        className="focus-visible:ring-secondary"
                       />
                     </div>
 
@@ -265,7 +279,11 @@ export default function SackPriceVariantEditor({
                           updateSackPrice(index, "specialPrice", specialPrice)
                         }}
                         min="0"
-                        className={errors[`specialPrice_minimumQty_${index}`] ? "border-destructive" : ""}
+                        className={
+                          errors[`specialPrice_minimumQty_${index}`]
+                            ? "border-destructive"
+                            : "focus-visible:ring-secondary"
+                        }
                       />
                       {errors[`specialPrice_minimumQty_${index}`] && (
                         <p className="text-xs text-destructive">{errors[`specialPrice_minimumQty_${index}`]}</p>
@@ -281,7 +299,7 @@ export default function SackPriceVariantEditor({
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

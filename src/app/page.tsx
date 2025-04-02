@@ -27,7 +27,7 @@ export default async function Home() {
           <h2 className="text-2xl font-semibold text-gray-700">Welcome!</h2>
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">{user.name}</h2>
           <Link href="/products" className="w-full">
-            <Button size="lg" variant="default" className="w-full">
+            <Button size="lg" variant="default" className="w-full text-white">
               Manage Inventory
             </Button>
           </Link>

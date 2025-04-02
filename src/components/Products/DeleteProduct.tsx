@@ -54,12 +54,16 @@ export default function DeleteProduct({ productId, productName, onProductDeleted
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive" size="sm" className="gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1 border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+        >
           <Trash2 size={14} />
           Delete
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] border-t-4 border-t-red-500">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle size={18} />

@@ -15,7 +15,6 @@ interface ItemTableProps {
 
 export default function ItemTable({ products, onProductUpdate }: ItemTableProps) {
   const handleProductDeleted = (productId: string) => {
-    // Immediately update the UI by filtering out the deleted product
     onProductUpdate()
   }
 
@@ -29,14 +28,14 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border rounded-md overflow-hidden shadow-sm">
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="w-[250px]">Product</TableHead>
-            <TableHead>Sack Prices</TableHead>
-            <TableHead>Per Kilo Price</TableHead>
-            <TableHead className="text-right w-[120px]">Actions</TableHead>
+          <TableRow className="bg-primary/5">
+            <TableHead className="w-[250px] font-semibold">Product</TableHead>
+            <TableHead className="font-semibold">Sack Prices</TableHead>
+            <TableHead className="font-semibold">Per Kilo Price</TableHead>
+            <TableHead className="text-right w-[120px] font-semibold">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -60,13 +59,16 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                   <div className="space-y-1.5">
                     {product.SackPrice.map((sackPrice) => (
                       <div key={sackPrice.id} className="flex items-center gap-2 text-sm">
-                        <Badge variant="outline" className="font-normal">
+                        <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
                           {parseProductType(sackPrice.type)}
                         </Badge>
-                        <span className="font-medium">₱{sackPrice.price.toFixed(2)}</span>
+                        <span className="font-medium text-secondary">₱{sackPrice.price.toFixed(2)}</span>
                         <span className="text-muted-foreground text-xs">(Stock: {sackPrice.stock})</span>
                         {sackPrice.specialPrice && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-secondary/10 text-secondary border-secondary/20"
+                          >
                             Special: ₱{sackPrice.specialPrice.price.toFixed(2)}
                             (Min: {sackPrice.specialPrice.minimumQty})
                           </Badge>
@@ -83,10 +85,10 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                   <div className="space-y-1">
                     {product.perKiloPrice.map((kiloPrice) => (
                       <div key={kiloPrice.id} className="flex items-center gap-2 text-sm">
-                        <Badge variant="outline" className="font-normal">
+                        <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
                           Per Kilo
                         </Badge>
-                        <span className="font-medium">₱{kiloPrice.price.toFixed(2)}</span>
+                        <span className="font-medium text-secondary">₱{kiloPrice.price.toFixed(2)}</span>
                         <span className="text-muted-foreground text-xs">(Stock: {kiloPrice.stock} kg)</span>
                       </div>
                     ))}

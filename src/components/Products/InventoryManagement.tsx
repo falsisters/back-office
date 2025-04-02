@@ -46,10 +46,16 @@ export default function InventoryManagement() {
 
   return (
     <>
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-xl font-bold">Inventory Management</CardTitle>
-          <Button variant="outline" size="sm" onClick={handleProductUpdate} disabled={isRefreshing} className="gap-1">
+      <Card className="shadow-md border-t-4 border-t-primary overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardTitle className="text-xl font-bold text-primary">Inventory Management</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleProductUpdate}
+            disabled={isRefreshing}
+            className="gap-1 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
+          >
             <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
             Refresh
           </Button>
@@ -65,7 +71,12 @@ export default function InventoryManagement() {
           ) : error ? (
             <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-center">
               <p className="text-sm text-destructive font-medium">{error}</p>
-              <Button variant="outline" size="sm" onClick={handleProductUpdate} className="mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleProductUpdate}
+                className="mt-2 border-primary/30 text-primary hover:bg-primary/10"
+              >
                 Try Again
               </Button>
             </div>

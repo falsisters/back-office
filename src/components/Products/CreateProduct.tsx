@@ -147,14 +147,15 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
       }}
     >
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2 bg-secondary text-white hover:bg-secondary/90 shadow-md" size="default">
           <Plus size={16} />
           Create Product
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px]">
+      <DialogContent className="max-w-[600px] border-t-4 border-t-secondary p-0">
+      <div className="max-h-[85vh] overflow-y-auto p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl">Create New Product</DialogTitle>
+          <DialogTitle className="text-xl text-secondary font-bold">Create New Product</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <div className="space-y-2">
@@ -165,7 +166,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={errors.name ? "border-destructive" : ""}
+              className={errors.name ? "border-destructive" : "focus-visible:ring-primary"}
             />
             {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
           </div>
@@ -179,7 +180,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              className={errors.picture ? "border-destructive" : ""}
+              className={errors.picture ? "border-destructive" : "focus-visible:ring-primary"}
             />
             {errors.picture && <p className="text-xs text-destructive mt-1">{errors.picture}</p>}
 
@@ -201,7 +202,13 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">Sack Prices</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addSackPrice} className="h-8 gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addSackPrice}
+                className="h-8 gap-1 border-primary/30 text-primary hover:bg-primary/10"
+              >
                 <Plus size={14} />
                 Add
               </Button>
@@ -212,20 +219,29 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
             {sackPrices.length === 0 ? (
               <div className="text-center py-4 border border-dashed rounded-md">
                 <p className="text-sm text-muted-foreground">No sack prices added yet</p>
-                <Button type="button" variant="ghost" size="sm" onClick={addSackPrice} className="mt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={addSackPrice}
+                  className="mt-2 text-primary hover:text-primary/80 hover:bg-primary/10"
+                >
                   Add Sack Price
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 {sackPrices.map((sack, index) => (
-                  <div key={index} className="space-y-3 border p-4 rounded-lg relative">
+                  <div
+                    key={index}
+                    className="space-y-3 border p-4 rounded-lg relative hover:shadow-sm transition-shadow"
+                  >
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => removeSackPrice(index)}
-                      className="h-6 w-6 absolute top-2 right-2 text-destructive"
+                      className="h-6 w-6 absolute top-2 right-2 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 size={14} />
                     </Button>
@@ -241,7 +257,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                             setSackPrices(newSackPrices)
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="focus:ring-primary">
                             <SelectValue placeholder="Sack Type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -265,7 +281,9 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                           }}
                           min="0"
                           step="0.01"
-                          className={errors[`sackPrice_${index}_price`] ? "border-destructive" : ""}
+                          className={
+                            errors[`sackPrice_${index}_price`] ? "border-destructive" : "focus-visible:ring-primary"
+                          }
                         />
                         {errors[`sackPrice_${index}_price`] && (
                           <p className="text-xs text-destructive">{errors[`sackPrice_${index}_price`]}</p>
@@ -285,7 +303,9 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                           setSackPrices(newSackPrices)
                         }}
                         min="0"
-                        className={errors[`sackPrice_${index}_stock`] ? "border-destructive" : ""}
+                        className={
+                          errors[`sackPrice_${index}_stock`] ? "border-destructive" : "focus-visible:ring-primary"
+                        }
                       />
                       {errors[`sackPrice_${index}_stock`] && (
                         <p className="text-xs text-destructive">{errors[`sackPrice_${index}_stock`]}</p>
@@ -313,6 +333,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                             }}
                             min="0"
                             step="0.01"
+                            className="focus-visible:ring-secondary"
                           />
                         </div>
 
@@ -331,7 +352,11 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                               setSackPrices(newSackPrices)
                             }}
                             min="0"
-                            className={errors[`sackPrice_${index}_specialPrice_minimumQty`] ? "border-destructive" : ""}
+                            className={
+                              errors[`sackPrice_${index}_specialPrice_minimumQty`]
+                                ? "border-destructive"
+                                : "focus-visible:ring-secondary"
+                            }
                           />
                           {errors[`sackPrice_${index}_specialPrice_minimumQty`] && (
                             <p className="text-xs text-destructive">
@@ -366,6 +391,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                   }
                   min="0"
                   step="0.01"
+                  className="focus-visible:ring-primary"
                 />
               </div>
 
@@ -382,6 +408,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
                     })
                   }
                   min="0"
+                  className="focus-visible:ring-primary"
                 />
               </div>
             </div>
@@ -391,7 +418,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="bg-secondary hover:bg-secondary/90 text-white">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -403,6 +430,7 @@ export default function CreateProduct({ onProductCreated }: CreateProductProps) 
             </Button>
           </DialogFooter>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

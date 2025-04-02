@@ -42,13 +42,13 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
   }
 
   return (
-    <Card className="bg-card shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Inventory Summary</CardTitle>
+    <Card className="bg-card shadow-md border-t-2 border-t-secondary">
+      <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
+        <CardTitle className="text-lg font-semibold text-secondary">Inventory Summary</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="flex items-center gap-3 p-4 rounded-lg border bg-background">
+          <div className="flex items-center gap-3 p-4 rounded-lg border bg-background hover:shadow-md transition-shadow">
             <div className="p-2 rounded-full bg-primary/10">
               <Package className="h-5 w-5 text-primary" />
             </div>
@@ -58,9 +58,9 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-lg border bg-background">
-            <div className="p-2 rounded-full bg-primary/10">
-              <CreditCard className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 p-4 rounded-lg border bg-background hover:shadow-md transition-shadow">
+            <div className="p-2 rounded-full bg-secondary/10">
+              <CreditCard className="h-5 w-5 text-secondary" />
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Inventory Value</p>
@@ -74,7 +74,7 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-lg border bg-background">
+          <div className="flex items-center gap-3 p-4 rounded-lg border bg-background hover:shadow-md transition-shadow">
             <div className="p-2 rounded-full bg-primary/10">
               <ShoppingBag className="h-5 w-5 text-primary" />
             </div>

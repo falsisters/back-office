@@ -86,13 +86,17 @@ export default function PerKiloPriceEditor({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
+        >
           Edit Per Kilo Price
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] border-t-4 border-t-primary">
         <DialogHeader>
-          <DialogTitle className="text-xl">Edit Per Kilo Price</DialogTitle>
+          <DialogTitle className="text-xl text-primary">Edit Per Kilo Price</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
@@ -106,7 +110,7 @@ export default function PerKiloPriceEditor({
               onChange={(e) => setPrice(Number(e.target.value))}
               min="0"
               step="0.01"
-              className={errors.price ? "border-destructive" : ""}
+              className={errors.price ? "border-destructive" : "focus-visible:ring-primary"}
             />
             {errors.price && <p className="text-xs text-destructive mt-1">{errors.price}</p>}
           </div>
@@ -121,7 +125,7 @@ export default function PerKiloPriceEditor({
               value={stock}
               onChange={(e) => setStock(Number(e.target.value))}
               min="0"
-              className={errors.stock ? "border-destructive" : ""}
+              className={errors.stock ? "border-destructive" : "focus-visible:ring-primary"}
             />
             {errors.stock && <p className="text-xs text-destructive mt-1">{errors.stock}</p>}
           </div>
@@ -130,7 +134,7 @@ export default function PerKiloPriceEditor({
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

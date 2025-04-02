@@ -45,7 +45,7 @@ export function CashierList() {
         title: "Cashier deleted",
         description: "The cashier has been successfully deleted.",
       })
-      setCashiers(cashiers.filter(cashier => cashier.id !== id))
+      setCashiers(cashiers.filter((cashier) => cashier.id !== id))
     } catch (error) {
       console.error("Error deleting: ", error)
       toast({
@@ -57,7 +57,7 @@ export function CashierList() {
   }
 
   const handleCashierCreated = (newCashier: GetAllCashiersByUserIdPayload[number]) => {
-    setCashiers(prevCashiers => [...prevCashiers, newCashier])
+    setCashiers((prevCashiers) => [...prevCashiers, newCashier])
     toast({
       title: "Cashier created",
       description: "New cashier has been successfully added.",
@@ -65,10 +65,8 @@ export function CashierList() {
   }
 
   const handleCashierUpdated = (updatedCashier: GetAllCashiersByUserIdPayload[number]) => {
-    setCashiers(prevCashiers => 
-      prevCashiers.map(cashier => 
-        cashier.id === updatedCashier.id ? updatedCashier : cashier
-      )
+    setCashiers((prevCashiers) =>
+      prevCashiers.map((cashier) => (cashier.id === updatedCashier.id ? updatedCashier : cashier)),
     )
   }
 
@@ -76,7 +74,7 @@ export function CashierList() {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading cashiers...</span>
+        <span className="ml-2 text-primary font-medium">Loading cashiers...</span>
       </div>
     )
   }
@@ -84,18 +82,24 @@ export function CashierList() {
   return (
     <div className="space-y-6">
       <CreateCashier onCashierCreated={handleCashierCreated} />
-      
+
       {error ? (
-        <Card className="w-full">
+        <Card className="w-full border-red-200 shadow-md">
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={() => fetchCashiers()}>Try Again</Button>
+              <Button
+                onClick={() => fetchCashiers()}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10"
+              >
+                Try Again
+              </Button>
             </div>
           </CardContent>
         </Card>
       ) : cashiers.length === 0 ? (
-        <Card className="w-full">
+        <Card className="w-full shadow-md bg-gradient-to-b from-white to-gray-50">
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">No cashiers found. Create your first cashier to get started.</p>
@@ -103,27 +107,27 @@ export function CashierList() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Cashiers</CardTitle>
+        <Card className="w-full shadow-md overflow-hidden border-t-4 border-t-primary">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+            <CardTitle className="text-primary text-xl">Cashiers</CardTitle>
             <CardDescription>Manage your cashiers and their permissions</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-50">
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Permissions</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold">Permissions</TableHead>
+                  <TableHead className="text-right font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {cashiers.map((cashier) => (
-                  <CashierTableRow 
-                    key={cashier.id} 
-                    cashier={cashier} 
-                    onDeleteCashier={handleDeleteCashier} 
-                    onUpdateCashier={handleCashierUpdated} 
+                  <CashierTableRow
+                    key={cashier.id}
+                    cashier={cashier}
+                    onDeleteCashier={handleDeleteCashier}
+                    onUpdateCashier={handleCashierUpdated}
                   />
                 ))}
               </TableBody>
@@ -134,3 +138,4 @@ export function CashierList() {
     </div>
   )
 }
+

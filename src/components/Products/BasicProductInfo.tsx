@@ -15,9 +15,9 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
   }
 
   return (
-    <Card className="w-full max-w-md hover:shadow-md transition-shadow duration-200">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-bold truncate">{product.name}</CardTitle>
+    <Card className="w-full max-w-md hover:shadow-md transition-shadow duration-200 overflow-hidden border-t-2 border-t-primary">
+      <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardTitle className="text-xl font-bold truncate text-primary">{product.name}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-0">
         <div className="relative w-full h-56 overflow-hidden rounded-md">
@@ -31,17 +31,20 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
 
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold text-lg mb-2 flex items-center">
+            <h3 className="font-semibold text-lg mb-2 flex items-center text-primary">
               <span>Sack Prices</span>
-              <Badge variant="outline" className="ml-2">
+              <Badge variant="outline" className="ml-2 bg-primary/5 text-primary border-primary/20">
                 {product.SackPrice.length} options
               </Badge>
             </h3>
             <div className="space-y-2">
               {product.SackPrice.map((sackPrice) => (
-                <div key={sackPrice.id} className="flex justify-between items-center py-1 px-2 rounded-md bg-muted/50">
+                <div
+                  key={sackPrice.id}
+                  className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors"
+                >
                   <span className="font-medium">{formatSackType(sackPrice.type)}</span>
-                  <span className="font-semibold text-primary">₱{sackPrice.price.toFixed(2)}</span>
+                  <span className="font-semibold text-secondary">₱{sackPrice.price.toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -49,15 +52,15 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
 
           {product.perKiloPrice.length > 0 && (
             <div>
-              <h3 className="font-semibold text-lg mb-2">Per Kilo Price</h3>
+              <h3 className="font-semibold text-lg mb-2 text-primary">Per Kilo Price</h3>
               <div className="space-y-2">
                 {product.perKiloPrice.map((kiloPrice) => (
                   <div
                     key={kiloPrice.id}
-                    className="flex justify-between items-center py-1 px-2 rounded-md bg-muted/50"
+                    className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors"
                   >
                     <span className="font-medium">Price per Kilo</span>
-                    <span className="font-semibold text-primary">₱{kiloPrice.price.toFixed(2)}</span>
+                    <span className="font-semibold text-secondary">₱{kiloPrice.price.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -71,7 +74,7 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
 
 function ProductSkeleton() {
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md border-t-2 border-t-primary/30">
       <CardHeader className="pb-2">
         <Skeleton className="h-6 w-3/4" />
       </CardHeader>
