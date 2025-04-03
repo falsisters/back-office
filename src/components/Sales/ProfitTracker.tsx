@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import { Table, TableBody, TableCell, TableRow, TableFooter } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow, TableFooter, TableHead, TableHeader } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Calculator, DollarSign } from 'lucide-react';
 
 interface ProfitItem {
   productKey: string;
@@ -51,27 +53,44 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
   const grandTotalProfit = asinTotalProfit + otherTotalProfit;
 
   const renderProductTable = (products: ProfitItem[], title: string) => (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>{title}</CardTitle>
+    <Card className="shadow-md border-t-4 border-t-primary">
+      <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardTitle className="flex items-center gap-2 text-primary">
+          <Calculator className="h-5 w-5" />
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
+          <TableHeader>
+            <TableRow className="bg-primary/5">
+              <TableHead className="font-semibold">Product</TableHead>
+              <TableHead className="font-semibold">Quantity</TableHead>
+              <TableHead className="font-semibold">Profit Per Unit</TableHead>
+              <TableHead className="font-semibold text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {products.map((item, index) => (
               <React.Fragment key={`${item.productKey}-fragment-${index}`}>
-                <TableRow key={`${item.productKey}-header-${index}`}>
-                  <TableCell colSpan={3} className="font-medium bg-muted">
+                <TableRow key={`${item.productKey}-header-${index}`} className="bg-muted/30">
+                  <TableCell colSpan={4} className="font-medium text-primary">
                     {item.productName}
                   </TableCell>
                 </TableRow>
                 {item.normalQty > 0 && (
-                  <TableRow key={`${item.productKey}-normal-${index}`}>
-                    <TableCell className="pl-8">{item.normalQty} (Regular)</TableCell>
+                  <TableRow key={`${item.productKey}-normal-${index}`} className="hover:bg-muted/20">
+                    <TableCell className="pl-8">Regular Price</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                        {item.normalQty}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Input
                         type="number"
                         placeholder="Profit"
+                        className="max-w-[150px] focus-visible:ring-primary"
                         onChange={(e) =>
                           setProfits((prev) => ({
                             ...prev,
@@ -83,18 +102,24 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
                         }
                       />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-medium text-secondary">
                       ₱{(profits[item.productKey]?.normal || 0) * item.normalQty}
                     </TableCell>
                   </TableRow>
                 )}
                 {item.specialQty > 0 && (
-                  <TableRow key={`${item.productKey}-special-${index}`}>
-                    <TableCell className="pl-8">{item.specialQty} (Special)</TableCell>
+                  <TableRow key={`${item.productKey}-special-${index}`} className="hover:bg-muted/20">
+                    <TableCell className="pl-8">Special Price</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20">
+                        {item.specialQty}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Input
                         type="number"
                         placeholder="Profit"
+                        className="max-w-[150px] focus-visible:ring-secondary"
                         onChange={(e) =>
                           setProfits((prev) => ({
                             ...prev,
@@ -106,7 +131,7 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
                         }
                       />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-medium text-secondary">
                       ₱{(profits[item.productKey]?.special || 0) * item.specialQty}
                     </TableCell>
                   </TableRow>
@@ -116,8 +141,8 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
           </TableBody>
           <TableFooter>
             <TableRow>
-              <TableCell colSpan={2} className="font-bold">Total Profit</TableCell>
-              <TableCell className="text-right font-bold">
+              <TableCell colSpan={3} className="font-bold">Total Profit</TableCell>
+              <TableCell className="text-right font-bold text-secondary">
                 ₱{title === 'ASIN PROFITS' ? asinTotalProfit : otherTotalProfit}
               </TableCell>
             </TableRow>
@@ -128,20 +153,23 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profit Tracker</CardTitle>
+    <Card className="shadow-md border-t-4 border-t-primary">
+      <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardTitle className="text-xl text-primary flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
+          Profit Tracker
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {renderProductTable(asinProducts, 'ASIN PROFITS')}
           {renderProductTable(otherProducts, 'OTHER PRODUCTS PROFITS')}
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Grand Total Profit</CardTitle>
+        <Card className="shadow-md border-t-4 border-t-secondary">
+          <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
+            <CardTitle className="text-secondary">Grand Total Profit</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-right">
+          <CardContent className="text-2xl font-bold text-right text-secondary">
             ₱{grandTotalProfit}
           </CardContent>
         </Card>

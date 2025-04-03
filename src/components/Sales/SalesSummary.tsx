@@ -3,6 +3,8 @@
 import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
+import { Separator } from "@/components/ui/separator"
+import { BarChart3, Package, ShoppingBag, CreditCard, Banknote, DollarSign } from 'lucide-react'
 
 interface CategoryTotals {
   sales: number;
@@ -58,44 +60,57 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
   };
 
   return (
-    <Card className="bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-2xl">OVERALL SALES SUMMARY</CardTitle>
+    <Card className="shadow-md border-t-4 border-t-primary">
+      <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardTitle className="text-2xl text-primary flex items-center gap-2">
+          <BarChart3 className="h-6 w-6" />
+          OVERALL SALES SUMMARY
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Asin Section */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>ASIN</CardTitle>
+          <Card className="shadow-sm border-l-4 border-l-primary">
+            <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Package className="h-5 w-5" />
+                ASIN
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div>
-                <h3 className="font-bold mb-2">Sacks</h3>
+                <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Sacks
+                </h3>
                 <Table>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Quantity:</TableCell>
-                      <TableCell className="text-right">{totals.asinSack.quantity}</TableCell>
+                      <TableCell className="font-medium">Quantity:</TableCell>
+                      <TableCell className="text-right font-semibold">{totals.asinSack.quantity}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Total Sales:</TableCell>
-                      <TableCell className="text-right">₱{Math.floor(totals.asinSack.sales)}</TableCell>
+                      <TableCell className="font-medium">Total Sales:</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.asinSack.sales)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
               </div>
+              <Separator className="bg-muted" />
               <div>
-                <h3 className="font-bold mb-2">Per Kilo</h3>
+                <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Per Kilo
+                </h3>
                 <Table>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Quantity:</TableCell>
-                      <TableCell className="text-right">{totals.asinKilo.quantity}</TableCell>
+                      <TableCell className="font-medium">Quantity:</TableCell>
+                      <TableCell className="text-right font-semibold">{totals.asinKilo.quantity}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Total Sales:</TableCell>
-                      <TableCell className="text-right">₱{Math.floor(totals.asinKilo.sales)}</TableCell>
+                      <TableCell className="font-medium">Total Sales:</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.asinKilo.sales)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -104,37 +119,47 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
           </Card>
 
           {/* Other Products Section */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>OTHER PRODUCTS</CardTitle>
+          <Card className="shadow-sm border-l-4 border-l-primary">
+            <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Package className="h-5 w-5" />
+                OTHER PRODUCTS
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div>
-                <h3 className="font-bold mb-2">Sacks</h3>
+                <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Sacks
+                </h3>
                 <Table>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Quantity:</TableCell>
-                      <TableCell className="text-right">{totals.otherSack.quantity}</TableCell>
+                      <TableCell className="font-medium">Quantity:</TableCell>
+                      <TableCell className="text-right font-semibold">{totals.otherSack.quantity}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Total Sales:</TableCell>
-                      <TableCell className="text-right">₱{Math.floor(totals.otherSack.sales)}</TableCell>
+                      <TableCell className="font-medium">Total Sales:</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.otherSack.sales)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
               </div>
+              <Separator className="bg-muted" />
               <div>
-                <h3 className="font-bold mb-2">Per Kilo</h3>
+                <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Per Kilo
+                </h3>
                 <Table>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Quantity:</TableCell>
-                      <TableCell className="text-right">{totals.otherKilo.quantity}</TableCell>
+                      <TableCell className="font-medium">Quantity:</TableCell>
+                      <TableCell className="text-right font-semibold">{totals.otherKilo.quantity}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Total Sales:</TableCell>
-                      <TableCell className="text-right">₱{Math.floor(totals.otherKilo.sales)}</TableCell>
+                      <TableCell className="font-medium">Total Sales:</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.otherKilo.sales)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -144,32 +169,50 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
         </div>
 
         {/* Grand Total */}
-        <Card className="bg-muted">
-          <CardHeader className="pb-2">
-            <CardTitle>GRAND TOTAL</CardTitle>
+        <Card className="shadow-md border-t-4 border-t-secondary">
+          <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
+            <CardTitle className="text-secondary flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              GRAND TOTAL
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <Table>
               <TableBody>
                 <TableRow>
-                  <TableCell>Total Quantity:</TableCell>
-                  <TableCell className="text-right">{grandTotal.quantity}</TableCell>
+                  <TableCell className="font-medium flex items-center gap-2">
+                    <ShoppingBag className="h-4 w-4 text-primary" />
+                    Total Quantity:
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">{grandTotal.quantity}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell>Total Sales:</TableCell>
-                  <TableCell className="text-right">₱{Math.floor(grandTotal.sales)}</TableCell>
+                  <TableCell className="font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-secondary" />
+                    Total Sales:
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(grandTotal.sales)}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell>Check Deductions:</TableCell>
-                  <TableCell className="text-right">- ₱{Math.floor(grandTotal.check)}</TableCell>
+                  <TableCell className="font-medium flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    Check Deductions:
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">- ₱{Math.floor(grandTotal.check)}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell>Bank Transfer Deductions:</TableCell>
-                  <TableCell className="text-right">- ₱{Math.floor(grandTotal.bankTransfer)}</TableCell>
+                  <TableCell className="font-medium flex items-center gap-2">
+                    <Banknote className="h-4 w-4 text-muted-foreground" />
+                    Bank Transfer Deductions:
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">- ₱{Math.floor(grandTotal.bankTransfer)}</TableCell>
                 </TableRow>
-                <TableRow className="border-t-2">
-                  <TableCell className="font-bold">Net Cash Total:</TableCell>
-                  <TableCell className="text-right font-bold">₱{Math.floor(grandTotal.cash)}</TableCell>
+                <TableRow className="border-t-2 border-t-secondary/20">
+                  <TableCell className="font-bold text-primary flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-secondary" />
+                    Net Cash Total:
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-secondary text-xl">₱{Math.floor(grandTotal.cash)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

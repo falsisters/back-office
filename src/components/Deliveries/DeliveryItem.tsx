@@ -15,8 +15,18 @@ import {
 import { getDeliveryById } from "@/lib/server/getDeliveryById"
 import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type"
 import { deleteDelivery } from "@/lib/server/deleteDelivery"
-import { Loader2, Trash2Icon, TruckIcon, PackageIcon, ExternalLinkIcon } from "lucide-react"
+import {
+  Loader2,
+  Trash2Icon,
+  TruckIcon,
+  PackageIcon,
+  ExternalLinkIcon,
+  CalendarIcon,
+  ClockIcon,
+  UserIcon,
+} from "lucide-react"
 import { format } from "date-fns"
+import { Separator } from "@/components/ui/separator"
 
 interface DeliveryItemProps {
   delivery: GetDeliveryByIdPayload
@@ -63,14 +73,14 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
 
   return (
     <>
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader className="pb-2">
+      <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-primary overflow-hidden">
+        <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TruckIcon className="w-5 h-5 text-blue-500" />
+              <TruckIcon className="w-5 h-5 text-primary" />
               <span className="font-semibold">Delivery #{delivery.id.slice(-6)}</span>
             </div>
-            <Badge variant="outline" className="font-normal">
+            <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
               {delivery.DeliveryItem?.length || 0} items
             </Badge>
           </CardTitle>
@@ -78,18 +88,33 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="space-y-1">
-              <p className="font-medium text-muted-foreground">Driver</p>
+              <p className="font-medium text-muted-foreground flex items-center gap-1">
+                <UserIcon className="w-3.5 h-3.5" />
+                Driver
+              </p>
               <p className="font-semibold">{delivery.driverName}</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium text-muted-foreground">Scheduled</p>
+              <p className="font-medium text-muted-foreground flex items-center gap-1">
+                <CalendarIcon className="w-3.5 h-3.5" />
+                Scheduled
+              </p>
               <p className="font-semibold">{format(new Date(delivery.deliveryTimeStart), "MMM dd, yyyy")}</p>
-              <p className="text-xs text-muted-foreground">{format(new Date(delivery.deliveryTimeStart), "HH:mm")}</p>
+              <p className="text-xs text-secondary flex items-center gap-1">
+                <ClockIcon className="w-3 h-3" />
+                {format(new Date(delivery.deliveryTimeStart), "HH:mm")}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center justify-between pt-3">
-            <Button variant="outline" size="sm" onClick={handleViewDetails} disabled={isLoading} className="gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleViewDetails}
+              disabled={isLoading}
+              className="gap-1 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -102,7 +127,12 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                 </>
               )}
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)} className="gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="gap-1 border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
               <Trash2Icon className="w-3.5 h-3.5" />
               Delete
             </Button>
@@ -111,10 +141,10 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl border-t-4 border-t-primary">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <TruckIcon className="w-6 h-6 text-blue-500" />
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <TruckIcon className="w-6 h-6" />
               Delivery Details
             </DialogTitle>
             <DialogDescription className="text-sm">ID: {detailedDelivery?.id}</DialogDescription>
@@ -125,45 +155,70 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Driver Name</p>
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <UserIcon className="w-3.5 h-3.5" />
+                      Driver Name
+                    </p>
                     <p className="font-semibold">{detailedDelivery.driverName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Scheduled Time</p>
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <CalendarIcon className="w-3.5 h-3.5" />
+                      Scheduled Time
+                    </p>
                     <p className="font-semibold">
-                      {format(new Date(detailedDelivery.deliveryTimeStart), "MMM dd, yyyy HH:mm")}
+                      {format(new Date(detailedDelivery.deliveryTimeStart), "MMM dd, yyyy")}
+                      <span className="text-secondary ml-2">
+                        {format(new Date(detailedDelivery.deliveryTimeStart), "HH:mm")}
+                      </span>
                     </p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Created At</p>
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <ClockIcon className="w-3.5 h-3.5" />
+                      Created At
+                    </p>
                     <p className="font-semibold">
-                      {format(new Date(detailedDelivery.createdAt), "MMM dd, yyyy HH:mm")}
+                      {format(new Date(detailedDelivery.createdAt), "MMM dd, yyyy")}
+                      <span className="text-muted-foreground ml-2">
+                        {format(new Date(detailedDelivery.createdAt), "HH:mm")}
+                      </span>
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Delivery Items</h3>
+              <Separator />
+
+              <div>
+                <h3 className="font-semibold mb-3 text-primary flex items-center gap-2">
+                  <PackageIcon className="w-4 h-4" />
+                  Delivery Items
+                </h3>
                 {detailedDelivery.DeliveryItem && detailedDelivery.DeliveryItem.length > 0 ? (
                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                     {detailedDelivery.DeliveryItem.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
+                      <div
+                        key={item.id}
+                        className="flex justify-between items-center p-3 bg-muted/50 rounded-md hover:bg-muted/70 transition-colors"
+                      >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <PackageIcon className="w-4 h-4 text-blue-500" />
+                            <PackageIcon className="w-4 h-4 text-primary" />
                             <p className="font-medium">{item.product.name}</p>
                           </div>
                           <p className="text-sm text-muted-foreground pl-6">Product ID: {item.product.id.slice(-6)}</p>
                         </div>
-                        <Badge className="px-3 py-1 text-sm">{item.quantity} KG</Badge>
+                        <Badge className="px-3 py-1 text-sm bg-secondary/10 text-secondary border-secondary/20">
+                          {item.quantity} KG
+                        </Badge>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-24 border border-dashed rounded-md">
+                  <div className="flex items-center justify-center h-24 border border-dashed rounded-md bg-muted/20">
                     <p className="text-muted-foreground">No items in this delivery</p>
                   </div>
                 )}
@@ -174,13 +229,23 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
       </Dialog>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-t-4 border-t-red-500">
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2Icon className="w-5 h-5" />
+              Confirm Deletion
+            </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete Delivery #{delivery.id.slice(-6)}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="bg-red-50 p-4 rounded-md border border-red-200 my-2">
+            <p className="text-sm text-red-600 font-medium">
+              This will permanently remove the delivery and all associated items.
+            </p>
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
               Cancel

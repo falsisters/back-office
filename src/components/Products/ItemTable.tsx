@@ -14,7 +14,7 @@ interface ItemTableProps {
 }
 
 export default function ItemTable({ products, onProductUpdate }: ItemTableProps) {
-  const handleProductDeleted = (productId: string) => {
+  const handleProductDeleted = () => {
     onProductUpdate()
   }
 
@@ -103,7 +103,7 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                   <DeleteProduct
                     productId={product.id}
                     productName={product.name}
-                    onProductDeleted={() => handleProductDeleted(product.id)}
+                    onProductDeleted={handleProductDeleted}
                   />
                 </div>
               </TableCell>
@@ -114,4 +114,3 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
     </div>
   )
 }
-
