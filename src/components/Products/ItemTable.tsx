@@ -81,20 +81,16 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                 )}
               </TableCell>
               <TableCell>
-                {product.perKiloPrice && Array.isArray(product.perKiloPrice) && product.perKiloPrice.length > 0 ? (
-                  <div className="space-y-1">
-                    {product.perKiloPrice.map((kiloPrice) => (
-                      <div key={kiloPrice.id} className="flex items-center gap-2 text-sm">
-                        <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
-                          Per Kilo
-                        </Badge>
-                        <span className="font-medium text-secondary">₱{kiloPrice.price.toFixed(2)}</span>
-                        <span className="text-muted-foreground text-xs">(Stock: {kiloPrice.stock} kg)</span>
-                      </div>
-                    ))}
+                {product.perKiloPrice ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
+                      Per Kilo
+                    </Badge>
+                    <span className="font-medium text-secondary">₱{product.perKiloPrice.price.toFixed(2)}</span>
+                    <span className="text-muted-foreground text-xs">(Stock: {product.perKiloPrice.stock} kg)</span>
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground">No kilo prices</span>
+                  <span className="text-sm text-muted-foreground">No kilo price</span>
                 )}
               </TableCell>
               <TableCell className="text-right">

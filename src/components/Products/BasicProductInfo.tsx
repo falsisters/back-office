@@ -50,19 +50,16 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
             </div>
           </div>
 
-          {product.perKiloPrice.length > 0 && (
+          {product.perKiloPrice && (
             <div>
               <h3 className="font-semibold text-lg mb-2 text-primary">Per Kilo Price</h3>
               <div className="space-y-2">
-                {product.perKiloPrice.map((kiloPrice) => (
-                  <div
-                    key={kiloPrice.id}
-                    className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors"
-                  >
-                    <span className="font-medium">Price per Kilo</span>
-                    <span className="font-semibold text-secondary">₱{kiloPrice.price.toFixed(2)}</span>
-                  </div>
-                ))}
+                <div
+                  className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors"
+                >
+                  <span className="font-medium">Price per Kilo</span>
+                  <span className="font-semibold text-secondary">₱{product.perKiloPrice.price.toFixed(2)}</span>
+                </div>
               </div>
             </div>
           )}
@@ -107,4 +104,3 @@ function formatSackType(type: string): string {
       return type.replace(/_/g, " ")
   }
 }
-

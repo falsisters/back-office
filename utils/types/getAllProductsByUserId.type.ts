@@ -10,10 +10,10 @@ import {
 export const ProductResponseSchema = ProductSchema.extend({
   SackPrice: z.array(
     SackPriceSchema.extend({
-      specialPrice: SpecialPriceSchema
+      specialPrice: SpecialPriceSchema.nullable()
     })
   ),
-  perKiloPrice: z.array(PerKiloPriceSchema)
+  perKiloPrice: PerKiloPriceSchema.nullable()
 });
 
 export type ProductResponse = z.infer<typeof ProductResponseSchema>;
