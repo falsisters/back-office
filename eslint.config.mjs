@@ -10,6 +10,9 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    ignorePatterns: ["src/components/ui/*", "src/hooks/*"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 
