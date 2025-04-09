@@ -8,10 +8,18 @@ export const CreateProductFormDataSchema = z.object({
   sackPrices: z.array(
     SackPriceSchema.extend({
       type: SackTypeEnum,
-      specialPrice: SpecialPriceSchema.pick({ price: true, minimumQty: true })
-    }).pick({ price: true, stock: true, type: true })
+      specialPrice: SpecialPriceSchema.pick({ 
+        price: true, 
+        minimumQty: true,
+        profit: true 
+      })
+    }).pick({ price: true, stock: true, type: true, profit: true })
   ).min(1, "At least one sack price is required"),
-  perKiloPrice: PerKiloPriceSchema.pick({ price: true, stock: true })
+  perKiloPrice: PerKiloPriceSchema.pick({ 
+    price: true, 
+    stock: true,
+    profit: true 
+  })
 });
 
 export type CreateProductFormData = z.infer<typeof CreateProductFormDataSchema>;

@@ -6,14 +6,17 @@ import {
   PerKiloPriceSchema 
 } from "./schema.type";
 
-// Product response schema with related data
 export const ProductResponseSchema = ProductSchema.extend({
   SackPrice: z.array(
     SackPriceSchema.extend({
-      specialPrice: SpecialPriceSchema.nullable()
+      specialPrice: SpecialPriceSchema.extend({
+        profit: z.number().positive()
+      }).nullable()
     })
   ),
-  perKiloPrice: PerKiloPriceSchema.nullable()
+  perKiloPrice: PerKiloPriceSchema.extend({
+    profit: z.number().positive()
+  }).nullable()
 });
 
 export type ProductResponse = z.infer<typeof ProductResponseSchema>;

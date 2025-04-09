@@ -1,4 +1,3 @@
-// ../../../utils/types/getAllSalesByUserId.type.ts
 import { z } from "zod";
 import { 
   CashierSchema,
