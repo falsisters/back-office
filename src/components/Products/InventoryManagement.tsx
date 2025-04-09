@@ -8,11 +8,14 @@ import CreateProduct from "./CreateProduct"
 import ItemTable from "./ItemTable"
 import PriceSummary from "./PriceSummary"
 import { Toaster } from "@/components/ui/toaster"
-import { Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SearchBar } from "@/components/SearchBar"
 
 export default function InventoryManagement() {
   const [products, setProducts] = useState<ProductResponse[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<ProductResponse[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -23,6 +26,7 @@ export default function InventoryManagement() {
       const result = await getAllProducts()
       if (result.data) {
         setProducts(result.data)
+        setFilteredProducts(result.data)
         setError(null)
       } else if (result.error) {
         setError(result.error)
@@ -39,10 +43,26 @@ export default function InventoryManagement() {
     fetchProducts()
   }, [fetchProducts])
 
+  // Filter products based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredProducts(products)
+    } else {
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      setFilteredProducts(filtered)
+    }
+  }, [searchTerm, products])
+
   const handleProductUpdate = useCallback(() => {
     setIsRefreshing(true)
     fetchProducts().finally(() => setIsRefreshing(false))
   }, [fetchProducts])
+
+  const handleClearSearch = () => {
+    setSearchTerm("")
+  }
 
   return (
     <>
@@ -63,6 +83,31 @@ export default function InventoryManagement() {
         <CardContent className="space-y-6 pt-4">
           <CreateProduct onProductCreated={handleProductUpdate} />
 
+          {/* Search bar implementation */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <SearchBar 
+                searchTerm={searchTerm} 
+                setSearchTerm={setSearchTerm} 
+                placeholder="Search products by name..." 
+              />
+              {searchTerm && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={handleClearSearch}
+                >
+                  <span className="sr-only">Clear search</span>
+                  ×
+                </Button>
+              )}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {filteredProducts.length} of {products.length} items
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
@@ -82,8 +127,22 @@ export default function InventoryManagement() {
             </div>
           ) : (
             <>
-              <ItemTable products={products} onProductUpdate={handleProductUpdate} />
-              <PriceSummary products={products} />
+              {filteredProducts.length === 0 && searchTerm ? (
+                <div className="text-center py-8 border border-dashed rounded-md">
+                  <Search className="mx-auto h-8 w-8 text-muted-foreground mb-2 opacity-50" />
+                  <p className="text-muted-foreground">No products found matching &quot;{searchTerm}&quot;</p>
+                  <Button
+                    variant="link"
+                    onClick={handleClearSearch}
+                    className="mt-2"
+                  >
+                    Clear search
+                  </Button>
+                </div>
+              ) : (
+                <ItemTable products={filteredProducts} onProductUpdate={handleProductUpdate} />
+              )}
+              <PriceSummary products={filteredProducts} />
             </>
           )}
         </CardContent>
@@ -92,4 +151,3 @@ export default function InventoryManagement() {
     </>
   )
 }
-
