@@ -207,11 +207,13 @@ export default function EditProduct({
         price: sp.price,
         stock: sp.stock,
         type: sp.type,
+        profit: sp.profit ?? 0,
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
               price: sp.specialPrice.price,
               minimumQty: sp.specialPrice.minimumQty,
+              profit: sp.specialPrice.profit ?? 0,
             }
           : null,
       }));
@@ -658,6 +660,7 @@ export default function EditProduct({
                         })
                       }
                       min="0"
+                      step="0.01"
                       className="focus-visible:ring-primary"
                     />
                   </div>
