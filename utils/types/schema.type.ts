@@ -27,6 +27,32 @@ export const PaymentMethodEnum = z.enum([
 ]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
+export const TransferTypeEnum = z.enum([
+  "OWN_CONSUMPTION",
+  "RETURN_TO_WAREHOUSE",
+  "KAHON",
+  "REPACK",
+]);
+export type TransferType = z.infer<typeof TransferTypeEnum>;
+
+export const AttachmentTypeEnum = z.enum([
+  "EXPENSE_RECEIPT",
+  "CHECKS_AND_BANK_TRANSFER",
+  "INVENTORIES",
+  "SUPPORTING_DOCUMENTS",
+]);
+export type AttachmentType = z.infer<typeof AttachmentTypeEnum>;
+
+export const BillTypeEnum = z.enum([
+  "THOUSAND",
+  "FIVE_HUNDRED",
+  "HUNDRED",
+  "FIFTY",
+  "TWENTY",
+  "COINS",
+]);
+export type BillType = z.infer<typeof BillTypeEnum>;
+
 // Base Schemas
 export const UserSchema = z.object({
   id: z.string(),
@@ -45,6 +71,8 @@ export const CashierSchema = z.object({
   secureCode: z.string(),
   permissions: z.array(CashierPermissionsEnum),
   userId: z.string(),
+  inventoryId: z.string().optional(),
+  kahonId: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -81,7 +109,7 @@ export type Employee = z.infer<typeof EmployeeSchema>;
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
-  picture: z.string().url(),
+  picture: z.string().url().default("https://placehold.co/800x800?text=Product"),
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -91,9 +119,9 @@ export type Product = z.infer<typeof ProductSchema>;
 export const SackPriceSchema = z.object({
   id: z.string(),
   price: z.number().positive(),
-  stock: z.number().int().positive(),
+  stock: z.number().int().min(0),
   type: SackTypeEnum,
-  profit: z.number().positive(),
+  profit: z.number().min(0),
   productId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -104,7 +132,7 @@ export const SpecialPriceSchema = z.object({
   id: z.string(),
   price: z.number().positive(),
   minimumQty: z.number().int().positive(),
-  profit: z.number().positive(),
+  profit: z.number().min(0),
   sackPriceId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -114,8 +142,8 @@ export type SpecialPrice = z.infer<typeof SpecialPriceSchema>;
 export const PerKiloPriceSchema = z.object({
   id: z.string(),
   price: z.number().positive(),
-  stock: z.number().positive(),
-  profit: z.number().positive(),
+  stock: z.number().min(0),
+  profit: z.number().min(0),
   productId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -137,8 +165,8 @@ export const SaleItemSchema = z.object({
   quantity: z.number().positive(),
   productId: z.string(),
   saleId: z.string(),
-  isGantang: z.boolean(),
-  isSpecialPrice: z.boolean(),
+  isGantang: z.boolean().default(false),
+  isSpecialPrice: z.boolean().default(false),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -164,10 +192,21 @@ export const DeliveryItemSchema = z.object({
 });
 export type DeliveryItem = z.infer<typeof DeliveryItemSchema>;
 
+export const TransferSchema = z.object({
+  id: z.string(),
+  quantity: z.number().positive(),
+  name: z.string(),
+  type: TransferTypeEnum,
+  cashierId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type Transfer = z.infer<typeof TransferSchema>;
+
 export const KahonSchema = z.object({
   id: z.string(),
   name: z.string(),
-  cashierId: z.string(),
+  userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -176,7 +215,7 @@ export type Kahon = z.infer<typeof KahonSchema>;
 export const InventorySchema = z.object({
   id: z.string(),
   name: z.string(),
-  cashierId: z.string(),
+  userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -192,12 +231,104 @@ export const KahonItemSchema = z.object({
 });
 export type KahonItem = z.infer<typeof KahonItemSchema>;
 
-export const InventoryItemSchema = z.object({
+export const SheetSchema = z.object({
   id: z.string(),
   name: z.string(),
-  quantity: z.number().positive(),
-  inventoryId: z.string(),
+  kahonId: z.string(),
+  columns: z.number().int().positive().default(10),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
-export type InventoryItem = z.infer<typeof InventoryItemSchema>;
+export type Sheet = z.infer<typeof SheetSchema>;
+
+export const RowSchema = z.object({
+  id: z.string(),
+  rowIndex: z.number().int(),
+  sheetId: z.string(),
+  isItemRow: z.boolean().default(true),
+  itemId: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type Row = z.infer<typeof RowSchema>;
+
+export const CellSchema = z.object({
+  id: z.string(),
+  columnIndex: z.number().int(),
+  rowId: z.string(),
+  color: z.string().optional(),
+  kahonItemId: z.string().optional(),
+  value: z.string().optional(),
+  formula: z.string().optional(),
+  isCalculated: z.boolean().default(false),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type Cell = z.infer<typeof CellSchema>;
+
+export const InventorySheetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  inventoryId: z.string(),
+  columns: z.number().int().positive().default(10),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type InventorySheet = z.infer<typeof InventorySheetSchema>;
+
+export const InventoryRowSchema = z.object({
+  id: z.string(),
+  rowIndex: z.number().int(),
+  inventorySheetId: z.string(),
+  isItemRow: z.boolean().default(true),
+  itemId: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type InventoryRow = z.infer<typeof InventoryRowSchema>;
+
+export const InventoryCellSchema = z.object({
+  id: z.string(),
+  columnIndex: z.number().int(),
+  inventoryRowId: z.string(),
+  color: z.string().optional(),
+  value: z.string().optional(),
+  formula: z.string().optional(),
+  isCalculated: z.boolean().default(false),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type InventoryCell = z.infer<typeof InventoryCellSchema>;
+
+export const AttachmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  url: z.string(),
+  userId: z.string(),
+  type: AttachmentTypeEnum,
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type Attachment = z.infer<typeof AttachmentSchema>;
+
+export const BillCountSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  expenses: z.number().min(0),
+  showExpenses: z.boolean().default(false),
+  beginningBalance: z.number().min(0),
+  showBeginningBalance: z.boolean().default(false),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type BillCount = z.infer<typeof BillCountSchema>;
+
+export const BillsSchema = z.object({
+  id: z.string(),
+  amount: z.number().int().positive(),
+  type: BillTypeEnum,
+  billCountId: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+export type Bills = z.infer<typeof BillsSchema>;

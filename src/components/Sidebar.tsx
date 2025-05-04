@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Home, Users, ShoppingBag, FileText, Truck, Menu, X } from "lucide-react"
+import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2 } from "lucide-react"
 import LogoutButton from "./LogoutButton"
 
 const navItems = [
@@ -11,6 +11,8 @@ const navItems = [
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/sales", label: "Sales Report", icon: FileText },
   { href: "/deliveries", label: "Delivery", icon: Truck },
+  { href: "/attachments", label: "Attachments", icon: Link2 },
+
 ]
 
 export function Sidebar() {
