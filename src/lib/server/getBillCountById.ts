@@ -1,16 +1,16 @@
 "use server";
 
-import { GetAllBillCountsPayload } from "../../../utils/types/getAllBillCounts.type";
-import { NestApiError } from "../../../utils/types/error.type";
 import { cookies } from "next/headers";
+import type { GetBillCountByIdPayload } from "../../../utils/types/getBillCountById.type";
+import type { NestApiError } from "../../../utils/types/error.type";
 
-export const getAllBillCounts = async (): Promise<GetAllBillCountsPayload> => {
+export const getBillCountById = async (id: string): Promise<GetBillCountByIdPayload> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/cash`, {
+  const response = await fetch(`${process.env.API_URL}/bills/user/${id}`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
@@ -22,7 +22,7 @@ export const getAllBillCounts = async (): Promise<GetAllBillCountsPayload> => {
     throw new Error(
       Array.isArray(error.message)
         ? error.message.join(", ")
-        : error.message || "Failed to fetch bill counts"
+        : error.message || "Failed to fetch bill count"
     );
   }
 

@@ -11,7 +11,7 @@ export const createBillCount = async (formData: CreateBillCountType) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/cash`, {
+  const response = await fetch(`${process.env.API_URL}/bills/user`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
@@ -22,9 +22,9 @@ export const createBillCount = async (formData: CreateBillCountType) => {
 
   if (!response.ok) {
     const error: NestApiError = await response.json();
-    throw new Error(error.message?.toString() || "Failed to create bill count");
+    throw new Error(error.message?.toString() || "Failed to create/update bill count");
   }
 
-  revalidatePath("/cash");
+  revalidatePath("/bill-counts");
   return await response.json();
 };

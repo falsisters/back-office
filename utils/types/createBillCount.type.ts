@@ -1,15 +1,18 @@
 import { z } from "zod";
 import { BillTypeEnum } from "./schema.type";
 
-export const BillSchema = z.object({
+const BillDtoSchema = z.object({
   amount: z.number().int().min(0),
   type: BillTypeEnum,
 });
 
 export const CreateBillCountSchema = z.object({
-  bills: z.array(BillSchema).min(1, "At least one bill is required"),
-  expenses: z.number().min(0),
-  beginningBalance: z.number().min(0),
+  date: z.string().optional(),
+  expenses: z.number().min(0).optional(),
+  showExpenses: z.boolean().optional(),
+  beginningBalance: z.number().min(0).optional(),
+  showBeginningBalance: z.boolean().optional(),
+  bills: z.array(BillDtoSchema).optional(),
 });
 
 export type CreateBillCountType = z.infer<typeof CreateBillCountSchema>;
