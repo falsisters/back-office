@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Table, TableBody, TableCell, TableRow, TableFooter, TableHead, TableHeader } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, DollarSign } from 'lucide-react';
@@ -13,6 +12,8 @@ interface ProfitItem {
   normalQty: number;
   specialQty: number;
   isAsin: boolean;
+  normalProfit: number;
+  specialProfit?: number;
 }
 
 interface ProfitTrackerProps {
@@ -20,14 +21,15 @@ interface ProfitTrackerProps {
 }
 
 export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
-  const [profits, setProfits] = useState<Record<string, { normal: number; special: number }>>({});
 
   const groupedData = salesData.reduce((acc, item) => {
     if (!acc[item.productKey]) {
       acc[item.productKey] = {
         ...item,
         normalQty: item.normalQty,
-        specialQty: item.specialQty
+        specialQty: item.specialQty,
+        normalProfit: item.normalProfit,
+        specialProfit: item.specialProfit
       };
     } else {
       acc[item.productKey].normalQty += item.normalQty;
@@ -42,11 +44,11 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
   // Memoize the total profits calculation function
   const calculateTotalProfits = useCallback((products: ProfitItem[]) => {
     return products.reduce((total, item) => {
-      const normalProfit = (profits[item.productKey]?.normal || 0) * item.normalQty;
-      const specialProfit = (profits[item.productKey]?.special || 0) * item.specialQty;
+      const normalProfit = item.normalProfit * item.normalQty;
+      const specialProfit = (item.specialProfit || 0) * item.specialQty;
       return total + normalProfit + specialProfit;
     }, 0);
-  }, [profits]);
+  }, []);
 
   const asinTotalProfit = useMemo(() => calculateTotalProfits(asinProducts), [asinProducts, calculateTotalProfits]);
   const otherTotalProfit = useMemo(() => calculateTotalProfits(otherProducts), [otherProducts, calculateTotalProfits]);
@@ -86,24 +88,11 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
                         {item.normalQty}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        placeholder="Profit"
-                        className="max-w-[150px] focus-visible:ring-primary"
-                        onChange={(e) =>
-                          setProfits((prev) => ({
-                            ...prev,
-                            [item.productKey]: {
-                              ...prev[item.productKey],
-                              normal: Number(e.target.value),
-                            },
-                          }))
-                        }
-                      />
+                    <TableCell className="font-medium">
+                      ₱{item.normalProfit}
                     </TableCell>
                     <TableCell className="text-right font-medium text-secondary">
-                      ₱{(profits[item.productKey]?.normal || 0) * item.normalQty}
+                      ₱{item.normalProfit * item.normalQty}
                     </TableCell>
                   </TableRow>
                 )}
@@ -115,24 +104,11 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
                         {item.specialQty}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        placeholder="Profit"
-                        className="max-w-[150px] focus-visible:ring-secondary"
-                        onChange={(e) =>
-                          setProfits((prev) => ({
-                            ...prev,
-                            [item.productKey]: {
-                              ...prev[item.productKey],
-                              special: Number(e.target.value),
-                            },
-                          }))
-                        }
-                      />
+                    <TableCell className="font-medium">
+                      ₱{item.specialProfit || 0}
                     </TableCell>
                     <TableCell className="text-right font-medium text-secondary">
-                      ₱{(profits[item.productKey]?.special || 0) * item.specialQty}
+                      ₱{(item.specialProfit || 0) * item.specialQty}
                     </TableCell>
                   </TableRow>
                 )}

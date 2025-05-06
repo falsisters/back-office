@@ -176,12 +176,21 @@ export default function SalesList() {
         const sackType = item.product.SackPrice[0]?.type as SackType | undefined
         const isSpecial = item.isSpecialPrice
 
+        const normalProfit = isSpecial 
+          ? item.product.SackPrice[0]?.specialPrice?.profit || 0
+          : item.product.SackPrice[0]?.profit || item.product.perKiloPrice?.profit || 0
+        const specialProfit = isSpecial 
+          ? item.product.SackPrice[0]?.specialPrice?.profit || 0
+          : 0
+
         return {
           productKey: `${item.product.name}-${sackType || "perKilo"}-${isSpecial ? "special" : "normal"}`,
           productName: `${item.product.name} ${sackType ? sackTypeLabels[sackType] : ""}`,
           normalQty: !isSpecial ? item.quantity : 0,
           specialQty: isSpecial ? item.quantity : 0,
           isAsin: item.product.name.toLowerCase().includes("asin"),
+          normalProfit: !isSpecial ? normalProfit : 0,
+          specialProfit: isSpecial ? specialProfit : 0
         }
       }),
     ),

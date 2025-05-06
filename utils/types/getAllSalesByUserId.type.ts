@@ -1,4 +1,3 @@
-// ../../../utils/types/getAllSalesByUserId.type.ts
 import { z } from "zod";
 import { 
   CashierSchema,
@@ -17,9 +16,16 @@ export const GetAllSalesByUserIdPayloadSchema = z.array(
           SackPrice: z.array(z.object({
             type: SackTypeEnum,
             price: z.number(),
-            specialPrice: z.object({ price: z.number() }).optional()
+            profit: z.number(),
+            specialPrice: z.object({ 
+              price: z.number(),
+              profit: z.number() 
+            }).optional()
           })),
-          perKiloPrice: z.object({ price: z.number() }).optional()
+          perKiloPrice: z.object({ 
+            price: z.number(),
+            profit: z.number() 
+          }).optional()
         })
       })
     )

@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Home, Users, ShoppingBag, FileText, Truck, Menu, X } from "lucide-react"
+import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2 } from "lucide-react"
 import LogoutButton from "./LogoutButton"
 
 const navItems = [
@@ -11,11 +11,14 @@ const navItems = [
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/sales", label: "Sales Report", icon: FileText },
   { href: "/deliveries", label: "Delivery", icon: Truck },
+  { href: "/attachments", label: "Attachments", icon: Link2 },
+
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen)
@@ -69,22 +72,60 @@ export function Sidebar() {
         {/* Navigation Items */}
         <nav className="flex-1">
           <ul className="mt-6">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center px-6 py-3 text-base ${
-                    pathname === item.href
-                      ? "bg-primary-foreground/10 text-white font-medium border-l-2 border-secondary"
-                      : "text-white/90 hover:bg-primary-foreground/5 hover:text-white"
-                  }`}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon className="h-5 w-5 mr-4" />
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              const isHovered = hoveredItem === item.href;
+              
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`
+                      flex items-center px-6 py-3 text-base relative
+                      transition-all duration-200 ease-in-out
+                      ${isActive 
+                        ? "bg-primary-foreground/10 text-white font-medium border-l-2 border-secondary" 
+                        : "text-white/90"
+                      }
+                    `}
+                    onClick={() => setIsOpen(false)}
+                    onMouseEnter={() => setHoveredItem(item.href)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                  >
+                    {!isActive && isHovered && (
+                      <div className="absolute left-0 top-0 h-full w-1 bg-secondary/70 transform transition-transform duration-300 ease-out"></div>
+                    )}
+                    <div className={`
+                      flex items-center w-full
+                      ${!isActive && isHovered ? "translate-x-1" : ""}
+                      transition-transform duration-200
+                    `}>
+                      <item.icon className={`
+                        h-5 w-5 mr-4
+                        ${!isActive && isHovered ? "text-secondary scale-110" : ""}
+                        transition-all duration-200
+                      `} />
+                      <span className={`
+                        ${!isActive && isHovered ? "text-white" : ""}
+                      `}>
+                        {item.label}
+                      </span>
+                    </div>
+                    
+                    {/* Hover Background Effect */}
+                    {!isActive && (
+                      <div 
+                        className={`
+                          absolute inset-0 bg-primary-foreground/5
+                          transform-gpu transition-opacity duration-200 ease-in-out
+                          ${isHovered ? "opacity-100" : "opacity-0"}
+                        `}
+                      ></div>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -99,4 +140,3 @@ export function Sidebar() {
     </>
   )
 }
-

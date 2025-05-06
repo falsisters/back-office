@@ -7,11 +7,18 @@ export const EditProductFormDataSchema = ProductSchema.extend({
   sackPrices: z.array(
     SackPriceSchema.extend({
       id: z.string(),
-      specialPrice: SpecialPriceSchema.partial(),
+      specialPrice: SpecialPriceSchema.pick({
+        id: true,
+        price: true,
+        minimumQty: true,
+        profit: true
+      }).partial(),
+      profit: z.number().positive()
     }).partial()
   ).optional(),
   perKiloPrice: PerKiloPriceSchema.extend({
     id: z.string(),
+    profit: z.number().positive()
   }).partial().optional(),
 }).partial();
 

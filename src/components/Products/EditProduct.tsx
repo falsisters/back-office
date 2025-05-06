@@ -41,7 +41,8 @@ interface EditProductProps {
 }
 
 type EditableSackPrice = Partial<SackPrice> & {
-  specialPrice?: Partial<SpecialPrice> | null;
+  profit?: number;
+  specialPrice?: (Partial<SpecialPrice> & { profit?: number }) | null;
 };
 
 export default function EditProduct({
@@ -59,6 +60,7 @@ export default function EditProduct({
     id?: string;
     price: number;
     stock: number;
+    profit?: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,11 +83,13 @@ export default function EditProduct({
             type: sp?.type || "FIFTY_KG",
             price: sp?.price ?? 0,
             stock: sp?.stock ?? 0,
+            profit: sp?.profit ?? 0,
             specialPrice: sp?.specialPrice
               ? {
                   id: sp.specialPrice?.id,
                   price: sp.specialPrice?.price ?? 0,
                   minimumQty: sp.specialPrice?.minimumQty ?? 0,
+                  profit: sp.specialPrice?.profit ?? 0,
                 }
               : null,
           }))
@@ -97,6 +101,7 @@ export default function EditProduct({
             id: fetchedProduct.perKiloPrice.id,
             price: fetchedProduct.perKiloPrice.price ?? 0,
             stock: fetchedProduct.perKiloPrice.stock ?? 0,
+            profit: fetchedProduct.perKiloPrice.profit ?? 0
           });
         } else {
           setPerKiloPrice(null);
@@ -202,11 +207,13 @@ export default function EditProduct({
         price: sp.price,
         stock: sp.stock,
         type: sp.type,
+        profit: sp.profit ?? 0,
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
               price: sp.specialPrice.price,
               minimumQty: sp.specialPrice.minimumQty,
+              profit: sp.specialPrice.profit ?? 0,
             }
           : null,
       }));
@@ -219,6 +226,7 @@ export default function EditProduct({
             id: perKiloPrice.id,
             price: perKiloPrice.price,
             stock: perKiloPrice.stock,
+            profit: perKiloPrice.profit ?? 0,
           })
         );
       } else {
@@ -457,31 +465,49 @@ export default function EditProduct({
                           </div>
                         </div>
 
-                        <div className="space-y-1">
-                          <Label className="text-xs">Stock</Label>
-                          <Input
-                            type="number"
-                            placeholder="Stock"
-                            value={sack.stock || ""}
-                            onChange={(e) => {
-                              const newSackPrices = [...sackPrices];
-                              newSackPrices[index].stock = Number(
-                                e.target.value
-                              );
-                              setSackPrices(newSackPrices);
-                            }}
-                            min="0"
-                            className={
-                              errors[`sackPrice_${index}_stock`]
-                                ? "border-destructive"
-                                : "focus-visible:ring-primary"
-                            }
-                          />
-                          {errors[`sackPrice_${index}_stock`] && (
-                            <p className="text-xs text-destructive">
-                              {errors[`sackPrice_${index}_stock`]}
-                            </p>
-                          )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Stock</Label>
+                            <Input
+                              type="number"
+                              placeholder="Stock"
+                              value={sack.stock || ""}
+                              onChange={(e) => {
+                                const newSackPrices = [...sackPrices];
+                                newSackPrices[index].stock = Number(
+                                  e.target.value
+                                );
+                                setSackPrices(newSackPrices);
+                              }}
+                              min="0"
+                              className={
+                                errors[`sackPrice_${index}_stock`]
+                                  ? "border-destructive"
+                                  : "focus-visible:ring-primary"
+                              }
+                            />
+                            {errors[`sackPrice_${index}_stock`] && (
+                              <p className="text-xs text-destructive">
+                                {errors[`sackPrice_${index}_stock`]}
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Profit (₱)</Label>
+                            <Input
+                              type="number"
+                              placeholder="Profit"
+                              value={sack.profit || ""}
+                              onChange={(e) => {
+                                const newSackPrices = [...sackPrices];
+                                newSackPrices[index].profit = Number(e.target.value);
+                                setSackPrices(newSackPrices);
+                              }}
+                              min="0"
+                              step="0.01"
+                              className="focus-visible:ring-primary"
+                            />
+                          </div>
                         </div>
 
                         <Separator className="my-2" />
@@ -517,6 +543,7 @@ export default function EditProduct({
                               />
                             </div>
 
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                               <Label className="text-xs">
                                 Minimum Quantity
@@ -531,6 +558,7 @@ export default function EditProduct({
                                     newSackPrices[index].specialPrice = {
                                       price: 0,
                                       minimumQty: 0,
+                                      profit: 0,
                                     };
                                   }
                                   newSackPrices[
@@ -561,6 +589,31 @@ export default function EditProduct({
                                 </p>
                               )}
                             </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Profit (₱)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Profit"
+                                value={sack.specialPrice?.profit || ""}
+                                onChange={(e) => {
+                                  const newSackPrices = [...sackPrices];
+                                  if (!newSackPrices[index].specialPrice) {
+                                    newSackPrices[index].specialPrice = {
+                                      price: 0,
+                                      minimumQty: 0,
+                                      profit: 0,
+                                    };
+                                  }
+                                  newSackPrices[index].specialPrice!.profit =
+                                    Number(e.target.value);
+                                  setSackPrices(newSackPrices);
+                                }}
+                                min="0"
+                                step="0.01"
+                                className="focus-visible:ring-secondary"
+                              />
+                            </div>
+                          </div>
                           </div>
                         </div>
                       </div>
@@ -575,7 +628,7 @@ export default function EditProduct({
                 <Label className="text-sm font-medium">
                   Per Kilo Price (Optional)
                 </Label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs">Price per Kilo (₱)</Label>
                     <Input
@@ -602,11 +655,30 @@ export default function EditProduct({
                       value={perKiloPrice?.stock || ""}
                       onChange={(e) =>
                         setPerKiloPrice({
-                          ...(perKiloPrice || { price: 0, stock: 0 }),
+                          ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
                           stock: Number(e.target.value),
                         })
                       }
                       min="0"
+                      step="0.01"
+                      className="focus-visible:ring-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Profit (₱)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Profit"
+                      value={perKiloPrice?.profit || ""}
+                      onChange={(e) =>
+                        setPerKiloPrice({
+                          ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
+                          profit: Number(e.target.value),
+                        })
+                      }
+                      min="0"
+                      step="0.01"
                       className="focus-visible:ring-primary"
                     />
                   </div>
