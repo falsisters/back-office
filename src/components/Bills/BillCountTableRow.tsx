@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Edit, Trash2 } from 'lucide-react'
+import { Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { EditBillCounts } from "./EditBillCount"
-import { DeleteConfirmDialog } from "./DeleteConfirmDialog"
 import type { GetBillCountForDatePayload } from "../../../utils/types/getBillCountByDate.type"
+import { cn } from "@/lib/utils"
 
 interface BillCountTableRowProps {
   billCount: GetBillCountForDatePayload
@@ -16,7 +16,6 @@ interface BillCountTableRowProps {
 
 export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowProps) {
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedBillType, setSelectedBillType] = useState<string | null>(null)
 
   const getBillTypeLabel = (type: string) => {
@@ -57,11 +56,18 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
     }
   }
 
+  const billTypeOrder = ["THOUSAND", "FIVE_HUNDRED", "HUNDRED", "FIFTY", "TWENTY", "COINS"]
+
   if (!billCount) return null
+
+  // Sort bills according to the defined order
+  const sortedBills = [...billCount.bills].sort((a, b) => {
+    return billTypeOrder.indexOf(a.type) - billTypeOrder.indexOf(b.type)
+  })
 
   return (
     <>
-      {billCount.bills.map((bill) => (
+      {sortedBills.map((bill) => (
         <TableRow key={bill.id} className="hover:bg-muted/20">
           <TableCell>
             <Badge variant="outline" className={cn("font-medium", getBillTypeColor(bill.type))}>
@@ -87,7 +93,6 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
                 size="sm"
                 onClick={() => {
                   setSelectedBillType(bill.type)
-                  setShowDeleteModal(true)
                 }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -104,17 +109,6 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
         billType={selectedBillType}
         onSuccess={onRefresh}
       />
-
-      <DeleteConfirmDialog
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        billCountId={billCount.id}
-        billType={selectedBillType}
-        onSuccess={onRefresh}
-      />
     </>
   )
 }
-
-// Import cn utility
-import { cn } from "@/lib/utils"

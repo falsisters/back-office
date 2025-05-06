@@ -25,7 +25,6 @@ export const editBillCount = async (id: string, formData: UpdateBillCountType) =
     throw new Error(error.message?.toString() || "Failed to update bill count");
   }
 
-  revalidatePath("/bill-counts");
-  revalidatePath(`/bill-counts/${id}`);
+  revalidatePath("/");
   return await response.json();
 };

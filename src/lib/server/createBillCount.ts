@@ -25,6 +25,6 @@ export const createBillCount = async (formData: CreateBillCountType) => {
     throw new Error(error.message?.toString() || "Failed to create/update bill count");
   }
 
-  revalidatePath("/bill-counts");
+  revalidatePath("/");
   return await response.json();
 };
