@@ -10,7 +10,7 @@ export const getAllAttachments = async (): Promise<GetAllAttachmentsPayload> => 
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/attachment`, {
+  const response = await fetch(`${process.env.API_URL}/attachment/user`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },

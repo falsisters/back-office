@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -69,35 +69,24 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
     <>
       {sortedBills.map((bill) => (
         <TableRow key={bill.id} className="hover:bg-muted/20">
-          <TableCell>
+          <TableCell className="w-1/4">
             <Badge variant="outline" className={cn("font-medium", getBillTypeColor(bill.type))}>
               {getBillTypeLabel(bill.type)}
             </Badge>
           </TableCell>
-          <TableCell className="font-medium">{bill.amount} bills</TableCell>
-          <TableCell className="font-semibold text-secondary">₱{bill.value.toLocaleString()}</TableCell>
-          <TableCell className="text-right">
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedBillType(bill.type)
-                  setShowEditModal(true)
-                }}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  setSelectedBillType(bill.type)
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+          <TableCell className="w-1/4 font-medium text-center">{bill.amount} bills</TableCell>
+          <TableCell className="w-1/4 font-semibold text-secondary text-center">₱{bill.value.toLocaleString()}</TableCell>
+          <TableCell className="w-1/4 text-right">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedBillType(bill.type)
+                setShowEditModal(true)
+              }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
           </TableCell>
         </TableRow>
       ))}

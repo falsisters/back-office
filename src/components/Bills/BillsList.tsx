@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { CalendarIcon, Plus } from 'lucide-react'
+import { CalendarIcon, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -56,29 +56,17 @@ export function BillCountList() {
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className={cn(
-                  "w-[240px] justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
+                className={cn("w-[240px] justify-start text-left font-normal", !date && "text-muted-foreground")}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {date ? format(date, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
-              />
+              <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
             </PopoverContent>
           </Popover>
-          <Button 
-            variant="default" 
-            onClick={() => setShowCreateModal(true)}
-            className="gap-1"
-          >
+          <Button variant="default" onClick={() => setShowCreateModal(true)} className="gap-1">
             <Plus className="h-4 w-4" />
             New
           </Button>
@@ -90,7 +78,7 @@ export function BillCountList() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : billCount ? (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-muted/20 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Beginning Balance</h3>
@@ -111,10 +99,10 @@ export function BillCountList() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="w-[150px]">Bill Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-1/4">Bill Type</TableHead>
+                  <TableHead className="w-1/4 text-center">Amount</TableHead>
+                  <TableHead className="w-1/4 text-center">Value</TableHead>
+                  <TableHead className="w-1/4 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -138,7 +126,7 @@ export function BillCountList() {
       </CardContent>
 
       <CreateBillCounts
-        isOpen={showCreateModal} 
+        isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleRefresh}
         selectedDate={date}

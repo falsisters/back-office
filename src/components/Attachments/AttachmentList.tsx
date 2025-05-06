@@ -161,7 +161,7 @@ export function AttachmentList() {
             <SearchBar
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              placeholder="Search products by name..."
+              placeholder="Search attachments by name..."
             />
             {searchTerm && (
               <Button

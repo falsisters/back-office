@@ -10,7 +10,7 @@ export const createAttachment = async (formData: FormData) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/attachment/create`, {
+  const response = await fetch(`${process.env.API_URL}/attachment/user/create`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken.value}`,

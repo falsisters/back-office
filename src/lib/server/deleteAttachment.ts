@@ -10,7 +10,7 @@ export const deleteAttachment = async (id: string) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/attachment/${id}`, {
+  const response = await fetch(`${process.env.API_URL}/attachment/user/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
