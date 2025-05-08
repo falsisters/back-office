@@ -1,0 +1,239 @@
+// components/SalesFilters.tsx
+"use client";
+
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon, SearchIcon, FilterIcon, Calendar as CalendarIcon2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { PaymentMethodEnum } from "../../../utils/types/schema.type";
+
+interface SalesFiltersProps {
+  dateFilterMode: "day" | "month";
+  setDateFilterMode: (mode: "day" | "month") => void;
+  date: Date | undefined;
+  setDate: (date: Date | undefined) => void;
+  selectedYear: number;
+  setSelectedYear: (year: number) => void;
+  selectedMonth: number;
+  setSelectedMonth: (month: number) => void;
+  productFilter: string;
+  setProductFilter: (filter: string) => void;
+  viewMode: "perSale" | "perProduct";
+  setViewMode: (mode: "perSale" | "perProduct") => void;
+  paymentFilter: typeof PaymentMethodEnum._type | "ALL";
+  setPaymentFilter: (filter: typeof PaymentMethodEnum._type | "ALL") => void;
+  sackKiloFilter: "ALL" | "SACKS" | "PER_KILO";
+  setSackKiloFilter: (filter: "ALL" | "SACKS" | "PER_KILO") => void;
+  asinOtherFilter: "ALL" | "ASIN" | "OTHER";
+  setAsinOtherFilter: (filter: "ALL" | "ASIN" | "OTHER") => void;
+}
+
+const months = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+export function SalesFilters({
+  dateFilterMode,
+  setDateFilterMode,
+  date,
+  setDate,
+  selectedYear,
+  setSelectedYear,
+  selectedMonth,
+  setSelectedMonth,
+  productFilter,
+  setProductFilter,
+  viewMode,
+  setViewMode,
+  paymentFilter,
+  setPaymentFilter,
+  sackKiloFilter,
+  setSackKiloFilter,
+  asinOtherFilter,
+  setAsinOtherFilter,
+}: SalesFiltersProps) {
+  const getMonthAndYearTitle = () => {
+    return `${months[selectedMonth - 1]} ${selectedYear}`;
+  };
+
+  return (
+    <div className="rounded-lg border bg-card shadow-sm p-6">
+      <div className="flex items-center mb-4">
+        <FilterIcon className="h-5 w-5 text-primary mr-2" />
+        <h3 className="text-lg font-semibold">Sales Filters</h3>
+      </div>
+
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">View by:</span>
+          <Select
+            value={dateFilterMode}
+            onValueChange={(value) => setDateFilterMode(value as "day" | "month")}
+          >
+            <SelectTrigger className="w-[120px] focus:ring-primary">
+              <SelectValue placeholder="Filter type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Daily</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {dateFilterMode === "day" ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className="w-[180px] justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? (
+                  format(date, "MMMM do, yyyy")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button
+              variant={"outline"}
+              className="w-[180px] justify-start text-left font-normal"
+            >
+              <CalendarIcon2 className="mr-2 h-4 w-4" />
+              {getMonthAndYearTitle()}
+            </Button>
+            
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(value) => setSelectedYear(Number(value))}
+            >
+              <SelectTrigger className="w-[120px] focus:ring-primary">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {[...Array(5)].map((_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedMonth.toString()}
+              onValueChange={(value) => setSelectedMonth(Number(value))}
+            >
+              <SelectTrigger className="w-[140px] focus:ring-primary">
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month, index) => (
+                  <SelectItem key={index} value={(index + 1).toString()}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-4">
+        <div className="relative flex-1">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Filter by product..."
+            className="pl-9 focus-visible:ring-primary"
+            value={productFilter}
+            onChange={(e) => setProductFilter(e.target.value)}
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() =>
+            setViewMode(viewMode === "perSale" ? "perProduct" : "perSale")
+          }
+          className="ml-auto"
+        >
+          {viewMode === "perSale" ? "View by Product" : "View by Sale"}
+        </Button>
+
+        <Select
+          value={paymentFilter}
+          onValueChange={(value) =>
+            setPaymentFilter(value as typeof PaymentMethodEnum._type | "ALL")
+          }
+        >
+          <SelectTrigger className="w-[180px] focus:ring-primary">
+            <SelectValue placeholder="All Payments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Payments</SelectItem>
+            {Object.values(PaymentMethodEnum.Values).map((method) => (
+              <SelectItem key={method} value={method}>
+                {method.replace("_", " ").toLowerCase()}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={sackKiloFilter}
+          onValueChange={(value) =>
+            setSackKiloFilter(value as "ALL" | "SACKS" | "PER_KILO")
+          }
+        >
+          <SelectTrigger className="w-[180px] focus:ring-primary">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Types</SelectItem>
+            <SelectItem value="SACKS">Sacks</SelectItem>
+            <SelectItem value="PER_KILO">Per Kilo</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={asinOtherFilter}
+          onValueChange={(value) =>
+            setAsinOtherFilter(value as "ALL" | "ASIN" | "OTHER")
+          }
+        >
+          <SelectTrigger className="w-[180px] focus:ring-primary">
+            <SelectValue placeholder="All Products" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Products</SelectItem>
+            <SelectItem value="ASIN">Asin</SelectItem>
+            <SelectItem value="OTHER">Other Products</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
