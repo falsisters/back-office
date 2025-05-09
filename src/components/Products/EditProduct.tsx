@@ -101,7 +101,7 @@ export default function EditProduct({
             id: fetchedProduct.perKiloPrice.id,
             price: fetchedProduct.perKiloPrice.price ?? 0,
             stock: fetchedProduct.perKiloPrice.stock ?? 0,
-            profit: fetchedProduct.perKiloPrice.profit ?? 0
+            profit: fetchedProduct.perKiloPrice.profit ?? 0,
           });
         } else {
           setPerKiloPrice(null);
@@ -184,6 +184,20 @@ export default function EditProduct({
   const removeSackPrice = (index: number) => {
     const newSackPrices = [...sackPrices];
     newSackPrices.splice(index, 1);
+    setSackPrices(newSackPrices);
+  };
+
+  const removeSpecialPrice = (index: number) => {
+    const newSackPrices = [...sackPrices];
+    if (newSackPrices[index].specialPrice) {
+      const specialPriceId = newSackPrices[index].specialPrice?.id;
+      newSackPrices[index].specialPrice = {
+        id: specialPriceId,
+        price: 0,
+        minimumQty: 0,
+        profit: 0,
+      };
+    }
     setSackPrices(newSackPrices);
   };
 
@@ -500,7 +514,9 @@ export default function EditProduct({
                               value={sack.profit || ""}
                               onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
-                                newSackPrices[index].profit = Number(e.target.value);
+                                newSackPrices[index].profit = Number(
+                                  e.target.value
+                                );
                                 setSackPrices(newSackPrices);
                               }}
                               min="0"
@@ -513,108 +529,145 @@ export default function EditProduct({
                         <Separator className="my-2" />
 
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">
-                            Special Price (Optional)
-                          </Label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">
-                                Special Price (₱)
-                              </Label>
-                              <Input
-                                type="number"
-                                placeholder="Special Price"
-                                value={sack.specialPrice?.price || ""}
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  if (!newSackPrices[index].specialPrice) {
-                                    newSackPrices[index].specialPrice = {
-                                      price: 0,
-                                      minimumQty: 0,
-                                    };
-                                  }
-                                  newSackPrices[index].specialPrice!.price =
-                                    Number(e.target.value);
-                                  setSackPrices(newSackPrices);
-                                }}
-                                min="0"
-                                step="0.01"
-                                className="focus-visible:ring-secondary"
-                              />
-                            </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">
-                                Minimum Quantity
-                              </Label>
-                              <Input
-                                type="number"
-                                placeholder="Min Qty"
-                                value={sack.specialPrice?.minimumQty || ""}
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  if (!newSackPrices[index].specialPrice) {
-                                    newSackPrices[index].specialPrice = {
-                                      price: 0,
-                                      minimumQty: 0,
-                                      profit: 0,
-                                    };
-                                  }
-                                  newSackPrices[
-                                    index
-                                  ].specialPrice!.minimumQty = Number(
-                                    e.target.value
-                                  );
-                                  setSackPrices(newSackPrices);
-                                }}
-                                min="0"
-                                className={
-                                  errors[
-                                    `sackPrice_${index}_specialPrice_minimumQty`
-                                  ]
-                                    ? "border-destructive"
-                                    : "focus-visible:ring-secondary"
-                                }
-                              />
-                              {errors[
-                                `sackPrice_${index}_specialPrice_minimumQty`
-                              ] && (
-                                <p className="text-xs text-destructive">
-                                  {
-                                    errors[
-                                      `sackPrice_${index}_specialPrice_minimumQty`
-                                    ]
-                                  }
-                                </p>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-muted-foreground">
+                              Special Price (Optional)
+                            </Label>
+                            {sack.specialPrice &&
+                              sack.specialPrice && (sack.specialPrice.price ?? 0) > 0 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSpecialPrice(index)}
+                                  className="h-6 text-xs text-destructive hover:bg-destructive/10"
+                                >
+                                  Remove Special Price
+                                </Button>
                               )}
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Profit (₱)</Label>
-                              <Input
-                                type="number"
-                                placeholder="Profit"
-                                value={sack.specialPrice?.profit || ""}
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  if (!newSackPrices[index].specialPrice) {
-                                    newSackPrices[index].specialPrice = {
-                                      price: 0,
-                                      minimumQty: 0,
-                                      profit: 0,
-                                    };
-                                  }
-                                  newSackPrices[index].specialPrice!.profit =
-                                    Number(e.target.value);
-                                  setSackPrices(newSackPrices);
-                                }}
-                                min="0"
-                                step="0.01"
-                                className="focus-visible:ring-secondary"
-                              />
-                            </div>
                           </div>
-                          </div>
+                          {sack.specialPrice ? (
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">
+                                  Special Price (₱)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  placeholder="Special Price"
+                                  value={sack.specialPrice?.price || ""}
+                                  onChange={(e) => {
+                                    const newSackPrices = [...sackPrices];
+                                    if (!newSackPrices[index].specialPrice) {
+                                      newSackPrices[index].specialPrice = {
+                                        price: 0,
+                                        minimumQty: 0,
+                                      };
+                                    }
+                                    newSackPrices[index].specialPrice!.price =
+                                      Number(e.target.value);
+                                    setSackPrices(newSackPrices);
+                                  }}
+                                  min="0"
+                                  step="0.01"
+                                  className="focus-visible:ring-secondary"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">
+                                    Minimum Quantity
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="Min Qty"
+                                    value={sack.specialPrice?.minimumQty || ""}
+                                    onChange={(e) => {
+                                      const newSackPrices = [...sackPrices];
+                                      if (!newSackPrices[index].specialPrice) {
+                                        newSackPrices[index].specialPrice = {
+                                          price: 0,
+                                          minimumQty: 0,
+                                          profit: 0,
+                                        };
+                                      }
+                                      newSackPrices[
+                                        index
+                                      ].specialPrice!.minimumQty = Number(
+                                        e.target.value
+                                      );
+                                      setSackPrices(newSackPrices);
+                                    }}
+                                    min="0"
+                                    className={
+                                      errors[
+                                        `sackPrice_${index}_specialPrice_minimumQty`
+                                      ]
+                                        ? "border-destructive"
+                                        : "focus-visible:ring-secondary"
+                                    }
+                                  />
+                                  {errors[
+                                    `sackPrice_${index}_specialPrice_minimumQty`
+                                  ] && (
+                                    <p className="text-xs text-destructive">
+                                      {
+                                        errors[
+                                          `sackPrice_${index}_specialPrice_minimumQty`
+                                        ]
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Profit (₱)</Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="Profit"
+                                    value={sack.specialPrice?.profit || ""}
+                                    onChange={(e) => {
+                                      const newSackPrices = [...sackPrices];
+                                      if (!newSackPrices[index].specialPrice) {
+                                        newSackPrices[index].specialPrice = {
+                                          price: 0,
+                                          minimumQty: 0,
+                                          profit: 0,
+                                        };
+                                      }
+                                      newSackPrices[
+                                        index
+                                      ].specialPrice!.profit = Number(
+                                        e.target.value
+                                      );
+                                      setSackPrices(newSackPrices);
+                                    }}
+                                    min="0"
+                                    step="0.01"
+                                    className="focus-visible:ring-secondary"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newSackPrices = [...sackPrices];
+                                newSackPrices[index].specialPrice = {
+                                  price: 0,
+                                  minimumQty: 0,
+                                  profit: 0,
+                                };
+                                setSackPrices(newSackPrices);
+                              }}
+                              className="w-full h-8 text-xs text-secondary hover:text-secondary/80 hover:bg-secondary/10"
+                            >
+                              Add Special Price
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -655,7 +708,11 @@ export default function EditProduct({
                       value={perKiloPrice?.stock || ""}
                       onChange={(e) =>
                         setPerKiloPrice({
-                          ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
+                          ...(perKiloPrice || {
+                            price: 0,
+                            stock: 0,
+                            profit: 0,
+                          }),
                           stock: Number(e.target.value),
                         })
                       }
@@ -673,7 +730,11 @@ export default function EditProduct({
                       value={perKiloPrice?.profit || ""}
                       onChange={(e) =>
                         setPerKiloPrice({
-                          ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
+                          ...(perKiloPrice || {
+                            price: 0,
+                            stock: 0,
+                            profit: 0,
+                          }),
                           profit: Number(e.target.value),
                         })
                       }
