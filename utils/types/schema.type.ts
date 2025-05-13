@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Enums (unchanged)
+// Enums (unchanged - already matches Prisma)
 export const CashierPermissionsEnum = z.enum([
   "SALES",
   "DELIVERIES",
@@ -52,6 +52,13 @@ export const BillTypeEnum = z.enum([
   "COINS",
 ]);
 export type BillType = z.infer<typeof BillTypeEnum>;
+
+export const OrderStatusEnum = z.enum([
+  "PENDING",
+  "COMPLETED",
+  "CANCELLED",
+]);
+export type OrderStatus = z.infer<typeof OrderStatusEnum>;
 
 // Base Schemas
 export const UserSchema = z.object({
@@ -123,6 +130,7 @@ export const SackPriceSchema = z.object({
   type: SackTypeEnum,
   profit: z.number().min(0).default(0),
   productId: z.string(),
+  specialPriceId: z.string().cuid().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -157,6 +165,7 @@ export const SaleSchema = z.object({
   paymentMethod: PaymentMethodEnum,
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
+  orderId: z.string().cuid().optional(),
 });
 export type Sale = z.infer<typeof SaleSchema>;
 
@@ -164,6 +173,9 @@ export const SaleItemSchema = z.object({
   id: z.string().cuid(),
   quantity: z.number().positive(),
   productId: z.string(),
+  sackPriceId: z.string().cuid().optional(),
+  sackType: SackTypeEnum.optional(),
+  perKiloPriceId: z.string().cuid().optional(),
   saleId: z.string(),
   isGantang: z.boolean().default(false),
   isSpecialPrice: z.boolean().default(false),
@@ -186,6 +198,9 @@ export const DeliveryItemSchema = z.object({
   id: z.string().cuid(),
   quantity: z.number().positive(),
   productId: z.string(),
+  sackPriceId: z.string().cuid().optional(),
+  sackType: SackTypeEnum.optional(),
+  perKiloPriceId: z.string().cuid().optional(),
   deliveryId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -332,3 +347,41 @@ export const BillsSchema = z.object({
   updatedAt: z.date(),
 });
 export type Bills = z.infer<typeof BillsSchema>;
+
+export const CustomerSchema = z.object({
+  id: z.string().cuid(),
+  email: z.string().email(),
+  name: z.string(),
+  password: z.string(),
+  address: z.string(),
+  phone: z.string(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type Customer = z.infer<typeof CustomerSchema>;
+
+export const OrderSchema = z.object({
+  id: z.string().cuid(),
+  totalPrice: z.number().positive(),
+  userId: z.string(),
+  customerId: z.string(),
+  status: OrderStatusEnum.default("PENDING"),
+  saleId: z.string().cuid().optional(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type Order = z.infer<typeof OrderSchema>;
+
+export const OrderItemSchema = z.object({
+  id: z.string().cuid(),
+  quantity: z.number().positive(),
+  productId: z.string(),
+  sackPriceId: z.string().cuid().optional(),
+  sackType: SackTypeEnum.optional(),
+  perKiloPriceId: z.string().cuid().optional(),
+  isSpecialPrice: z.boolean().default(false),
+  orderId: z.string(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type OrderItem = z.infer<typeof OrderItemSchema>;

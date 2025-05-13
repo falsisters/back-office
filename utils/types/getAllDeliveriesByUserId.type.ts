@@ -4,6 +4,8 @@ import {
   DeliveryItemSchema,
   DeliverySchema,
   ProductSchema,
+  SackPriceSchema,
+  PerKiloPriceSchema,
 } from "./schema.type";
 
 export const GetAllDeliveriesByUserIdPayloadSchema = z.array(
@@ -12,6 +14,8 @@ export const GetAllDeliveriesByUserIdPayloadSchema = z.array(
     DeliveryItem: z.array(
       DeliveryItemSchema.extend({
         product: ProductSchema,
+        sackPrice: SackPriceSchema.optional().nullable(),
+        perKiloPrice: PerKiloPriceSchema.optional().nullable(),
       })
     ),
   })
