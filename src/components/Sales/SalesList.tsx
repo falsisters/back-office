@@ -1,4 +1,3 @@
-// components/SalesList.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -21,15 +20,9 @@ export default function SalesList() {
   const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
   const [filteredSales, setFilteredSales] = useState<GetAllSalesByUserIdPayload>([]);
   const [productFilter, setProductFilter] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<
-    typeof PaymentMethodEnum._type | "ALL"
-  >("ALL");
-  const [sackKiloFilter, setSackKiloFilter] = useState<
-    "ALL" | "SACKS" | "PER_KILO"
-  >("ALL");
-  const [asinOtherFilter, setAsinOtherFilter] = useState<
-    "ALL" | "ASIN" | "OTHER"
-  >("ALL");
+  const [paymentFilter, setPaymentFilter] = useState<typeof PaymentMethodEnum._type | "ALL">("ALL");
+  const [sackKiloFilter, setSackKiloFilter] = useState<"ALL" | "SACKS" | "PER_KILO">("ALL");
+  const [asinOtherFilter, setAsinOtherFilter] = useState<"ALL" | "ASIN" | "OTHER">("ALL");
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"perSale" | "perProduct">("perSale");
@@ -74,7 +67,6 @@ export default function SalesList() {
   useEffect(() => {
     let filtered = [...sales];
 
-    // Date filter based on mode
     if (dateFilterMode === "day" && date) {
       filtered = filtered.filter((sale) => {
         const saleDate = new Date(sale.createdAt);
@@ -88,43 +80,36 @@ export default function SalesList() {
       });
     }
 
-    // Payment filter
     if (paymentFilter !== "ALL") {
-      filtered = filtered.filter(
-        (sale) => sale.paymentMethod === paymentFilter
-      );
+      filtered = filtered.filter((sale) => sale.paymentMethod === paymentFilter);
     }
 
-    // Product name filter
     if (productFilter) {
       filtered = filtered
         .map((sale) => ({
           ...sale,
           SaleItem: sale.SaleItem.filter((item) =>
-            item.product.name
-              .toLowerCase()
-              .includes(productFilter.toLowerCase())
+            item.product.name.toLowerCase().includes(productFilter.toLowerCase())
           ),
         }))
         .filter((sale) => sale.SaleItem.length > 0);
     }
 
-    // Sack/Kilo filter
     filtered = filtered
       .map((sale) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
-          const isSack = item.product.SackPrice.length > 0;
+          const isSack = !!item.sackPriceId;
+          const isPerKilo = !!item.perKiloPriceId;
           return (
             sackKiloFilter === "ALL" ||
             (sackKiloFilter === "SACKS" && isSack) ||
-            (sackKiloFilter === "PER_KILO" && !isSack)
+            (sackKiloFilter === "PER_KILO" && isPerKilo)
           );
         }),
       }))
       .filter((sale) => sale.SaleItem.length > 0);
 
-    // Asin/Other filter
     filtered = filtered
       .map((sale) => ({
         ...sale,
@@ -181,30 +166,47 @@ export default function SalesList() {
   const mappedSalesData = Object.values(groupedSales).flatMap((dateSales) =>
     dateSales.flatMap((sale) =>
       sale.SaleItem.map((item) => {
-        const sackType = item.product.SackPrice[0]?.type as SackType | undefined;
+        const isSack = !!item.sackPriceId;
+        const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
+        const sackType = item.sackType as SackType | undefined;
+        
         const isSpecial = item.isSpecialPrice;
+        const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
+        
+        let basePrice = 0;
+        let originalProfit = 0;
 
-        const normalProfit = isSpecial
-          ? item.product.SackPrice[0]?.specialPrice?.profit || 0
-          : item.product.SackPrice[0]?.profit ||
-            item.product.perKiloPrice?.profit ||
-            0;
-        const specialProfit = isSpecial
-          ? item.product.SackPrice[0]?.specialPrice?.profit || 0
-          : 0;
+        if (isSack) {
+          if (isSpecial && sackPrice?.specialPrice?.price) {
+            basePrice = sackPrice.specialPrice.price;
+            originalProfit = sackPrice.specialPrice.profit || 0;
+          } else {
+            basePrice = sackPrice?.price || 0;
+            originalProfit = sackPrice?.profit || 0;
+          }
+        } else {
+          basePrice = item.product.perKiloPrice?.price || 0;
+          originalProfit = item.product.perKiloPrice?.profit || 0;
+        }
+
+        if (item.isDiscounted && item.discountedPrice) {
+          const discountAmount = basePrice - item.discountedPrice;
+          originalProfit -= discountAmount;
+        }
+
+        const normalProfit = !isSpecial ? originalProfit : 0;
+        const specialProfit = isSpecial ? originalProfit : 0;
 
         return {
-          productKey: `${item.product.name}-${sackType || "perKilo"}-${
-            isSpecial ? "special" : "normal"
-          }`,
-          productName: `${item.product.name} ${
-            sackType ? sackTypeLabels[sackType] : ""
-          }`,
+          productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
+          productName: item.product.name,
+          sackType: sackType,
+          priceType: priceType,
           normalQty: !isSpecial ? item.quantity : 0,
           specialQty: isSpecial ? item.quantity : 0,
           isAsin: item.product.name.toLowerCase().includes("asin"),
-          normalProfit: !isSpecial ? normalProfit : 0,
-          specialProfit: isSpecial ? specialProfit : 0,
+          normalProfit: normalProfit,
+          specialProfit: specialProfit,
         };
       })
     )
@@ -262,9 +264,3 @@ export default function SalesList() {
     </div>
   );
 }
-
-const sackTypeLabels = {
-  FIFTY_KG: "50KG",
-  TWENTY_FIVE_KG: "25KG",
-  FIVE_KG: "5KG",
-};

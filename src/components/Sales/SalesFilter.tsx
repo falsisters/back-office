@@ -1,4 +1,3 @@
-// components/SalesFilters.tsx
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -16,9 +15,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { PaymentMethodEnum } from "../../../utils/types/schema.type";
 
+type DateFilterMode = "day" | "month";
+type ViewMode = "perSale" | "perProduct";
+type PaymentFilter = typeof PaymentMethodEnum._type | "ALL";
+type SackKiloFilter = "ALL" | "SACKS" | "PER_KILO";
+type AsinOtherFilter = "ALL" | "ASIN" | "OTHER";
+
 interface SalesFiltersProps {
-  dateFilterMode: "day" | "month";
-  setDateFilterMode: (mode: "day" | "month") => void;
+  dateFilterMode: DateFilterMode;
+  setDateFilterMode: (mode: DateFilterMode) => void;
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
   selectedYear: number;
@@ -27,14 +32,14 @@ interface SalesFiltersProps {
   setSelectedMonth: (month: number) => void;
   productFilter: string;
   setProductFilter: (filter: string) => void;
-  viewMode: "perSale" | "perProduct";
-  setViewMode: (mode: "perSale" | "perProduct") => void;
-  paymentFilter: typeof PaymentMethodEnum._type | "ALL";
-  setPaymentFilter: (filter: typeof PaymentMethodEnum._type | "ALL") => void;
-  sackKiloFilter: "ALL" | "SACKS" | "PER_KILO";
-  setSackKiloFilter: (filter: "ALL" | "SACKS" | "PER_KILO") => void;
-  asinOtherFilter: "ALL" | "ASIN" | "OTHER";
-  setAsinOtherFilter: (filter: "ALL" | "ASIN" | "OTHER") => void;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  paymentFilter: PaymentFilter;
+  setPaymentFilter: (filter: PaymentFilter) => void;
+  sackKiloFilter: SackKiloFilter;
+  setSackKiloFilter: (filter: SackKiloFilter) => void;
+  asinOtherFilter: AsinOtherFilter;
+  setAsinOtherFilter: (filter: AsinOtherFilter) => void;
 }
 
 const months = [
@@ -78,7 +83,7 @@ export function SalesFilters({
           <span className="text-sm font-medium">View by:</span>
           <Select
             value={dateFilterMode}
-            onValueChange={(value) => setDateFilterMode(value as "day" | "month")}
+            onValueChange={(value) => setDateFilterMode(value as DateFilterMode)}
           >
             <SelectTrigger className="w-[120px] focus:ring-primary">
               <SelectValue placeholder="Filter type" />
@@ -173,21 +178,23 @@ export function SalesFilters({
             onChange={(e) => setProductFilter(e.target.value)}
           />
         </div>
-        <Button
-          variant="outline"
-          onClick={() =>
-            setViewMode(viewMode === "perSale" ? "perProduct" : "perSale")
-          }
-          className="ml-auto"
+        
+        <Select
+          value={viewMode}
+          onValueChange={(value) => setViewMode(value as ViewMode)}
         >
-          {viewMode === "perSale" ? "View by Product" : "View by Sale"}
-        </Button>
+          <SelectTrigger className="w-[180px] focus:ring-primary">
+            <SelectValue placeholder="View Mode" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="perSale">View by Sale</SelectItem>
+            <SelectItem value="perProduct">View by Product</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Select
           value={paymentFilter}
-          onValueChange={(value) =>
-            setPaymentFilter(value as typeof PaymentMethodEnum._type | "ALL")
-          }
+          onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}
         >
           <SelectTrigger className="w-[180px] focus:ring-primary">
             <SelectValue placeholder="All Payments" />
@@ -204,9 +211,7 @@ export function SalesFilters({
 
         <Select
           value={sackKiloFilter}
-          onValueChange={(value) =>
-            setSackKiloFilter(value as "ALL" | "SACKS" | "PER_KILO")
-          }
+          onValueChange={(value) => setSackKiloFilter(value as SackKiloFilter)}
         >
           <SelectTrigger className="w-[180px] focus:ring-primary">
             <SelectValue placeholder="All Types" />
@@ -220,9 +225,7 @@ export function SalesFilters({
 
         <Select
           value={asinOtherFilter}
-          onValueChange={(value) =>
-            setAsinOtherFilter(value as "ALL" | "ASIN" | "OTHER")
-          }
+          onValueChange={(value) => setAsinOtherFilter(value as AsinOtherFilter)}
         >
           <SelectTrigger className="w-[180px] focus:ring-primary">
             <SelectValue placeholder="All Products" />

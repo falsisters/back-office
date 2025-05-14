@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Enums (unchanged - already matches Prisma)
 export const CashierPermissionsEnum = z.enum([
   "SALES",
   "DELIVERIES",
@@ -78,8 +77,8 @@ export const CashierSchema = z.object({
   secureCode: z.string().cuid().default(() => "generated-by-server"),
   permissions: z.array(CashierPermissionsEnum),
   userId: z.string(),
-  inventoryId: z.string().cuid().optional(),
-  kahonId: z.string().cuid().optional(),
+  inventoryId: z.string().cuid().nullable().optional(),
+  kahonId: z.string().cuid().nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -116,7 +115,7 @@ export type Employee = z.infer<typeof EmployeeSchema>;
 export const ProductSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  picture: z.string().url().default("https://placehold.co/800x800?text=Product"),
+  picture: z.string().default("https://placehold.co/800x800?text=Product"),
   userId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -130,7 +129,7 @@ export const SackPriceSchema = z.object({
   type: SackTypeEnum,
   profit: z.number().min(0).default(0),
   productId: z.string(),
-  specialPriceId: z.string().cuid().optional(),
+  specialPriceId: z.string().cuid().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -165,17 +164,18 @@ export const SaleSchema = z.object({
   paymentMethod: PaymentMethodEnum,
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
-  orderId: z.string().cuid().optional(),
 });
 export type Sale = z.infer<typeof SaleSchema>;
 
 export const SaleItemSchema = z.object({
   id: z.string().cuid(),
   quantity: z.number().positive(),
+  discountedPrice: z.number().positive().nullable().optional(),
+  isDiscounted: z.boolean().default(false),
   productId: z.string(),
-  sackPriceId: z.string().cuid().optional(),
-  sackType: SackTypeEnum.optional(),
-  perKiloPriceId: z.string().cuid().optional(),
+  sackPriceId: z.string().cuid().nullable().optional(),
+  sackType: SackTypeEnum.nullable().optional(),
+  perKiloPriceId: z.string().cuid().nullable().optional(),
   saleId: z.string(),
   isGantang: z.boolean().default(false),
   isSpecialPrice: z.boolean().default(false),
@@ -198,9 +198,9 @@ export const DeliveryItemSchema = z.object({
   id: z.string().cuid(),
   quantity: z.number().positive(),
   productId: z.string(),
-  sackPriceId: z.string().cuid().optional(),
-  sackType: SackTypeEnum.optional(),
-  perKiloPriceId: z.string().cuid().optional(),
+  sackPriceId: z.string().cuid().nullable().optional(),
+  sackType: SackTypeEnum.nullable().optional(),
+  perKiloPriceId: z.string().cuid().nullable().optional(),
   deliveryId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -246,41 +246,6 @@ export const KahonItemSchema = z.object({
 });
 export type KahonItem = z.infer<typeof KahonItemSchema>;
 
-export const SheetSchema = z.object({
-  id: z.string().cuid(),
-  name: z.string(),
-  kahonId: z.string(),
-  columns: z.number().int().positive().default(10),
-  createdAt: z.date().default(() => new Date()),
-  updatedAt: z.date(),
-});
-export type Sheet = z.infer<typeof SheetSchema>;
-
-export const RowSchema = z.object({
-  id: z.string().cuid(),
-  rowIndex: z.number().int(),
-  sheetId: z.string(),
-  isItemRow: z.boolean().default(true),
-  itemId: z.string().optional().nullable(),
-  createdAt: z.date().default(() => new Date()),
-  updatedAt: z.date(),
-});
-export type Row = z.infer<typeof RowSchema>;
-
-export const CellSchema = z.object({
-  id: z.string().cuid(),
-  columnIndex: z.number().int(),
-  rowId: z.string(),
-  color: z.string().optional().nullable(),
-  kahonItemId: z.string().optional().nullable(),
-  value: z.string().optional().nullable(),
-  formula: z.string().optional().nullable(),
-  isCalculated: z.boolean().default(false),
-  createdAt: z.date().default(() => new Date()),
-  updatedAt: z.date(),
-});
-export type Cell = z.infer<typeof CellSchema>;
-
 export const InventorySheetSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
@@ -296,7 +261,7 @@ export const InventoryRowSchema = z.object({
   rowIndex: z.number().int(),
   inventorySheetId: z.string(),
   isItemRow: z.boolean().default(true),
-  itemId: z.string().optional().nullable(),
+  itemId: z.string().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -306,14 +271,49 @@ export const InventoryCellSchema = z.object({
   id: z.string().cuid(),
   columnIndex: z.number().int(),
   inventoryRowId: z.string(),
-  color: z.string().optional().nullable(),
-  value: z.string().optional().nullable(),
-  formula: z.string().optional().nullable(),
+  color: z.string().nullable().optional(),
+  value: z.string().nullable().optional(),
+  formula: z.string().nullable().optional(),
   isCalculated: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
 export type InventoryCell = z.infer<typeof InventoryCellSchema>;
+
+export const SheetSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string(),
+  kahonId: z.string(),
+  columns: z.number().int().positive().default(10),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type Sheet = z.infer<typeof SheetSchema>;
+
+export const RowSchema = z.object({
+  id: z.string().cuid(),
+  rowIndex: z.number().int(),
+  sheetId: z.string(),
+  isItemRow: z.boolean().default(true),
+  itemId: z.string().nullable().optional(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type Row = z.infer<typeof RowSchema>;
+
+export const CellSchema = z.object({
+  id: z.string().cuid(),
+  columnIndex: z.number().int(),
+  rowId: z.string(),
+  color: z.string().nullable().optional(),
+  kahonItemId: z.string().nullable().optional(),
+  value: z.string().nullable().optional(),
+  formula: z.string().nullable().optional(),
+  isCalculated: z.boolean().default(false),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type Cell = z.infer<typeof CellSchema>;
 
 export const AttachmentSchema = z.object({
   id: z.string().cuid(),
@@ -366,7 +366,7 @@ export const OrderSchema = z.object({
   userId: z.string(),
   customerId: z.string(),
   status: OrderStatusEnum.default("PENDING"),
-  saleId: z.string().cuid().optional(),
+  saleId: z.string().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -376,9 +376,9 @@ export const OrderItemSchema = z.object({
   id: z.string().cuid(),
   quantity: z.number().positive(),
   productId: z.string(),
-  sackPriceId: z.string().cuid().optional(),
-  sackType: SackTypeEnum.optional(),
-  perKiloPriceId: z.string().cuid().optional(),
+  sackPriceId: z.string().cuid().nullable().optional(),
+  sackType: SackTypeEnum.nullable().optional(),
+  perKiloPriceId: z.string().cuid().nullable().optional(),
   isSpecialPrice: z.boolean().default(false),
   orderId: z.string(),
   createdAt: z.date().default(() => new Date()),
