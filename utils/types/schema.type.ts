@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const CashierPermissionsEnum = z.enum([
@@ -385,3 +386,22 @@ export const OrderItemSchema = z.object({
   updatedAt: z.date(),
 });
 export type OrderItem = z.infer<typeof OrderItemSchema>;
+
+// New schemas for ExpenseList and ExpenseItems
+export const ExpenseListSchema = z.object({
+  id: z.string().cuid(),
+  userId: z.string(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type ExpenseList = z.infer<typeof ExpenseListSchema>;
+
+export const ExpenseItemsSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string(),
+  amount: z.number().positive(),
+  expenseListId: z.string(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date(),
+});
+export type ExpenseItems = z.infer<typeof ExpenseItemsSchema>;
