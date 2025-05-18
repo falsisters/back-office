@@ -21,12 +21,12 @@ export default async function Dashboard() {
     <div className="container mx-auto py-8 space-y-8">
       <Card className="shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-4xl font-bold mb-2 text-primary">FalSisters Rice Trading</CardTitle>
+          <CardTitle className="text-4xl font-bold text-primary">FalSisters Rice Trading</CardTitle>
           <CardDescription className="text-lg">Back Office</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center p-6">
-          <h2 className="text-2xl font-semibold text-gray-700">Welcome!</h2>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-6">{user.name}</h2>
+          <h2 className="text-4xl font-semibold text-gray-700">Welcome!</h2>
+          <h2 className="text-4xl font-semibold text-gray-700 mb-10">{user.name}</h2>
           <div className="flex gap-4 w-full max-w-md">
             <Link href="/products" className="w-full">
               <Button size="lg" variant="default" className="w-full text-white">

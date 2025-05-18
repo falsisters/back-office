@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Download, X, Pencil } from "lucide-react"
+import { Download, Pencil } from "lucide-react"
 import type { Attachment } from "../../../utils/types/schema.type"
 import { EditAttachment } from "./EditAttachments"
 import { useState } from "react"
@@ -13,7 +13,7 @@ interface AttachmentDetailsProps {
   onUpdate: (updatedAttachment: Attachment) => void
 }
 
-export function AttachmentDetails({ attachment, onClose, onUpdate }: AttachmentDetailsProps) {
+export function AttachmentDetails({ attachment, onUpdate }: AttachmentDetailsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   const handleDownload = () => {
@@ -40,9 +40,6 @@ export function AttachmentDetails({ attachment, onClose, onUpdate }: AttachmentD
           <Button variant="outline" size="sm" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download
-          </Button>
-          <Button variant="outline" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>

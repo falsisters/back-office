@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit } from 'lucide-react'
+import { Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -16,7 +16,6 @@ interface BillCountTableRowProps {
 
 export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowProps) {
   const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedBillType, setSelectedBillType] = useState<string | null>(null)
 
   const getBillTypeLabel = (type: string) => {
     switch (type) {
@@ -67,6 +66,17 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
 
   return (
     <>
+      {/* Single edit button row */}
+      <TableRow>
+        <TableCell colSpan={4} className="text-right pb-2">
+          <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Bill Counts
+          </Button>
+        </TableCell>
+      </TableRow>
+
+      {/* Bill rows */}
       {sortedBills.map((bill) => (
         <TableRow key={bill.id} className="hover:bg-muted/20">
           <TableCell className="w-1/4">
@@ -75,19 +85,10 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
             </Badge>
           </TableCell>
           <TableCell className="w-1/4 font-medium text-center">{bill.amount} bills</TableCell>
-          <TableCell className="w-1/4 font-semibold text-secondary text-center">₱{bill.value.toLocaleString()}</TableCell>
-          <TableCell className="w-1/4 text-right">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedBillType(bill.type)
-                setShowEditModal(true)
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
+          <TableCell className="w-1/4 font-semibold text-secondary text-center">
+            ₱{bill.value.toLocaleString()}
           </TableCell>
+          <TableCell className="w-1/4"></TableCell>
         </TableRow>
       ))}
 
@@ -95,7 +96,6 @@ export function BillCountTableRow({ billCount, onRefresh }: BillCountTableRowPro
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         billCount={billCount}
-        billType={selectedBillType}
         onSuccess={onRefresh}
       />
     </>

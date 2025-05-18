@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { getDeliveryById } from "@/lib/server/getDeliveryById"
-import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type"
-import { deleteDelivery } from "@/lib/server/deleteDelivery"
+} from "@/components/ui/dialog";
+import { getDeliveryById } from "@/lib/server/getDeliveryById";
+import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type";
+import { deleteDelivery } from "@/lib/server/deleteDelivery";
 import {
   Loader2,
   Trash2Icon,
@@ -24,52 +24,67 @@ import {
   CalendarIcon,
   ClockIcon,
   UserIcon,
-} from "lucide-react"
-import { format } from "date-fns"
-import { Separator } from "@/components/ui/separator"
+} from "lucide-react";
+import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
 
 interface DeliveryItemProps {
-  delivery: GetDeliveryByIdPayload
-  onDelete: (deletedDeliveryId: string) => void
+  delivery: GetDeliveryByIdPayload;
+  onDelete: (deletedDeliveryId: string) => void;
 }
 
 export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [detailedDelivery, setDetailedDelivery] = useState<GetDeliveryByIdPayload | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailedDelivery, setDetailedDelivery] =
+    useState<GetDeliveryByIdPayload | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleViewDetails = async () => {
     try {
-      setIsLoading(true)
-      const details = await getDeliveryById(delivery.id)
-      setDetailedDelivery(details)
-      setIsModalOpen(true)
+      setIsLoading(true);
+      const details = await getDeliveryById(delivery.id);
+      setDetailedDelivery(details);
+      setIsModalOpen(true);
     } catch (error) {
-      console.error("Failed to fetch delivery details:", error)
-      alert("Failed to fetch delivery details. Please try again.")
+      console.error("Failed to fetch delivery details:", error);
+      alert("Failed to fetch delivery details. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleConfirmDelete = async () => {
     try {
-      setIsDeleting(true)
+      setIsDeleting(true);
       // Optimistically update UI first
-      onDelete(delivery.id)
+      onDelete(delivery.id);
 
       // Then perform the actual deletion
-      await deleteDelivery(delivery.id)
+      await deleteDelivery(delivery.id);
     } catch (error) {
-      console.error("Failed to delete delivery:", error)
-      alert("Failed to delete delivery. Please try again.")
+      console.error("Failed to delete delivery:", error);
+      alert("Failed to delete delivery. Please try again.");
     } finally {
-      setIsDeleting(false)
-      setDeleteDialogOpen(false)
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
-  }
+  };
+
+  // Function to format sack type for display
+  const formatSackType = (sackType: string) => {
+    switch (sackType) {
+      case "FIFTY_KG":
+        return "50 KG";
+      case "TWENTY_FIVE_KG":
+        return "25 KG";
+      case "FIVE_KG":
+        return "5 KG";
+      default:
+        return sackType;
+    }
+  };
 
   return (
     <>
@@ -78,9 +93,14 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TruckIcon className="w-5 h-5 text-primary" />
-              <span className="font-semibold">Delivery #{delivery.id.slice(-6)}</span>
+              <span className="font-semibold">
+                Delivery #{delivery.id.slice(-6)}
+              </span>
             </div>
-            <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
+            <Badge
+              variant="outline"
+              className="font-normal bg-primary/5 text-primary border-primary/20"
+            >
               {delivery.DeliveryItem?.length || 0} items
             </Badge>
           </CardTitle>
@@ -99,7 +119,9 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                 <CalendarIcon className="w-3.5 h-3.5" />
                 Scheduled
               </p>
-              <p className="font-semibold">{format(new Date(delivery.deliveryTimeStart), "MMM dd, yyyy")}</p>
+              <p className="font-semibold">
+                {format(new Date(delivery.deliveryTimeStart), "MMM dd, yyyy")}
+              </p>
               <p className="text-xs text-secondary flex items-center gap-1">
                 <ClockIcon className="w-3 h-3" />
                 {format(new Date(delivery.deliveryTimeStart), "HH:mm")}
@@ -147,7 +169,9 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
               <TruckIcon className="w-6 h-6" />
               Delivery Details
             </DialogTitle>
-            <DialogDescription className="text-sm">ID: {detailedDelivery?.id}</DialogDescription>
+            <DialogDescription className="text-sm">
+              ID: {detailedDelivery?.id}
+            </DialogDescription>
           </DialogHeader>
 
           {detailedDelivery && (
@@ -159,7 +183,9 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                       <UserIcon className="w-3.5 h-3.5" />
                       Driver Name
                     </p>
-                    <p className="font-semibold">{detailedDelivery.driverName}</p>
+                    <p className="font-semibold">
+                      {detailedDelivery.driverName}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
@@ -167,9 +193,15 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                       Scheduled Time
                     </p>
                     <p className="font-semibold">
-                      {format(new Date(detailedDelivery.deliveryTimeStart), "MMM dd, yyyy")}
+                      {format(
+                        new Date(detailedDelivery.deliveryTimeStart),
+                        "MMM dd, yyyy"
+                      )}
                       <span className="text-secondary ml-2">
-                        {format(new Date(detailedDelivery.deliveryTimeStart), "HH:mm")}
+                        {format(
+                          new Date(detailedDelivery.deliveryTimeStart),
+                          "HH:mm"
+                        )}
                       </span>
                     </p>
                   </div>
@@ -181,7 +213,10 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                       Created At
                     </p>
                     <p className="font-semibold">
-                      {format(new Date(detailedDelivery.createdAt), "MMM dd, yyyy")}
+                      {format(
+                        new Date(detailedDelivery.createdAt),
+                        "MMM dd, yyyy"
+                      )}
                       <span className="text-muted-foreground ml-2">
                         {format(new Date(detailedDelivery.createdAt), "HH:mm")}
                       </span>
@@ -197,29 +232,52 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                   <PackageIcon className="w-4 h-4" />
                   Delivery Items
                 </h3>
-                {detailedDelivery.DeliveryItem && detailedDelivery.DeliveryItem.length > 0 ? (
+                {detailedDelivery.DeliveryItem &&
+                detailedDelivery.DeliveryItem.length > 0 ? (
                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                     {detailedDelivery.DeliveryItem.map((item) => (
                       <div
                         key={item.id}
-                        className="flex justify-between items-center p-3 bg-muted/50 rounded-md hover:bg-muted/70 transition-colors"
+                        className="flex justify-between items-start p-3 bg-muted/50 rounded-md hover:bg-muted/70 transition-colors"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <PackageIcon className="w-4 h-4 text-primary" />
                             <p className="font-medium">{item.product.name}</p>
                           </div>
-                          <p className="text-sm text-muted-foreground pl-6">Product ID: {item.product.id.slice(-6)}</p>
+                          <p className="text-sm text-muted-foreground pl-6">
+                            Product ID: {item.product.id.slice(-6)}
+                          </p>
+
+                          {item.sackPriceId && (
+                            <div className="flex items-center gap-1 pl-6 text-sm text-emerald-600">
+                              <Badge className="px-3 py-1 text-sm bg-secondary/10 text-secondary border-secondary/20">
+                                {formatSackType(item.sackType || "")}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {item.perKiloPriceId && (
+                            <div className="flex items-center gap-1 pl-6 text-sm text-blue-600">
+                              <Badge className="px-3 py-1 text-sm bg-secondary/10 text-secondary border-secondary/20">
+                                Per Kilo
+                              </Badge>
+                            </div>
+                          )}
                         </div>
-                        <Badge className="px-3 py-1 text-sm bg-secondary/10 text-secondary border-secondary/20">
-                          {item.quantity} KG
-                        </Badge>
+                        <div className="flex flex-col items-end">
+                          <Badge className="px-3 py-1 text-sm bg-secondary/10 text-secondary border-secondary/20">
+                            Quantity: {item.quantity}
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-24 border border-dashed rounded-md bg-muted/20">
-                    <p className="text-muted-foreground">No items in this delivery</p>
+                    <p className="text-muted-foreground">
+                      No items in this delivery
+                    </p>
                   </div>
                 )}
               </div>
@@ -236,21 +294,31 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
               Confirm Deletion
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete Delivery #{delivery.id.slice(-6)}? This action cannot be undone.
+              Are you sure you want to delete Delivery #{delivery.id.slice(-6)}?
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
           <div className="bg-red-50 p-4 rounded-md border border-red-200 my-2">
             <p className="text-sm text-red-600 font-medium">
-              This will permanently remove the delivery and all associated items.
+              This will permanently remove the delivery and all associated
+              items.
             </p>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
               {isDeleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -264,6 +332,5 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
-

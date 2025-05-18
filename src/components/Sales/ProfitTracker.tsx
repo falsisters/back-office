@@ -5,10 +5,19 @@ import { Table, TableBody, TableCell, TableRow, TableFooter, TableHead, TableHea
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, DollarSign } from 'lucide-react';
+import { SackType } from "../../../utils/types/schema.type";
+
+const sackTypeLabels = {
+  FIFTY_KG: "50KG",
+  TWENTY_FIVE_KG: "25KG",
+  FIVE_KG: "5KG",
+};
 
 interface ProfitItem {
   productKey: string;
   productName: string;
+  sackType?: SackType;
+  priceType: 'sack' | 'per-kilo';
   normalQty: number;
   specialQty: number;
   isAsin: boolean;
@@ -21,27 +30,44 @@ interface ProfitTrackerProps {
 }
 
 export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
-
-  const groupedData = salesData.reduce((acc, item) => {
-    if (!acc[item.productKey]) {
-      acc[item.productKey] = {
+  // Group sales data with proper type separation
+  const productGroups = salesData.reduce((acc, item) => {
+    const key = `${item.productName}-${item.sackType || ''}-${item.priceType}`;
+    
+    if (!acc[key]) {
+      acc[key] = {
         ...item,
+        productName: item.productName,
+        sackType: item.sackType,
+        priceType: item.priceType,
         normalQty: item.normalQty,
         specialQty: item.specialQty,
         normalProfit: item.normalProfit,
-        specialProfit: item.specialProfit
+        specialProfit: item.specialProfit,
+        isAsin: item.isAsin
       };
     } else {
-      acc[item.productKey].normalQty += item.normalQty;
-      acc[item.productKey].specialQty += item.specialQty;
+      acc[key].normalQty += item.normalQty;
+      acc[key].specialQty += item.specialQty;
     }
     return acc;
   }, {} as Record<string, ProfitItem>);
 
-  const asinProducts = Object.values(groupedData).filter(p => p.isAsin);
-  const otherProducts = Object.values(groupedData).filter(p => !p.isAsin);
+  const formatProductName = (item: ProfitItem) => {
+    let name = item.productName;
+    if (item.priceType === 'sack' && item.sackType) {
+      name += ` ${sackTypeLabels[item.sackType]}`;
+    }
+    if (item.priceType === 'per-kilo') {
+      name += ' (Per Kilo)';
+    }
+    return name;
+  };
 
-  // Memoize the total profits calculation function
+  const groupedProducts = Object.values(productGroups);
+  const asinProducts = groupedProducts.filter(p => p.isAsin);
+  const otherProducts = groupedProducts.filter(p => !p.isAsin);
+
   const calculateTotalProfits = useCallback((products: ProfitItem[]) => {
     return products.reduce((total, item) => {
       const normalProfit = item.normalProfit * item.normalQty;
@@ -73,47 +99,55 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((item, index) => (
-              <React.Fragment key={`${item.productKey}-fragment-${index}`}>
-                <TableRow key={`${item.productKey}-header-${index}`} className="bg-muted/30">
-                  <TableCell colSpan={4} className="font-medium text-primary">
-                    {item.productName}
-                  </TableCell>
-                </TableRow>
-                {item.normalQty > 0 && (
-                  <TableRow key={`${item.productKey}-normal-${index}`} className="hover:bg-muted/20">
-                    <TableCell className="pl-8">Regular Price</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                        {item.normalQty}
+            {products.map((item) => {
+              const displayName = formatProductName(item);
+              return (
+                <React.Fragment key={item.productKey}>
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={4} className="font-medium text-primary">
+                      {displayName}
+                      <Badge variant="outline" className="ml-2">
+                        {item.priceType === 'sack' 
+                          ? `${sackTypeLabels[item.sackType!]} Sack`
+                          : "Per Kilo"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      ₱{item.normalProfit}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-secondary">
-                      ₱{item.normalProfit * item.normalQty}
-                    </TableCell>
                   </TableRow>
-                )}
-                {item.specialQty > 0 && (
-                  <TableRow key={`${item.productKey}-special-${index}`} className="hover:bg-muted/20">
-                    <TableCell className="pl-8">Special Price</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20">
-                        {item.specialQty}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      ₱{item.specialProfit || 0}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-secondary">
-                      ₱{(item.specialProfit || 0) * item.specialQty}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            ))}
+                  {item.normalQty > 0 && (
+                    <TableRow className="hover:bg-muted/20">
+                      <TableCell className="pl-8">Regular Price</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                          {item.normalQty}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ₱{item.normalProfit}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-secondary">
+                        ₱{item.normalProfit * item.normalQty}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {item.specialQty > 0 && (
+                    <TableRow className="hover:bg-muted/20">
+                      <TableCell className="pl-8">Special Price</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20">
+                          {item.specialQty}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        ₱{item.specialProfit || 0}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-secondary">
+                        ₱{(item.specialProfit || 0) * item.specialQty}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </TableBody>
           <TableFooter>
             <TableRow>

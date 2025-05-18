@@ -31,6 +31,7 @@ export function BillCountList() {
         }
       } catch (error) {
         console.error("Failed to fetch bill count:", error)
+        setBillCount(null)
       } finally {
         setLoading(false)
       }
@@ -46,6 +47,9 @@ export function BillCountList() {
       setBillCount(data)
     }
   }
+
+  // Check if we have data and if the bills array exists and has items
+  const hasData = billCount && billCount.bills && billCount.bills.length > 0
 
   return (
     <Card className="shadow-md">
@@ -77,7 +81,7 @@ export function BillCountList() {
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : billCount ? (
+        ) : hasData ? (
           <div className="space-y-6 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-muted/20 p-4 rounded-lg">
