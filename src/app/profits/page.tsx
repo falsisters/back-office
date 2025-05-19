@@ -1,4 +1,4 @@
-import ProfitList from "./Component/ProfitList";
+import ProfitList from "./components/ProfitList";
 import { Spinner } from "@/components/ui/spinner";
 import { getUserData } from "@/lib/server/getUserData";
 import { redirect } from "next/navigation";
