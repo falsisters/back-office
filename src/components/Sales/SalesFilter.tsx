@@ -30,16 +30,18 @@ interface SalesFiltersProps {
   setSelectedYear: (year: number) => void;
   selectedMonth: number;
   setSelectedMonth: (month: number) => void;
-  productFilter: string;
-  setProductFilter: (filter: string) => void;
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  paymentFilter: PaymentFilter;
-  setPaymentFilter: (filter: PaymentFilter) => void;
-  sackKiloFilter: SackKiloFilter;
-  setSackKiloFilter: (filter: SackKiloFilter) => void;
-  asinOtherFilter: AsinOtherFilter;
-  setAsinOtherFilter: (filter: AsinOtherFilter) => void;
+  productFilter?: string;
+  setProductFilter?: (filter: string) => void;
+  viewMode?: ViewMode;
+  setViewMode?: (mode: ViewMode) => void;
+  paymentFilter?: PaymentFilter;
+  setPaymentFilter?: (filter: PaymentFilter) => void;
+  sackKiloFilter?: SackKiloFilter;
+  setSackKiloFilter?: (filter: SackKiloFilter) => void;
+  asinOtherFilter?: AsinOtherFilter;
+  setAsinOtherFilter?: (filter: AsinOtherFilter) => void;
+  hideExtraFilters?: boolean;
+  title?: string;
 }
 
 const months = [
@@ -56,16 +58,18 @@ export function SalesFilters({
   setSelectedYear,
   selectedMonth,
   setSelectedMonth,
-  productFilter,
-  setProductFilter,
-  viewMode,
-  setViewMode,
-  paymentFilter,
-  setPaymentFilter,
-  sackKiloFilter,
-  setSackKiloFilter,
-  asinOtherFilter,
-  setAsinOtherFilter,
+  productFilter = "",
+  setProductFilter = () => {},
+  viewMode = "perSale",
+  setViewMode = () => {},
+  paymentFilter = "ALL",
+  setPaymentFilter = () => {},
+  sackKiloFilter = "ALL",
+  setSackKiloFilter = () => {},
+  asinOtherFilter = "ALL",
+  setAsinOtherFilter = () => {},
+  hideExtraFilters = false,
+  title = "Sales Filters",
 }: SalesFiltersProps) {
   const getMonthAndYearTitle = () => {
     return `${months[selectedMonth - 1]} ${selectedYear}`;
@@ -75,7 +79,7 @@ export function SalesFilters({
     <div className="rounded-lg border bg-card shadow-sm p-6">
       <div className="flex items-center mb-4">
         <FilterIcon className="h-5 w-5 text-primary mr-2" />
-        <h3 className="text-lg font-semibold">Sales Filters</h3>
+        <h3 className="text-lg font-semibold">{title}</h3>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-4">
@@ -167,76 +171,78 @@ export function SalesFilters({
         )}
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Filter by product..."
-            className="pl-9 focus-visible:ring-primary"
-            value={productFilter}
-            onChange={(e) => setProductFilter(e.target.value)}
-          />
+      {!hideExtraFilters && (
+        <div className="flex flex-wrap gap-4">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Filter by product..."
+              className="pl-9 focus-visible:ring-primary"
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+            />
+          </div>
+          
+          <Select
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as ViewMode)}
+          >
+            <SelectTrigger className="w-[180px] focus:ring-primary">
+              <SelectValue placeholder="View Mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="perSale">View by Sale</SelectItem>
+              <SelectItem value="perProduct">View by Product</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={paymentFilter}
+            onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}
+          >
+            <SelectTrigger className="w-[180px] focus:ring-primary">
+              <SelectValue placeholder="All Payments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Payments</SelectItem>
+              {Object.values(PaymentMethodEnum.Values).map((method) => (
+                <SelectItem key={method} value={method}>
+                  {method.replace("_", " ").toLowerCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sackKiloFilter}
+            onValueChange={(value) => setSackKiloFilter(value as SackKiloFilter)}
+          >
+            <SelectTrigger className="w-[180px] focus:ring-primary">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Types</SelectItem>
+              <SelectItem value="SACKS">Sacks</SelectItem>
+              <SelectItem value="PER_KILO">Per Kilo</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={asinOtherFilter}
+            onValueChange={(value) => setAsinOtherFilter(value as AsinOtherFilter)}
+          >
+            <SelectTrigger className="w-[180px] focus:ring-primary">
+              <SelectValue placeholder="All Products" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Products</SelectItem>
+              <SelectItem value="ASIN">Asin</SelectItem>
+              <SelectItem value="OTHER">Other Products</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        
-        <Select
-          value={viewMode}
-          onValueChange={(value) => setViewMode(value as ViewMode)}
-        >
-          <SelectTrigger className="w-[180px] focus:ring-primary">
-            <SelectValue placeholder="View Mode" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="perSale">View by Sale</SelectItem>
-            <SelectItem value="perProduct">View by Product</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={paymentFilter}
-          onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}
-        >
-          <SelectTrigger className="w-[180px] focus:ring-primary">
-            <SelectValue placeholder="All Payments" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Payments</SelectItem>
-            {Object.values(PaymentMethodEnum.Values).map((method) => (
-              <SelectItem key={method} value={method}>
-                {method.replace("_", " ").toLowerCase()}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={sackKiloFilter}
-          onValueChange={(value) => setSackKiloFilter(value as SackKiloFilter)}
-        >
-          <SelectTrigger className="w-[180px] focus:ring-primary">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Types</SelectItem>
-            <SelectItem value="SACKS">Sacks</SelectItem>
-            <SelectItem value="PER_KILO">Per Kilo</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={asinOtherFilter}
-          onValueChange={(value) => setAsinOtherFilter(value as AsinOtherFilter)}
-        >
-          <SelectTrigger className="w-[180px] focus:ring-primary">
-            <SelectValue placeholder="All Products" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Products</SelectItem>
-            <SelectItem value="ASIN">Asin</SelectItem>
-            <SelectItem value="OTHER">Other Products</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
     </div>
   );
 }

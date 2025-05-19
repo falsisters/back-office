@@ -1,87 +1,96 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { getAllSalesByUserId } from "@/lib/server/getAllSalesByUserId";
-import SalesSummary from "./SalesSummary";
-import ProfitTracker from "./ProfitTracker";
-import { PaymentMethodEnum, type SackType } from "../../../utils/types/schema.type";
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
-import { SalesFilters } from "./SalesFilter";
-import { SalesDateGroup } from "./SalesDateGroup";
-import { NoSalesFound } from "./NoSalesFound";
-import { LoadingSales } from "./LoadingSales";
+import { useEffect, useState } from "react"
+import { getAllSalesByUserId } from "@/lib/server/getAllSalesByUserId"
+import SalesSummary from "./SalesSummary"
+import type { PaymentMethodEnum } from "../../../utils/types/schema.type"
+import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type"
+import { SalesFilters } from "./SalesFilter"
+import { SalesDateGroup } from "./SalesDateGroup"
+import { NoSalesFound } from "./NoSalesFound"
+import { LoadingSales } from "./LoadingSales"
 
 const months = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
 
 export default function SalesList() {
-  const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
-  const [filteredSales, setFilteredSales] = useState<GetAllSalesByUserIdPayload>([]);
-  const [productFilter, setProductFilter] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<typeof PaymentMethodEnum._type | "ALL">("ALL");
-  const [sackKiloFilter, setSackKiloFilter] = useState<"ALL" | "SACKS" | "PER_KILO">("ALL");
-  const [asinOtherFilter, setAsinOtherFilter] = useState<"ALL" | "ASIN" | "OTHER">("ALL");
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"perSale" | "perProduct">("perSale");
-  const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
-  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1);
-  
-  const formattedSelectedMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+  const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([])
+  const [filteredSales, setFilteredSales] = useState<GetAllSalesByUserIdPayload>([])
+  const [productFilter, setProductFilter] = useState("")
+  const [paymentFilter, setPaymentFilter] = useState<typeof PaymentMethodEnum._type | "ALL">("ALL")
+  const [sackKiloFilter, setSackKiloFilter] = useState<"ALL" | "SACKS" | "PER_KILO">("ALL")
+  const [asinOtherFilter, setAsinOtherFilter] = useState<"ALL" | "ASIN" | "OTHER">("ALL")
+  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [isLoading, setIsLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<"perSale" | "perProduct">("perSale")
+  const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day")
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1)
+
+  const formattedSelectedMonth = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`
 
   useEffect(() => {
     const loadSales = async () => {
       try {
-        setIsLoading(true);
-        const data = await getAllSalesByUserId();
-        setSales(data);
-        
-        let filtered;
+        setIsLoading(true)
+        const data = await getAllSalesByUserId()
+        setSales(data)
+
+        let filtered
         if (dateFilterMode === "day") {
-          const today = new Date();
+          const today = new Date()
           filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return saleDate.toDateString() === today.toDateString();
-          });
+            const saleDate = new Date(sale.createdAt)
+            return saleDate.toDateString() === today.toDateString()
+          })
         } else {
-          const [year, month] = formattedSelectedMonth.split('-').map(Number);
+          const [year, month] = formattedSelectedMonth.split("-").map(Number)
           filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
-          });
+            const saleDate = new Date(sale.createdAt)
+            return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
+          })
         }
-        
-        setFilteredSales(filtered);
+
+        setFilteredSales(filtered)
       } catch (error) {
-        console.error("Error loading sales:", error);
+        console.error("Error loading sales:", error)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
-    loadSales();
-  }, [dateFilterMode, formattedSelectedMonth]);
+    }
+    loadSales()
+  }, [dateFilterMode, formattedSelectedMonth])
 
   useEffect(() => {
-    let filtered = [...sales];
+    let filtered = [...sales]
 
     if (dateFilterMode === "day" && date) {
       filtered = filtered.filter((sale) => {
-        const saleDate = new Date(sale.createdAt);
-        return saleDate.toDateString() === date.toDateString();
-      });
+        const saleDate = new Date(sale.createdAt)
+        return saleDate.toDateString() === date.toDateString()
+      })
     } else if (dateFilterMode === "month") {
-      const [year, month] = formattedSelectedMonth.split('-').map(Number);
+      const [year, month] = formattedSelectedMonth.split("-").map(Number)
       filtered = filtered.filter((sale) => {
-        const saleDate = new Date(sale.createdAt);
-        return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
-      });
+        const saleDate = new Date(sale.createdAt)
+        return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
+      })
     }
 
     if (paymentFilter !== "ALL") {
-      filtered = filtered.filter((sale) => sale.paymentMethod === paymentFilter);
+      filtered = filtered.filter((sale) => sale.paymentMethod === paymentFilter)
     }
 
     if (productFilter) {
@@ -89,42 +98,42 @@ export default function SalesList() {
         .map((sale) => ({
           ...sale,
           SaleItem: sale.SaleItem.filter((item) =>
-            item.product.name.toLowerCase().includes(productFilter.toLowerCase())
+            item.product.name.toLowerCase().includes(productFilter.toLowerCase()),
           ),
         }))
-        .filter((sale) => sale.SaleItem.length > 0);
+        .filter((sale) => sale.SaleItem.length > 0)
     }
 
     filtered = filtered
       .map((sale) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
-          const isSack = !!item.sackPriceId;
-          const isPerKilo = !!item.perKiloPriceId;
+          const isSack = !!item.sackPriceId
+          const isPerKilo = !!item.perKiloPriceId
           return (
             sackKiloFilter === "ALL" ||
             (sackKiloFilter === "SACKS" && isSack) ||
             (sackKiloFilter === "PER_KILO" && isPerKilo)
-          );
+          )
         }),
       }))
-      .filter((sale) => sale.SaleItem.length > 0);
+      .filter((sale) => sale.SaleItem.length > 0)
 
     filtered = filtered
       .map((sale) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
-          const isAsin = item.product.name.toLowerCase().includes("asin");
+          const isAsin = item.product.name.toLowerCase().includes("asin")
           return (
             asinOtherFilter === "ALL" ||
             (asinOtherFilter === "ASIN" && isAsin) ||
             (asinOtherFilter === "OTHER" && !isAsin)
-          );
+          )
         }),
       }))
-      .filter((sale) => sale.SaleItem.length > 0);
+      .filter((sale) => sale.SaleItem.length > 0)
 
-    setFilteredSales(filtered);
+    setFilteredSales(filtered)
   }, [
     productFilter,
     paymentFilter,
@@ -134,88 +143,39 @@ export default function SalesList() {
     sales,
     dateFilterMode,
     formattedSelectedMonth,
-  ]);
+  ])
 
   const groupSalesByDate = () => {
-    const grouped: Record<string, GetAllSalesByUserIdPayload> = {};
+    const grouped: Record<string, GetAllSalesByUserIdPayload> = {}
 
     filteredSales.forEach((sale) => {
-      const saleDate = new Date(sale.createdAt);
-      let dateKey;
-      
+      const saleDate = new Date(sale.createdAt)
+      let dateKey
+
       if (dateFilterMode === "day") {
         dateKey = saleDate.toLocaleDateString("en-PH", {
           weekday: "long",
           year: "numeric",
           month: "long",
           day: "numeric",
-        });
+        })
       } else {
-        dateKey = `${months[selectedMonth - 1]} ${selectedYear}`;
+        dateKey = `${months[selectedMonth - 1]} ${selectedYear}`
       }
 
-      if (!grouped[dateKey]) grouped[dateKey] = [];
-      grouped[dateKey].push(sale);
-    });
+      if (!grouped[dateKey]) grouped[dateKey] = []
+      grouped[dateKey].push(sale)
+    })
 
-    return grouped;
-  };
+    return grouped
+  }
 
-  const groupedSales = groupSalesByDate();
 
-  const mappedSalesData = Object.values(groupedSales).flatMap((dateSales) =>
-    dateSales.flatMap((sale) =>
-      sale.SaleItem.map((item) => {
-        const isSack = !!item.sackPriceId;
-        const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
-        const sackType = item.sackType as SackType | undefined;
-        
-        const isSpecial = item.isSpecialPrice;
-        const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
-        
-        let basePrice = 0;
-        let originalProfit = 0;
-
-        if (isSack) {
-          if (isSpecial && sackPrice?.specialPrice?.price) {
-            basePrice = sackPrice.specialPrice.price;
-            originalProfit = sackPrice.specialPrice.profit || 0;
-          } else {
-            basePrice = sackPrice?.price || 0;
-            originalProfit = sackPrice?.profit || 0;
-          }
-        } else {
-          basePrice = item.product.perKiloPrice?.price || 0;
-          originalProfit = item.product.perKiloPrice?.profit || 0;
-        }
-
-        if (item.isDiscounted && item.discountedPrice) {
-          const discountAmount = basePrice - item.discountedPrice;
-          originalProfit -= discountAmount;
-        }
-
-        const normalProfit = !isSpecial ? originalProfit : 0;
-        const specialProfit = isSpecial ? originalProfit : 0;
-
-        return {
-          productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
-          productName: item.product.name,
-          sackType: sackType,
-          priceType: priceType,
-          normalQty: !isSpecial ? item.quantity : 0,
-          specialQty: isSpecial ? item.quantity : 0,
-          isAsin: item.product.name.toLowerCase().includes("asin"),
-          normalProfit: normalProfit,
-          specialProfit: specialProfit,
-        };
-      })
-    )
-  );
 
   return (
     <div className="p-4 space-y-6">
       <h1 className="text-3xl font-bold mb-4">Sales</h1>
-      
+
       <SalesFilters
         dateFilterMode={dateFilterMode}
         setDateFilterMode={setDateFilterMode}
@@ -256,11 +216,10 @@ export default function SalesList() {
           {filteredSales.length > 0 && (
             <>
               <SalesSummary sales={filteredSales} />
-              <ProfitTracker salesData={mappedSalesData} />
             </>
           )}
         </>
       )}
     </div>
-  );
+  )
 }
