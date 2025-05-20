@@ -238,7 +238,7 @@ export function SalesFilters({
             <SelectContent>
               <SelectItem value="ALL">All Products</SelectItem>
               <SelectItem value="ASIN">Asin</SelectItem>
-              <SelectItem value="OTHER">Other Products</SelectItem>
+              <SelectItem value="OTHER">Rice & Other Products</SelectItem>
             </SelectContent>
           </Select>
         </div>
