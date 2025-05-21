@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2, DollarSign } from "lucide-react"
+import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2, DollarSign, BanknoteIcon, Package2 } from "lucide-react"
 import LogoutButton from "./LogoutButton"
 
 const navItems = [
@@ -12,7 +12,9 @@ const navItems = [
   { href: "/sales", label: "Sales Report", icon: FileText },
   { href: "/deliveries", label: "Delivery", icon: Truck },
   { href: "/attachments", label: "Attachments", icon: Link2 },
-  { href: "/expenses", label: "Expenses", icon: DollarSign },
+  { href: "/expenses", label: "Expenses", icon: BanknoteIcon },
+  { href: "/profits", label: "Profits", icon: DollarSign },
+  { href: "/stocks", label: "Stocks", icon: Package2 },
 
 ]
 

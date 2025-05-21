@@ -4,17 +4,16 @@ import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSale
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Separator } from "@/components/ui/separator"
-import { BarChart3, Package, ShoppingBag, CreditCard, Banknote, DollarSign } from 'lucide-react'
+import { BarChart3, Package, ShoppingBag, CreditCard, Banknote, DollarSign } from "lucide-react"
 
 interface CategoryTotals {
-  sales: number;
-  quantity: number;
-  check: number;
-  bankTransfer: number;
+  sales: number
+  quantity: number
+  check: number
+  bankTransfer: number
 }
 
 export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayload }) {
-  // Initialize separate totals for sack and per kilo items
   const totals = {
     // Sack price items
     asinSack: { sales: 0, quantity: 0, check: 0, bankTransfer: 0 },
@@ -22,60 +21,55 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
     // Per kilo price items
     asinKilo: { sales: 0, quantity: 0, check: 0, bankTransfer: 0 },
     otherKilo: { sales: 0, quantity: 0, check: 0, bankTransfer: 0 },
-  };
+  }
 
   sales.forEach((sale) => {
     sale.SaleItem.forEach((item) => {
-      const isAsin = item.product.name.toLowerCase().includes("asin");
-      let category: keyof typeof totals;
-      
-      // Determine if it's a sack price item or per kilo price item
+      const isAsin = item.product.name.toLowerCase().includes("asin")
+      let category: keyof typeof totals
+
       if (item.sackPriceId && !item.perKiloPriceId) {
-        const sackPrice = item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
-          ? item.product.SackPrice[0]?.specialPrice?.price
-          : item.product.SackPrice[0]?.price || 0;
-        
-        const displayPrice = item.isDiscounted && item.discountedPrice 
-          ? item.discountedPrice 
-          : sackPrice;
-          
-        const itemTotal = displayPrice * item.quantity;
-        
-        category = isAsin ? "asinSack" : "otherSack";
-        
-        totals[category].sales += itemTotal;
-        totals[category].quantity += item.quantity;
-        
+        const sackPrice =
+          item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
+            ? item.product.SackPrice[0]?.specialPrice?.price
+            : item.product.SackPrice[0]?.price || 0
+
+        const displayPrice = item.isDiscounted && item.discountedPrice ? item.discountedPrice : sackPrice
+
+        const itemTotal = displayPrice * item.quantity
+
+        category = isAsin ? "asinSack" : "otherSack"
+
+        totals[category].sales += itemTotal
+        totals[category].quantity += item.quantity
+
         if (sale.paymentMethod === "CHECK") {
-          totals[category].check += itemTotal;
+          totals[category].check += itemTotal
         } else if (sale.paymentMethod === "BANK_TRANSFER") {
-          totals[category].bankTransfer += itemTotal;
+          totals[category].bankTransfer += itemTotal
         }
-      } 
-      else if (item.perKiloPriceId && !item.sackPriceId) {
-        const kiloPrice = item.product.perKiloPrice?.price || 0;
-        
-        const displayPrice = item.isDiscounted && item.discountedPrice 
-          ? item.discountedPrice 
-          : kiloPrice;
-          
-        const itemTotal = displayPrice * item.quantity;
-        
-        category = isAsin ? "asinKilo" : "otherKilo";
-        
-        totals[category].sales += itemTotal;
-        totals[category].quantity += item.quantity;
-        
+      } else if (item.perKiloPriceId && !item.sackPriceId) {
+        const kiloPrice = item.product.perKiloPrice?.price || 0
+
+        const displayPrice = item.isDiscounted && item.discountedPrice ? item.discountedPrice : kiloPrice
+
+        const itemTotal = displayPrice * item.quantity
+
+        category = isAsin ? "asinKilo" : "otherKilo"
+
+        totals[category].sales += itemTotal
+        totals[category].quantity += item.quantity
+
         if (sale.paymentMethod === "CHECK") {
-          totals[category].check += itemTotal;
+          totals[category].check += itemTotal
         } else if (sale.paymentMethod === "BANK_TRANSFER") {
-          totals[category].bankTransfer += itemTotal;
+          totals[category].bankTransfer += itemTotal
         }
       }
-    });
-  });
+    })
+  })
 
-  const calculateCash = (category: CategoryTotals) => category.sales - category.check - category.bankTransfer;
+  const calculateCash = (category: CategoryTotals) => category.sales - category.check - category.bankTransfer
 
   // Calculate totals for sack items, per kilo items, and grand total
   const sackTotal = {
@@ -83,24 +77,24 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
     quantity: totals.asinSack.quantity + totals.otherSack.quantity,
     check: totals.asinSack.check + totals.otherSack.check,
     bankTransfer: totals.asinSack.bankTransfer + totals.otherSack.bankTransfer,
-    cash: calculateCash(totals.asinSack) + calculateCash(totals.otherSack)
-  };
+    cash: calculateCash(totals.asinSack) + calculateCash(totals.otherSack),
+  }
 
   const kiloTotal = {
     sales: totals.asinKilo.sales + totals.otherKilo.sales,
     quantity: totals.asinKilo.quantity + totals.otherKilo.quantity,
     check: totals.asinKilo.check + totals.otherKilo.check,
     bankTransfer: totals.asinKilo.bankTransfer + totals.otherKilo.bankTransfer,
-    cash: calculateCash(totals.asinKilo) + calculateCash(totals.otherKilo)
-  };
+    cash: calculateCash(totals.asinKilo) + calculateCash(totals.otherKilo),
+  }
 
   const grandTotal = {
     sales: sackTotal.sales + kiloTotal.sales,
     quantity: sackTotal.quantity + kiloTotal.quantity,
     check: sackTotal.check + kiloTotal.check,
     bankTransfer: sackTotal.bankTransfer + kiloTotal.bankTransfer,
-    cash: sackTotal.cash + kiloTotal.cash
-  };
+    cash: sackTotal.cash + kiloTotal.cash,
+  }
 
   return (
     <Card className="shadow-md border-t-4 border-t-primary">
@@ -134,7 +128,9 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Total Sales:</TableCell>
-                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.asinSack.sales).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">
+                        ₱{Math.floor(totals.asinSack.sales).toLocaleString()}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -143,7 +139,7 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
               <div>
                 <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
                   <ShoppingBag className="h-4 w-4" />
-                  Other Products
+                  Rice and Other Products
                 </h3>
                 <Table>
                   <TableBody>
@@ -153,7 +149,9 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Total Sales:</TableCell>
-                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.otherSack.sales).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">
+                        ₱{Math.floor(totals.otherSack.sales).toLocaleString()}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -172,7 +170,9 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Total Sales:</TableCell>
-                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(sackTotal.sales).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">
+                        ₱{Math.floor(sackTotal.sales).toLocaleString()}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -192,36 +192,21 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
               <div>
                 <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
                   <ShoppingBag className="h-4 w-4" />
-                  Asin Products
+                  All Products
                 </h3>
                 <Table>
                   <TableBody>
                     <TableRow>
                       <TableCell className="font-medium">Quantity:</TableCell>
-                      <TableCell className="text-right font-semibold">{totals.asinKilo.quantity}</TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {totals.asinKilo.quantity + totals.otherKilo.quantity}
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Total Sales:</TableCell>
-                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.asinKilo.sales).toLocaleString()}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-              <Separator className="bg-muted" />
-              <div>
-                <h3 className="font-bold mb-2 text-primary flex items-center gap-2">
-                  <ShoppingBag className="h-4 w-4" />
-                  Other Products
-                </h3>
-                <Table>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Quantity:</TableCell>
-                      <TableCell className="text-right font-semibold">{totals.otherKilo.quantity}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">Total Sales:</TableCell>
-                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(totals.otherKilo.sales).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">
+                        ₱{Math.floor(totals.asinKilo.sales + totals.otherKilo.sales).toLocaleString()}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -240,7 +225,9 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Total Sales:</TableCell>
-                      <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(kiloTotal.sales).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-secondary">
+                        ₱{Math.floor(kiloTotal.sales).toLocaleString()}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -272,28 +259,36 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
                     <DollarSign className="h-4 w-4 text-secondary" />
                     Total Sales:
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-secondary">₱{Math.floor(grandTotal.sales).toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-semibold text-secondary">
+                    ₱{Math.floor(grandTotal.sales).toLocaleString()}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
                     Check Deductions:
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">- ₱{Math.floor(grandTotal.check).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    - ₱{Math.floor(grandTotal.check).toLocaleString()}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium flex items-center gap-2">
                     <Banknote className="h-4 w-4 text-muted-foreground" />
                     Bank Transfer Deductions:
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">- ₱{Math.floor(grandTotal.bankTransfer).toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    - ₱{Math.floor(grandTotal.bankTransfer).toLocaleString()}
+                  </TableCell>
                 </TableRow>
                 <TableRow className="border-t-2 border-t-secondary/20">
                   <TableCell className="font-bold text-primary flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-secondary" />
                     Net Cash Total:
                   </TableCell>
-                  <TableCell className="text-right font-bold text-secondary text-xl">₱{Math.floor(grandTotal.cash).toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-bold text-secondary text-xl">
+                    ₱{Math.floor(grandTotal.cash).toLocaleString()}
+                  </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -301,5 +296,5 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
         </Card>
       </CardContent>
     </Card>
-  );
+  )
 }
