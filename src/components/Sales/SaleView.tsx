@@ -39,11 +39,12 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
             );
 
             let price = 0;
-            if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
-              price = matchingSackPrice.specialPrice.price;
-            } else {
+            // Commented out special price implementation
+            // if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
+            //   price = matchingSackPrice.specialPrice.price;
+            // } else {
               price = matchingSackPrice?.price || 0;
-            }
+            // }
 
             const displayPrice =
               item.isDiscounted && item.discountedPrice
@@ -55,9 +56,9 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               sale.paymentMethod !== "CASH"
                 ? ` (${sale.paymentMethod.replace("_", " ")})`
                 : "";
-            const specialPriceInfo = item.isSpecialPrice
-              ? " (special price)"
-              : "";
+            // const specialPriceInfo = item.isSpecialPrice
+            //   ? " (special price)"
+            //   : "";
             const gantangInfo = item.isGantang ? " (gantang)" : "";
 
             return (
@@ -69,7 +70,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   <div className="flex-1 flex items-center gap-2">
                     <span className="font-medium">
                       {item.quantity} {item.product.name} {sackTypeLabel}
-                      {specialPriceInfo}
+                      {/* {specialPriceInfo} */}
                       {gantangInfo}
                     </span>
                     {item.isDiscounted && (
@@ -119,9 +120,9 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               sale.paymentMethod !== "CASH"
                 ? ` (${sale.paymentMethod.replace("_", " ")})`
                 : "";
-            const specialPriceInfo = item.isSpecialPrice
-              ? " (special price)"
-              : "";
+            // const specialPriceInfo = item.isSpecialPrice
+            //   ? " (special price)"
+            //   : "";
             const gantangInfo = item.isGantang ? " (gantang)" : "";
 
             return (
@@ -133,7 +134,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   <div className="flex-1 flex items-center gap-2">
                     <span className="font-medium">
                       {item.quantity} {item.product.name}
-                      {specialPriceInfo}
+                      {/* {specialPriceInfo} */}
                       {gantangInfo}
                     </span>
                     {item.isDiscounted && (

@@ -76,20 +76,21 @@ export default function ProfitList() {
       const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
       const sackType = item.sackType as SackType | undefined;
       
-      const isSpecial = item.isSpecialPrice;
+      // Commented out special price implementation
+      // const isSpecial = item.isSpecialPrice;
       const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
       
       let basePrice = 0;
       let originalProfit = 0;
 
       if (isSack) {
-        if (isSpecial && sackPrice?.specialPrice?.price) {
-          basePrice = sackPrice.specialPrice.price;
-          originalProfit = sackPrice.specialPrice.profit || 0;
-        } else {
+        // if (isSpecial && sackPrice?.specialPrice?.price) {
+        //   basePrice = sackPrice.specialPrice.price;
+        //   originalProfit = sackPrice.specialPrice.profit || 0;
+        // } else {
           basePrice = sackPrice?.price || 0;
           originalProfit = sackPrice?.profit || 0;
-        }
+        // }
       } else {
         basePrice = item.product.perKiloPrice?.price || 0;
         originalProfit = item.product.perKiloPrice?.profit || 0;
@@ -100,16 +101,19 @@ export default function ProfitList() {
         originalProfit -= discountAmount;
       }
 
-      const normalProfit = !isSpecial ? originalProfit : 0;
-      const specialProfit = isSpecial ? originalProfit : 0;
+      // Commented out special profit calculations
+      // const normalProfit = !isSpecial ? originalProfit : 0;
+      // const specialProfit = isSpecial ? originalProfit : 0;
+      const normalProfit = originalProfit;
+      const specialProfit = 0; // Always 0 since we're hiding special prices
 
       return {
         productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
         productName: item.product.name,
         sackType: sackType,
         priceType: priceType,
-        normalQty: !isSpecial ? item.quantity : 0,
-        specialQty: isSpecial ? item.quantity : 0,
+        normalQty: item.quantity, // Always use full quantity since no special prices
+        specialQty: 0, // Always 0 since we're hiding special prices
         isAsin: item.product.name.toLowerCase().includes("asin"),
         normalProfit: normalProfit,
         specialProfit: specialProfit,

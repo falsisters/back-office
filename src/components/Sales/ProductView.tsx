@@ -26,13 +26,13 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         saleId: string;
         saleDate: Date;
         isDiscounted: boolean;
-        isSpecialPrice: boolean;
+        // isSpecialPrice: boolean; // Commented out
       }[];
       totalQuantity: number;
       totalAmount: number;
       originalAmount: number;
       hasDiscounts: boolean;
-      hasSpecialPrices: boolean;
+      // hasSpecialPrices: boolean; // Commented out
     }
   >();
 
@@ -41,14 +41,12 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       const isSackPriceItem = item.sackPriceId && !item.perKiloPriceId;
       const isPerKiloItem = item.perKiloPriceId && !item.sackPriceId;
 
-      // FIX 1: Directly use item.sackType without fallback
       const sackType = item.sackType;
       const sackTypeLabel = sackType ? sackTypeLabels[sackType] : "";
 
       let basePrice = 0;
 
       if (isSackPriceItem) {
-        // FIX 2: Properly find matching sack price
         const matchingSackPrice = item.product.SackPrice.find(
           (sp) => sp.type === sackType
         );
@@ -57,11 +55,12 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           console.warn(`Missing sack price for type ${sackType} in product ${item.product.name}`);
         }
 
-        if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
-          basePrice = matchingSackPrice.specialPrice.price;
-        } else {
+        // Commented out special price implementation
+        // if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
+        //   basePrice = matchingSackPrice.specialPrice.price;
+        // } else {
           basePrice = matchingSackPrice?.price || 0;
-        }
+        // }
       } else if (isPerKiloItem) {
         basePrice = item.product.perKiloPrice?.price || 0;
       }
@@ -72,8 +71,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           : basePrice;
 
       const isDiscounted = item.isDiscounted && item.discountedPrice !== basePrice;
-      const isSpecialPrice = item.isSpecialPrice;
-
+      // const isSpecialPrice = item.isSpecialPrice; // Commented out
 
       const key = `${item.product.name}-${
         isSackPriceItem ? sackType : "per-kilo"
@@ -92,7 +90,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           totalAmount: 0,
           originalAmount: 0,
           hasDiscounts: false,
-          hasSpecialPrices: false,
+          // hasSpecialPrices: false, // Commented out
         });
       }
 
@@ -104,21 +102,19 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         saleId: sale.id,
         saleDate: sale.createdAt,
         isDiscounted,
-        isSpecialPrice,
+        // isSpecialPrice, // Commented out
       });
       productGroup.totalQuantity += item.quantity;
       productGroup.totalAmount += price * item.quantity;
       productGroup.originalAmount += basePrice * item.quantity;
       
-      // Track if any items have discounts or special prices
       if (isDiscounted) productGroup.hasDiscounts = true;
-      if (isSpecialPrice) productGroup.hasSpecialPrices = true;
+      // if (isSpecialPrice) productGroup.hasSpecialPrices = true; // Commented out
     });
   });
 
   return (
     <div className="space-y-6">
-      {/* Individual product cards with sale items */}
       {Array.from(productGroups.entries()).map(([key, product]) => (
         <Card key={key} className="overflow-hidden">
           <CardHeader className="bg-muted/50 p-4">
@@ -133,13 +129,13 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                     : "Per Kilo"}
                 </Badge>
                 {product.isGantang && <Badge variant="outline">Gantang</Badge>}
-                {product.hasSpecialPrices && <Badge variant="secondary">Has Special Prices</Badge>}
+                {/* Commented out special price badge */}
+                {/* {product.hasSpecialPrices && <Badge variant="secondary">Has Special Prices</Badge>} */}
               </div>
             </div>
           </CardHeader>
           
           <CardContent className="p-0">
-            {/* Individual sale items */}
             <div className="divide-y">
               {product.items.map((item, index) => (
                 <div key={`${key}-${index}`} className="p-4 hover:bg-muted/20">
@@ -154,11 +150,12 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                             Discounted
                           </Badge>
                         )}
-                        {item.isSpecialPrice && (
+                        {/* Commented out special price badge */}
+                        {/* {item.isSpecialPrice && (
                           <Badge variant="secondary" className="text-xs">
                             Special Price
                           </Badge>
-                        )}
+                        )} */}
                       </div>
                     </div>
                     <div className="text-right">
@@ -176,7 +173,6 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               ))}
             </div>
             
-            {/* Product summary */}
             <div className="bg-muted/30 p-4 border-t">
               <div className="flex justify-between items-center">
                 <div>

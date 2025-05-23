@@ -29,10 +29,12 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
       let category: keyof typeof totals
 
       if (item.sackPriceId && !item.perKiloPriceId) {
-        const sackPrice =
-          item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
-            ? item.product.SackPrice[0]?.specialPrice?.price
-            : item.product.SackPrice[0]?.price || 0
+        // Commented out special price implementation
+        // const sackPrice =
+        //   item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
+        //     ? item.product.SackPrice[0]?.specialPrice?.price
+        //     : item.product.SackPrice[0]?.price || 0
+        const sackPrice = item.product.SackPrice[0]?.price || 0;
 
         const displayPrice = item.isDiscounted && item.discountedPrice ? item.discountedPrice : sackPrice
 

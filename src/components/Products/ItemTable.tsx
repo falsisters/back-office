@@ -86,7 +86,8 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                           </Badge>
                           <span className="font-medium text-secondary">₱{sackPrice.price.toFixed(2)}</span>
                           <span className="text-muted-foreground text-xs">(Stock: {sackPrice.stock})</span>
-                          {sackPrice.specialPrice && sackPrice.specialPrice.price > 0 && (
+                          {/* Commented out special price badge */}
+                          {/* {sackPrice.specialPrice && sackPrice.specialPrice.price > 0 && (
                             <Badge
                               variant="secondary"
                               className="text-xs bg-secondary/10 text-secondary border-secondary/20"
@@ -94,7 +95,7 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                               Special: ₱{sackPrice.specialPrice.price.toFixed(2)}
                               (Min: {sackPrice.specialPrice.minimumQty})
                             </Badge>
-                          )}
+                          )} */}
                         </div>
                       ))}
                     </div>
