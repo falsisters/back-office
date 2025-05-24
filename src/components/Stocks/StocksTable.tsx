@@ -1,12 +1,18 @@
-"use client"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { parseProductType } from "../../../utils/parsers/productType.parser"
+"use client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
+import Image from "next/image";
+import { parseProductType } from "../../../utils/parsers/productType.parser";
 
 interface StocksTableProps {
-  products: ProductResponse[]
+  products: ProductResponse[];
 }
 
 export default function StocksTable({ products }: StocksTableProps) {
@@ -16,90 +22,107 @@ export default function StocksTable({ products }: StocksTableProps) {
         <p className="text-muted-foreground mb-2 text-lg">No products found</p>
         <p className="text-muted-foreground">No stock data available</p>
       </div>
-    )
+    );
   }
+
+  const tableRows: Array<{
+    productId: string;
+    productName: string;
+    productImage: string;
+    isFirstRow: boolean;
+    rowSpan: number;
+    type: string;
+    price: number;
+    stock: number;
+    isPerKilo: boolean;
+  }> = [];
+
+  products.forEach((product) => {
+    let rowCount = product.SackPrice.length;
+    if (product.perKiloPrice) rowCount += 1;
+
+    product.SackPrice.forEach((sack, index) => {
+      tableRows.push({
+        productId: product.id,
+        productName: product.name,
+        productImage: product.picture || "/placeholder.svg",
+        isFirstRow: index === 0,
+        rowSpan: rowCount,
+        type: sack.type,
+        price: sack.price,
+        stock: sack.stock,
+        isPerKilo: false,
+      });
+    });
+
+    if (product.perKiloPrice) {
+      tableRows.push({
+        productId: product.id,
+        productName: product.name,
+        productImage: product.picture || "/placeholder.svg",
+        isFirstRow: product.SackPrice.length === 0,
+        rowSpan: rowCount,
+        type: "PER_KILO",
+        price: product.perKiloPrice.price,
+        stock: product.perKiloPrice.stock,
+        isPerKilo: true,
+      });
+    }
+  });
 
   return (
     <div className="border rounded-md overflow-hidden shadow-sm">
       <Table>
         <TableHeader>
           <TableRow className="bg-primary/5">
-            <TableHead className="font-semibold text-base">Product</TableHead>
-            <TableHead className="font-semibold text-base">Sack Types</TableHead>
-            <TableHead className="font-semibold text-base">Per Kilo</TableHead>
-            <TableHead className="font-semibold text-base text-right">Total Stock</TableHead>
+            <TableHead className="font-semibold text-base w-[30%]">Product</TableHead>
+            <TableHead className="font-semibold text-base w-[20%]">Type</TableHead>
+            <TableHead className="font-semibold text-base w-[50%]">Stock</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => {
-            const totalSackStock = product.SackPrice.reduce((sum, sack) => sum + sack.stock, 0)
-            const totalKiloStock = product.perKiloPrice?.stock || 0
-
-            return (
-              <TableRow key={product.id} className="hover:bg-muted/30 text-base">
-                <TableCell className="font-medium py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0 border">
+          {tableRows.map((row, index) => (
+            <TableRow
+              key={`${row.productId}-${row.type}-${index}`}
+              className={`hover:bg-muted/30 text-base ${
+                !row.isFirstRow ? "border-t-0" : ""
+              }`}
+            >
+              {row.isFirstRow && (
+                <TableCell
+                  className="font-medium py-1 pl-4 pr-2"
+                  rowSpan={row.rowSpan}
+                  style={{ verticalAlign: "middle" }}
+                >
+                  <div className="flex items-center">
+                    <div className="relative w-20 h-20 rounded-md overflow-hidden flex-shrink-0 border">
                       <Image
-                        src={product.picture || "/placeholder.svg"}
-                        alt={product.name}
+                        src={row.productImage || "/placeholder.svg"}
+                        alt={row.productName}
                         fill
                         className="object-cover"
                       />
                     </div>
-                    <div>
-                      <div className="text-base font-medium">{product.name}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{product.SackPrice.length} sack types</div>
+                    <div className="text-lg font-bold ml-3">
+                      {row.productName}
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="py-4">
-                  <div className="flex flex-wrap gap-2">
-                    {product.SackPrice.length > 0 ? (
-                      product.SackPrice.map((sack) => (
-                        <div key={sack.id} className="bg-white rounded-md border p-2 flex flex-col">
-                          <div className="font-medium text-sm">{parseProductType(sack.type)}</div>
-                          <div className="flex justify-between items-center gap-3 mt-1">
-                            <span className="text-xs text-muted-foreground">₱{sack.price.toFixed(2)}</span>
-                            <Badge variant="outline" className="text-xs font-semibold">
-                              {sack.stock} in stock
-                            </Badge>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-muted-foreground">No sack types</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="py-4">
-                  {product.perKiloPrice ? (
-                    <div className="bg-white rounded-md border p-2 flex flex-col max-w-[150px]">
-                      <div className="font-medium text-sm">{parseProductType("PER_KILO")}</div>
-                      <div className="flex justify-between items-center gap-3 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          ₱{product.perKiloPrice.price.toFixed(2)}/kg
-                        </span>
-                        <Badge variant="outline" className="text-xs font-semibold">
-                          {product.perKiloPrice.stock} kg
-                        </Badge>
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">N/A</span>
-                  )}
-                </TableCell>
-                <TableCell className="py-4 text-right">
-                  <div className="flex flex-col items-end">
-                    <div className="font-semibold text-base">{totalSackStock} sacks</div>
-                    {totalKiloStock > 0 && <div className="text-sm text-muted-foreground">{totalKiloStock} kg</div>}
-                  </div>
-                </TableCell>
-              </TableRow>
-            )
-          })}
+              )}
+              <TableCell className="pl-2 pr-1">
+                <div className="font-bold text-base">
+                  {parseProductType(row.type)}
+                </div>
+              </TableCell>
+              <TableCell className="pl-1 pr-4">
+                <div className="font-semibold text-base">
+                  {row.stock} {row.isPerKilo ? "kg" : "sacks"}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
