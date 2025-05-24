@@ -27,9 +27,11 @@ interface ProfitItem {
 
 interface ProfitTrackerProps {
   salesData: ProfitItem[]
+  previousDaySalesData: ProfitItem[]
+  selectedDate: Date
 }
 
-export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
+export default function ProfitTracker({ salesData, previousDaySalesData, selectedDate }: ProfitTrackerProps) {
   const filteredSalesData = salesData.filter((item) => item.priceType === "sack")
 
   // Group sales data with proper type separation
@@ -73,6 +75,42 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
   const asinTotalProfit = useMemo(() => calculateTotalProfits(asinProducts), [asinProducts, calculateTotalProfits])
   const otherTotalProfit = useMemo(() => calculateTotalProfits(otherProducts), [otherProducts, calculateTotalProfits])
   const grandTotalProfit = asinTotalProfit + otherTotalProfit
+
+  // Previous day's data
+  const previousDayProducts = previousDaySalesData.filter((item) => item.priceType === "sack")
+  const previousDayProductGroups = previousDayProducts.reduce(
+    (acc, item) => {
+      const key = `${item.productName}-${item.sackType || ""}`
+
+      if (!acc[key]) {
+        acc[key] = {
+          ...item,
+          productName: item.productName,
+          sackType: item.sackType,
+          priceType: "sack",
+          normalQty: item.normalQty,
+          specialQty: item.specialQty,
+          normalProfit: item.normalProfit,
+          specialProfit: item.specialProfit,
+          isAsin: item.isAsin,
+        }
+      } else {
+        acc[key].normalQty += item.normalQty
+        acc[key].specialQty += item.specialQty
+      }
+      return acc
+    },
+    {} as Record<string, ProfitItem>,
+  )
+  const previousDayGroupedProducts = Object.values(previousDayProductGroups)
+  const previousDayAsinProducts = previousDayGroupedProducts.filter((p) => p.isAsin)
+  const previousDayOtherProducts = previousDayGroupedProducts.filter((p) => !p.isAsin)
+
+  const previousDayAsinTotalProfit = useMemo(() => calculateTotalProfits(previousDayAsinProducts), [previousDayAsinProducts, calculateTotalProfits])
+  const previousDayOtherTotalProfit = useMemo(() => calculateTotalProfits(previousDayOtherProducts), [previousDayOtherProducts, calculateTotalProfits])
+  const previousDayGrandTotal = previousDayAsinTotalProfit + previousDayOtherTotalProfit
+
+  const overallGrandTotal = grandTotalProfit + previousDayGrandTotal
 
   // Create separate rows for regular and special prices
   const createProductRows = (products: ProfitItem[]) => {
@@ -200,14 +238,32 @@ export default function ProfitTracker({ salesData }: ProfitTrackerProps) {
       </CardHeader>
       <CardContent className="space-y-6 pt-4">
         <div className="space-y-6">
+          {/* Current Day's Tables */}
           {renderProductTable(otherProducts, "RICE AND OTHER PRODUCTS PROFITS")}
           {renderProductTable(asinProducts, "ASIN PROFITS")}
         </div>
+
+        {/* Overall Total Card */}
         <Card className="shadow-md border-t-4 border-t-secondary">
           <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
-            <CardTitle className="text-secondary">Grand Total Profit</CardTitle>
+            <CardTitle className="text-secondary">Overall Total Profit (2 Days)</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-right text-secondary">₱{grandTotalProfit}</CardContent>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between text-lg">
+                <span>Previous Day ({new Date(selectedDate.getTime() - 86400000).toLocaleDateString()}):</span>
+                <span className="font-semibold">₱{previousDayGrandTotal}</span>
+              </div>
+              <div className="flex justify-between text-lg">
+                <span>Current Day ({selectedDate.toLocaleDateString()}):</span>
+                <span className="font-semibold">₱{grandTotalProfit}</span>
+              </div>
+              <div className="flex justify-between text-2xl border-t pt-2">
+                <span className="font-bold">Overall Total:</span>
+                <span className="font-bold text-secondary">₱{overallGrandTotal}</span>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </CardContent>
     </Card>

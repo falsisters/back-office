@@ -16,6 +16,7 @@ export default function ProfitList() {
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1);
+  const [previousDaySales, setPreviousDaySales] = useState<GetAllSalesByUserIdPayload>([]);
   
   const formattedSelectedMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
 
@@ -27,11 +28,21 @@ export default function ProfitList() {
         setSales(data);
         
         let filtered;
+        let previousDayFiltered;
+
         if (dateFilterMode === "day") {
-          const today = new Date();
+          const selectedDate = date || new Date();
+          const previousDate = new Date(selectedDate);
+          previousDate.setDate(previousDate.getDate() - 1);
+
           filtered = data.filter((sale) => {
             const saleDate = new Date(sale.createdAt);
-            return saleDate.toDateString() === today.toDateString();
+            return saleDate.toDateString() === selectedDate.toDateString();
+          });
+
+          previousDayFiltered = data.filter((sale) => {
+            const saleDate = new Date(sale.createdAt);
+            return saleDate.toDateString() === previousDate.toDateString();
           });
         } else {
           const [year, month] = formattedSelectedMonth.split('-').map(Number);
@@ -42,6 +53,7 @@ export default function ProfitList() {
         }
         
         setFilteredSales(filtered);
+        setPreviousDaySales(previousDayFiltered || []);
       } catch (error) {
         console.error("Error loading sales:", error);
       } finally {
@@ -49,7 +61,7 @@ export default function ProfitList() {
       }
     };
     loadSales();
-  }, [dateFilterMode, formattedSelectedMonth]);
+  }, [dateFilterMode, date, formattedSelectedMonth]);
 
   useEffect(() => {
     let filtered = [...sales];
@@ -71,6 +83,57 @@ export default function ProfitList() {
   }, [date, sales, dateFilterMode, formattedSelectedMonth]);
 
   const mappedSalesData = filteredSales.flatMap((sale) =>
+    sale.SaleItem.map((item) => {
+      const isSack = !!item.sackPriceId;
+      const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
+      const sackType = item.sackType as SackType | undefined;
+      
+      // Commented out special price implementation
+      // const isSpecial = item.isSpecialPrice;
+      const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
+      
+      let basePrice = 0;
+      let originalProfit = 0;
+
+      if (isSack) {
+        // if (isSpecial && sackPrice?.specialPrice?.price) {
+        //   basePrice = sackPrice.specialPrice.price;
+        //   originalProfit = sackPrice.specialPrice.profit || 0;
+        // } else {
+          basePrice = sackPrice?.price || 0;
+          originalProfit = sackPrice?.profit || 0;
+        // }
+      } else {
+        basePrice = item.product.perKiloPrice?.price || 0;
+        originalProfit = item.product.perKiloPrice?.profit || 0;
+      }
+
+      if (item.isDiscounted && item.discountedPrice) {
+        const discountAmount = basePrice - item.discountedPrice;
+        originalProfit -= discountAmount;
+      }
+
+      // Commented out special profit calculations
+      // const normalProfit = !isSpecial ? originalProfit : 0;
+      // const specialProfit = isSpecial ? originalProfit : 0;
+      const normalProfit = originalProfit;
+      const specialProfit = 0; // Always 0 since we're hiding special prices
+
+      return {
+        productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
+        productName: item.product.name,
+        sackType: sackType,
+        priceType: priceType,
+        normalQty: item.quantity, // Always use full quantity since no special prices
+        specialQty: 0, // Always 0 since we're hiding special prices
+        isAsin: item.product.name.toLowerCase().includes("asin"),
+        normalProfit: normalProfit,
+        specialProfit: specialProfit,
+      };
+    })
+  );
+
+  const previousDayMappedSalesData = previousDaySales.flatMap((sale) =>
     sale.SaleItem.map((item) => {
       const isSack = !!item.sackPriceId;
       const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
@@ -151,8 +214,12 @@ export default function ProfitList() {
         <LoadingSales />
       ) : (
         <>
-          {filteredSales.length > 0 ? (
-            <ProfitTracker salesData={mappedSalesData} />
+          {filteredSales.length > 0 || previousDaySales.length > 0 ? (
+            <ProfitTracker 
+              salesData={mappedSalesData} 
+              previousDaySalesData={previousDayMappedSalesData}
+              selectedDate={date || new Date()}
+            />
           ) : (
             <div className="bg-gray-50 rounded-lg p-6 text-center">
               <p className="text-gray-500 text-lg">No profit data available for the selected period.</p>
