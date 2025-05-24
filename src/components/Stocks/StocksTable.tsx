@@ -85,12 +85,12 @@ export default function StocksTable({ products }: StocksTableProps) {
             <TableRow
               key={`${row.productId}-${row.type}-${index}`}
               className={`hover:bg-muted/30 text-base ${
-                !row.isFirstRow ? "border-t-0" : ""
-              }`}
+                !row.isFirstRow ? "border-t border-black/40" : "border-t-2 border-black/40"
+              } ${row.isFirstRow ? "py-8" : "py-2"}`}
             >
               {row.isFirstRow && (
                 <TableCell
-                  className="font-medium py-1 pl-4 pr-2"
+                  className="font-medium py-6 pl-4 pr-2"
                   rowSpan={row.rowSpan}
                   style={{ verticalAlign: "middle" }}
                 >
