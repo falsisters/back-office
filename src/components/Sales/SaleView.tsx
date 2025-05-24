@@ -132,8 +132,8 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           {asinSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-semibold">Total Sales:</span>
-                <span className="font-mono font-bold text-lg text-secondary">
+                <span className="font-semibold text-primary">Total Sales:</span>
+                <span className="font-mono font-bold text-lg text-primary">
                   ₱{Math.floor(calculateTotalSales(asinSackItems)).toLocaleString()}
                 </span>
               </div>
@@ -216,8 +216,8 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           {otherSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-semibold">Total Sales:</span>
-                <span className="font-mono font-bold text-lg text-secondary">
+                <span className="font-semibold text-primary">Total Sales:</span>
+                <span className="font-mono font-bold text-lg text-primary">
                   ₱{Math.floor(calculateTotalSales(otherSackItems)).toLocaleString()}
                 </span>
               </div>
@@ -288,8 +288,8 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           {perKiloPriceItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-semibold">Total Sales:</span>
-                <span className="font-mono font-bold text-lg text-secondary">
+                <span className="font-semibold text-primary">Total Sales:</span>
+                <span className="font-mono font-bold text-lg text-primary">
                   ₱{Math.floor(calculateTotalSales(perKiloPriceItems)).toLocaleString()}
                 </span>
               </div>

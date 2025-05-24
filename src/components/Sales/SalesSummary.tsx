@@ -146,10 +146,10 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
               </TableRow>
               <TableRow className="border-t-2 border-t-secondary/20">
                 <TableCell className="font-bold text-primary flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-secondary" />
+                  <DollarSign className="h-4 w-4 text-primary" />
                   Net Cash Total:
                 </TableCell>
-                <TableCell className="text-right font-bold text-secondary text-xl">
+                <TableCell className="text-right font-bold text-primary text-xl">
                   ₱{Math.floor(grandTotal.cash).toLocaleString()}
                 </TableCell>
               </TableRow>
