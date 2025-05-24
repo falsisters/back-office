@@ -28,7 +28,7 @@ export default function ProfitList() {
         setSales(data);
         
         let filtered;
-        let previousDayFiltered;
+        let previousDayFiltered: { id: string; cashierId: string; totalAmount: number; paymentMethod: "CASH" | "BANK_TRANSFER" | "CHECK"; createdAt: Date; updatedAt: Date; cashier: { id: string; createdAt: Date; updatedAt: Date; name: string; accessKey: string; secureCode: string; permissions: ("SALES" | "DELIVERIES" | "STOCKS" | "EDIT_PRICE" | "KAHON" | "PROFITS" | "ATTACHMENTS" | "SALES_HISTORY")[]; userId: string; inventoryId?: string | null | undefined; kahonId?: string | null | undefined; }; SaleItem: { id: string; createdAt: Date; updatedAt: Date; quantity: number; isDiscounted: boolean; productId: string; saleId: string; isGantang: boolean; isSpecialPrice: boolean; product: { id: string; createdAt: Date; updatedAt: Date; name: string; userId: string; picture: string; SackPrice: { type: "FIFTY_KG" | "TWENTY_FIVE_KG" | "FIVE_KG"; price: number; profit: number; specialPrice?: { price: number; profit: number; } | undefined; }[]; perKiloPrice?: { price: number; profit: number; } | undefined; }; discountedPrice?: number | null | undefined; sackPriceId?: string | null | undefined; sackType?: "FIFTY_KG" | "TWENTY_FIVE_KG" | "FIVE_KG" | null | undefined; perKiloPriceId?: string | null | undefined; }[]; }[];
 
         if (dateFilterMode === "day") {
           const selectedDate = date || new Date();
@@ -50,6 +50,7 @@ export default function ProfitList() {
             const saleDate = new Date(sale.createdAt);
             return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
           });
+          previousDayFiltered = []; // No previous data needed for monthly view
         }
         
         setFilteredSales(filtered);
@@ -219,6 +220,7 @@ export default function ProfitList() {
               salesData={mappedSalesData} 
               previousDaySalesData={previousDayMappedSalesData}
               selectedDate={date || new Date()}
+              dateFilterMode={dateFilterMode}
             />
           ) : (
             <div className="bg-gray-50 rounded-lg p-6 text-center">

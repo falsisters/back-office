@@ -29,9 +29,10 @@ interface ProfitTrackerProps {
   salesData: ProfitItem[]
   previousDaySalesData: ProfitItem[]
   selectedDate: Date
+  dateFilterMode: "day" | "month" // Add this prop
 }
 
-export default function ProfitTracker({ salesData, previousDaySalesData, selectedDate }: ProfitTrackerProps) {
+export default function ProfitTracker({ salesData, previousDaySalesData, selectedDate, dateFilterMode }: ProfitTrackerProps) {
   const filteredSalesData = salesData.filter((item) => item.priceType === "sack")
 
   // Group sales data with proper type separation
@@ -243,25 +244,36 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
           {renderProductTable(asinProducts, "ASIN PROFITS")}
         </div>
 
-        {/* Overall Total Card */}
+        {/* Updated Overall Total Card */}
         <Card className="shadow-md border-t-4 border-t-secondary">
           <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
-            <CardTitle className="text-secondary">Overall Total Profit (2 Days)</CardTitle>
+            <CardTitle className="text-secondary">
+              {dateFilterMode === "day" ? "Overall Total Profit (2 Days)" : "Total Month Profit"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-lg">
-                <span>Previous Day ({new Date(selectedDate.getTime() - 86400000).toLocaleDateString()}):</span>
-                <span className="font-semibold">₱{previousDayGrandTotal}</span>
-              </div>
-              <div className="flex justify-between text-lg">
-                <span>Current Day ({selectedDate.toLocaleDateString()}):</span>
-                <span className="font-semibold">₱{grandTotalProfit}</span>
-              </div>
-              <div className="flex justify-between text-2xl border-t pt-2">
-                <span className="font-bold">Overall Total:</span>
-                <span className="font-bold text-secondary">₱{overallGrandTotal}</span>
-              </div>
+              {dateFilterMode === "day" ? (
+                <>
+                  <div className="flex justify-between text-lg">
+                    <span>Previous Day ({new Date(selectedDate.getTime() - 86400000).toLocaleDateString()}):</span>
+                    <span className="font-semibold">₱{previousDayGrandTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-lg">
+                    <span>Current Day ({selectedDate.toLocaleDateString()}):</span>
+                    <span className="font-semibold">₱{grandTotalProfit}</span>
+                  </div>
+                  <div className="flex justify-between text-2xl border-t pt-2">
+                    <span className="font-bold">Overall Total:</span>
+                    <span className="font-bold text-secondary">₱{overallGrandTotal}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between text-2xl border-t pt-2">
+                  <span className="font-bold mt-2">Total:</span>
+                  <span className="font-bold text-secondary mt-2">₱{grandTotalProfit}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
