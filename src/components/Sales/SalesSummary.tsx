@@ -1,18 +1,22 @@
-"use client"
+"use client";
 
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
-import { ShoppingBag, CreditCard, Banknote, DollarSign } from "lucide-react"
+import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { ShoppingBag, CreditCard, Banknote, DollarSign } from "lucide-react";
 
 interface CategoryTotals {
-  sales: number
-  quantity: number
-  check: number
-  bankTransfer: number
+  sales: number;
+  quantity: number;
+  check: number;
+  bankTransfer: number;
 }
 
-export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayload }) {
+export default function SalesSummary({
+  sales,
+}: {
+  sales: GetAllSalesByUserIdPayload;
+}) {
   const totals = {
     // Sack price items
     asinSack: { sales: 0, quantity: 0, check: 0, bankTransfer: 0 },
@@ -20,57 +24,68 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
     // Per kilo price items
     asinKilo: { sales: 0, quantity: 0, check: 0, bankTransfer: 0 },
     otherKilo: { sales: 0, quantity: 0, check: 0, bankTransfer: 0 },
-  }
+  };
 
   sales.forEach((sale) => {
     sale.SaleItem.forEach((item) => {
-      const isAsin = item.product.name.toLowerCase().includes("asin")
-      let category: keyof typeof totals
+      const isAsin = item.product.name.toLowerCase().includes("asin");
+      let category: keyof typeof totals;
 
       if (item.sackPriceId && !item.perKiloPriceId) {
+        const matchingSackPrice = item.product.SackPrice.find(
+          (sp) => sp.type === item.sackType
+        );
         // Commented out special price implementation
         // const sackPrice =
         //   item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
         //     ? item.product.SackPrice[0]?.specialPrice?.price
         //     : item.product.SackPrice[0]?.price || 0
-        const sackPrice = item.product.SackPrice[0]?.price || 0;
 
-        const displayPrice = item.isDiscounted && item.discountedPrice ? item.discountedPrice : sackPrice
+        // Get the correct sack price based on type
+        const sackPrice = matchingSackPrice?.price || 0;
+        const displayPrice =
+          item.isDiscounted && item.discountedPrice
+            ? item.discountedPrice
+            : sackPrice;
 
-        const itemTotal = displayPrice * item.quantity
+        const itemTotal = displayPrice * item.quantity;
 
-        category = isAsin ? "asinSack" : "otherSack"
+        category = isAsin ? "asinSack" : "otherSack";
 
-        totals[category].sales += itemTotal
-        totals[category].quantity += item.quantity
+        totals[category].sales += itemTotal;
+        totals[category].quantity += item.quantity;
 
         if (sale.paymentMethod === "CHECK") {
-          totals[category].check += itemTotal
+          totals[category].check += itemTotal;
         } else if (sale.paymentMethod === "BANK_TRANSFER") {
-          totals[category].bankTransfer += itemTotal
+          totals[category].bankTransfer += itemTotal;
         }
       } else if (item.perKiloPriceId && !item.sackPriceId) {
-        const kiloPrice = item.product.perKiloPrice?.price || 0
+        const kiloPrice = item.product.perKiloPrice?.price || 0;
 
-        const displayPrice = item.isDiscounted && item.discountedPrice ? item.discountedPrice : kiloPrice
+        const displayPrice =
+          item.isDiscounted && item.discountedPrice
+            ? item.discountedPrice
+            : kiloPrice;
 
-        const itemTotal = displayPrice * item.quantity
+        const itemTotal = displayPrice * item.quantity;
 
-        category = isAsin ? "asinKilo" : "otherKilo"
+        category = isAsin ? "asinKilo" : "otherKilo";
 
-        totals[category].sales += itemTotal
-        totals[category].quantity += item.quantity
+        totals[category].sales += itemTotal;
+        totals[category].quantity += item.quantity;
 
         if (sale.paymentMethod === "CHECK") {
-          totals[category].check += itemTotal
+          totals[category].check += itemTotal;
         } else if (sale.paymentMethod === "BANK_TRANSFER") {
-          totals[category].bankTransfer += itemTotal
+          totals[category].bankTransfer += itemTotal;
         }
       }
-    })
-  })
+    });
+  });
 
-  const calculateCash = (category: CategoryTotals) => category.sales - category.check - category.bankTransfer
+  const calculateCash = (category: CategoryTotals) =>
+    category.sales - category.check - category.bankTransfer;
 
   // Calculate totals for sack items, per kilo items, and grand total
   const sackTotal = {
@@ -79,7 +94,7 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
     check: totals.asinSack.check + totals.otherSack.check,
     bankTransfer: totals.asinSack.bankTransfer + totals.otherSack.bankTransfer,
     cash: calculateCash(totals.asinSack) + calculateCash(totals.otherSack),
-  }
+  };
 
   const kiloTotal = {
     sales: totals.asinKilo.sales + totals.otherKilo.sales,
@@ -87,7 +102,7 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
     check: totals.asinKilo.check + totals.otherKilo.check,
     bankTransfer: totals.asinKilo.bankTransfer + totals.otherKilo.bankTransfer,
     cash: calculateCash(totals.asinKilo) + calculateCash(totals.otherKilo),
-  }
+  };
 
   const grandTotal = {
     sales: sackTotal.sales + kiloTotal.sales,
@@ -95,7 +110,7 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
     check: sackTotal.check + kiloTotal.check,
     bankTransfer: sackTotal.bankTransfer + kiloTotal.bankTransfer,
     cash: sackTotal.cash + kiloTotal.cash,
-  }
+  };
 
   return (
     <>
@@ -115,7 +130,9 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
                   <ShoppingBag className="h-4 w-4 text-primary" />
                   Total Quantity:
                 </TableCell>
-                <TableCell className="text-right font-semibold">{grandTotal.quantity}</TableCell>
+                <TableCell className="text-right font-semibold">
+                  {grandTotal.quantity}
+                </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium flex items-center gap-2">
@@ -158,5 +175,5 @@ export default function SalesSummary({ sales }: { sales: GetAllSalesByUserIdPayl
         </CardContent>
       </Card>
     </>
-  )
+  );
 }
