@@ -6,7 +6,7 @@ import ProfitTracker from "@/components/Sales/ProfitTracker";
 import { type SackType } from "../../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../../utils/types/getAllSalesByUserId.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";
-import { LoadingSales } from "@/components/Sales/LoadingSales";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfitList() {
   const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
@@ -88,45 +88,27 @@ export default function ProfitList() {
       const isSack = !!item.sackPriceId;
       const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
       const sackType = item.sackType as SackType | undefined;
-      
-      // Commented out special price implementation
-      // const isSpecial = item.isSpecialPrice;
       const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
       
-      let basePrice = 0;
       let originalProfit = 0;
 
       if (isSack) {
-        // if (isSpecial && sackPrice?.specialPrice?.price) {
-        //   basePrice = sackPrice.specialPrice.price;
-        //   originalProfit = sackPrice.specialPrice.profit || 0;
-        // } else {
-          basePrice = sackPrice?.price || 0;
-          originalProfit = sackPrice?.profit || 0;
-        // }
+        originalProfit = sackPrice?.profit || 0;
       } else {
-        basePrice = item.product.perKiloPrice?.price || 0;
         originalProfit = item.product.perKiloPrice?.profit || 0;
       }
 
-      if (item.isDiscounted && item.discountedPrice) {
-        const discountAmount = basePrice - item.discountedPrice;
-        originalProfit -= discountAmount;
-      }
-
-      // Commented out special profit calculations
-      // const normalProfit = !isSpecial ? originalProfit : 0;
-      // const specialProfit = isSpecial ? originalProfit : 0;
       const normalProfit = originalProfit;
-      const specialProfit = 0; // Always 0 since we're hiding special prices
+      const specialProfit = 0;
 
       return {
         productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
         productName: item.product.name,
+        productImage: item.product.picture,
         sackType: sackType,
         priceType: priceType,
-        normalQty: item.quantity, // Always use full quantity since no special prices
-        specialQty: 0, // Always 0 since we're hiding special prices
+        normalQty: item.quantity,
+        specialQty: 0,
         isAsin: item.product.name.toLowerCase().includes("asin"),
         normalProfit: normalProfit,
         specialProfit: specialProfit,
@@ -139,45 +121,27 @@ export default function ProfitList() {
       const isSack = !!item.sackPriceId;
       const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
       const sackType = item.sackType as SackType | undefined;
-      
-      // Commented out special price implementation
-      // const isSpecial = item.isSpecialPrice;
       const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
       
-      let basePrice = 0;
       let originalProfit = 0;
 
       if (isSack) {
-        // if (isSpecial && sackPrice?.specialPrice?.price) {
-        //   basePrice = sackPrice.specialPrice.price;
-        //   originalProfit = sackPrice.specialPrice.profit || 0;
-        // } else {
-          basePrice = sackPrice?.price || 0;
-          originalProfit = sackPrice?.profit || 0;
-        // }
+        originalProfit = sackPrice?.profit || 0;
       } else {
-        basePrice = item.product.perKiloPrice?.price || 0;
         originalProfit = item.product.perKiloPrice?.profit || 0;
       }
 
-      if (item.isDiscounted && item.discountedPrice) {
-        const discountAmount = basePrice - item.discountedPrice;
-        originalProfit -= discountAmount;
-      }
-
-      // Commented out special profit calculations
-      // const normalProfit = !isSpecial ? originalProfit : 0;
-      // const specialProfit = isSpecial ? originalProfit : 0;
       const normalProfit = originalProfit;
-      const specialProfit = 0; // Always 0 since we're hiding special prices
+      const specialProfit = 0;
 
       return {
         productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
         productName: item.product.name,
+        productImage: item.product.picture,
         sackType: sackType,
         priceType: priceType,
-        normalQty: item.quantity, // Always use full quantity since no special prices
-        specialQty: 0, // Always 0 since we're hiding special prices
+        normalQty: item.quantity,
+        specialQty: 0,
         isAsin: item.product.name.toLowerCase().includes("asin"),
         normalProfit: normalProfit,
         specialProfit: specialProfit,
@@ -212,7 +176,10 @@ export default function ProfitList() {
       />
 
       {isLoading ? (
-        <LoadingSales />
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
+          <Spinner/>
+          <p className="text-gray-500 mt-4">Loading profit data...</p>
+        </div>
       ) : (
         <>
           {filteredSales.length > 0 || previousDaySales.length > 0 ? (

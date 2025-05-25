@@ -75,7 +75,6 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
 
   const asinTotalProfit = useMemo(() => calculateTotalProfits(asinProducts), [asinProducts, calculateTotalProfits])
   const otherTotalProfit = useMemo(() => calculateTotalProfits(otherProducts), [otherProducts, calculateTotalProfits])
-  const grandTotalProfit = asinTotalProfit + otherTotalProfit
 
   // Previous day's data
   const previousDayProducts = previousDaySalesData.filter((item) => item.priceType === "sack")
@@ -109,16 +108,12 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
 
   const previousDayAsinTotalProfit = useMemo(() => calculateTotalProfits(previousDayAsinProducts), [previousDayAsinProducts, calculateTotalProfits])
   const previousDayOtherTotalProfit = useMemo(() => calculateTotalProfits(previousDayOtherProducts), [previousDayOtherProducts, calculateTotalProfits])
-  const previousDayGrandTotal = previousDayAsinTotalProfit + previousDayOtherTotalProfit
-
-  const overallGrandTotal = grandTotalProfit + previousDayGrandTotal
 
   // Create separate rows for regular and special prices
   const createProductRows = (products: ProfitItem[]) => {
     const rows: Array<{
       key: string
       product: string
-      priceType: string
       sackType: string
       quantity: number
       profit: number
@@ -130,7 +125,6 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
         rows.push({
           key: `${item.productKey}-normal`,
           product: item.productName,
-          priceType: "Regular Price",
           sackType: sackTypeLabels[item.sackType!],
           quantity: item.normalQty,
           profit: item.normalProfit,
@@ -142,7 +136,6 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
         rows.push({
           key: `${item.productKey}-special`,
           product: item.productName,
-          priceType: "Special Price",
           sackType: sackTypeLabels[item.sackType!],
           quantity: item.specialQty,
           profit: item.specialProfit || 0,
@@ -170,7 +163,6 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
             <TableHeader>
               <TableRow className="bg-primary/5">
                 <TableHead className="font-semibold">Product</TableHead>
-                <TableHead className="font-semibold">Price Type</TableHead>
                 <TableHead className="font-semibold">Sack Type</TableHead>
                 <TableHead className="font-semibold text-center">Quantity</TableHead>
                 <TableHead className="font-semibold text-center">Profit/Unit</TableHead>
@@ -182,29 +174,10 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
                 <TableRow key={row.key} className="hover:bg-muted/20">
                   <TableCell className="font-medium">{row.product}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        row.priceType === "Regular Price"
-                          ? "bg-primary/5 text-primary border-primary/20"
-                          : "bg-secondary/10 text-secondary border-secondary/20"
-                      }
-                    >
-                      {row.priceType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant="outline">{row.sackType}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge
-                      variant="outline"
-                      className={
-                        row.priceType === "Regular Price"
-                          ? "bg-primary/5 text-primary border-primary/20"
-                          : "bg-secondary/10 text-secondary border-secondary/20"
-                      }
-                    >
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
                       {row.quantity}
                     </Badge>
                   </TableCell>
@@ -215,10 +188,10 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5} className="font-bold">
+                <TableCell colSpan={4} className="font-bold text-primary">
                   Total Profit
                 </TableCell>
-                <TableCell className="text-right font-bold text-secondary">
+                <TableCell className="text-right font-bold text-primary">
                   ₱{title === "ASIN PROFITS" ? asinTotalProfit : otherTotalProfit}
                 </TableCell>
               </TableRow>
@@ -239,44 +212,70 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
       </CardHeader>
       <CardContent className="space-y-6 pt-4">
         <div className="space-y-6">
-          {/* Current Day's Tables */}
           {renderProductTable(otherProducts, "RICE AND OTHER PRODUCTS PROFITS")}
           {renderProductTable(asinProducts, "ASIN PROFITS")}
         </div>
 
-        {/* Updated Overall Total Card */}
-        <Card className="shadow-md border-t-4 border-t-secondary">
-          <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
-            <CardTitle className="text-secondary">
-              {dateFilterMode === "day" ? "Overall Total Profit (2 Days)" : "Total Month Profit"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+        {/* Split Overall Total into Two Cards */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="shadow-md border-t-4 border-t-secondary">
+            <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
+              <CardTitle className="text-secondary text-lg">Rice and Other Products Total</CardTitle>
+            </CardHeader>
+            <CardContent>
               {dateFilterMode === "day" ? (
-                <>
-                  <div className="flex justify-between text-lg">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
                     <span>Previous Day ({new Date(selectedDate.getTime() - 86400000).toLocaleDateString()}):</span>
-                    <span className="font-semibold">₱{previousDayGrandTotal}</span>
+                    <span className="font-semibold text-primary">₱{previousDayOtherTotalProfit}</span>
                   </div>
-                  <div className="flex justify-between text-lg">
+                  <div className="flex justify-between">
                     <span>Current Day ({selectedDate.toLocaleDateString()}):</span>
-                    <span className="font-semibold">₱{grandTotalProfit}</span>
+                    <span className="font-semibold text-primary">₱{otherTotalProfit}</span>
                   </div>
-                  <div className="flex justify-between text-2xl border-t pt-2">
-                    <span className="font-bold">Overall Total:</span>
-                    <span className="font-bold text-secondary">₱{overallGrandTotal}</span>
+                  <div className="flex justify-between text-lg border-t pt-2">
+                    <span className="font-bold text-primary">Total:</span>
+                    <span className="font-bold text-primary">₱{otherTotalProfit + previousDayOtherTotalProfit}</span>
                   </div>
-                </>
+                </div>
               ) : (
-                <div className="flex justify-between text-2xl border-t pt-2">
-                  <span className="font-bold mt-2">Total:</span>
-                  <span className="font-bold text-secondary mt-2">₱{grandTotalProfit}</span>
+                <div className="flex justify-between text-lg">
+                  <span className="font-bold text-primary">Total:</span>
+                  <span className="font-bold text-primary">₱{otherTotalProfit}</span>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-t-4 border-t-secondary">
+            <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
+              <CardTitle className="text-secondary text-lg">Asin Products Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dateFilterMode === "day" ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Previous Day ({new Date(selectedDate.getTime() - 86400000).toLocaleDateString()}):</span>
+                    <span className="font-semibold text-primary">₱{previousDayAsinTotalProfit}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Current Day ({selectedDate.toLocaleDateString()}):</span>
+                    <span className="font-semibold text-primary">₱{asinTotalProfit}</span>
+                  </div>
+                  <div className="flex justify-between text-lg border-t pt-2">
+                    <span className="font-bold text-primary">Total:</span>
+                    <span className="font-bold text-primary">₱{asinTotalProfit + previousDayAsinTotalProfit}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between text-lg">
+                  <span className="font-bold text-primary">Total:</span>
+                  <span className="font-bold text-primary">₱{asinTotalProfit}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </CardContent>
     </Card>
   )
