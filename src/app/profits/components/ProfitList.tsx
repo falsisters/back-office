@@ -6,7 +6,7 @@ import ProfitTracker from "@/components/Sales/ProfitTracker";
 import { type SackType } from "../../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../../utils/types/getAllSalesByUserId.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";
-import { LoadingSales } from "@/components/Sales/LoadingSales";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfitList() {
   const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
@@ -16,6 +16,7 @@ export default function ProfitList() {
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1);
+  const [previousDaySales, setPreviousDaySales] = useState<GetAllSalesByUserIdPayload>([]);
   
   const formattedSelectedMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
 
@@ -27,11 +28,21 @@ export default function ProfitList() {
         setSales(data);
         
         let filtered;
+        let previousDayFiltered: { id: string; cashierId: string; totalAmount: number; paymentMethod: "CASH" | "BANK_TRANSFER" | "CHECK"; createdAt: Date; updatedAt: Date; cashier: { id: string; createdAt: Date; updatedAt: Date; name: string; accessKey: string; secureCode: string; permissions: ("SALES" | "DELIVERIES" | "STOCKS" | "EDIT_PRICE" | "KAHON" | "PROFITS" | "ATTACHMENTS" | "SALES_HISTORY")[]; userId: string; inventoryId?: string | null | undefined; kahonId?: string | null | undefined; }; SaleItem: { id: string; createdAt: Date; updatedAt: Date; quantity: number; isDiscounted: boolean; productId: string; saleId: string; isGantang: boolean; isSpecialPrice: boolean; product: { id: string; createdAt: Date; updatedAt: Date; name: string; userId: string; picture: string; SackPrice: { type: "FIFTY_KG" | "TWENTY_FIVE_KG" | "FIVE_KG"; price: number; profit: number; specialPrice?: { price: number; profit: number; } | undefined; }[]; perKiloPrice?: { price: number; profit: number; } | undefined; }; discountedPrice?: number | null | undefined; sackPriceId?: string | null | undefined; sackType?: "FIFTY_KG" | "TWENTY_FIVE_KG" | "FIVE_KG" | null | undefined; perKiloPriceId?: string | null | undefined; }[]; }[];
+
         if (dateFilterMode === "day") {
-          const today = new Date();
+          const selectedDate = date || new Date();
+          const previousDate = new Date(selectedDate);
+          previousDate.setDate(previousDate.getDate() - 1);
+
           filtered = data.filter((sale) => {
             const saleDate = new Date(sale.createdAt);
-            return saleDate.toDateString() === today.toDateString();
+            return saleDate.toDateString() === selectedDate.toDateString();
+          });
+
+          previousDayFiltered = data.filter((sale) => {
+            const saleDate = new Date(sale.createdAt);
+            return saleDate.toDateString() === previousDate.toDateString();
           });
         } else {
           const [year, month] = formattedSelectedMonth.split('-').map(Number);
@@ -39,9 +50,11 @@ export default function ProfitList() {
             const saleDate = new Date(sale.createdAt);
             return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
           });
+          previousDayFiltered = []; // No previous data needed for monthly view
         }
         
         setFilteredSales(filtered);
+        setPreviousDaySales(previousDayFiltered || []);
       } catch (error) {
         console.error("Error loading sales:", error);
       } finally {
@@ -49,7 +62,7 @@ export default function ProfitList() {
       }
     };
     loadSales();
-  }, [dateFilterMode, formattedSelectedMonth]);
+  }, [dateFilterMode, date, formattedSelectedMonth]);
 
   useEffect(() => {
     let filtered = [...sales];
@@ -75,41 +88,60 @@ export default function ProfitList() {
       const isSack = !!item.sackPriceId;
       const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
       const sackType = item.sackType as SackType | undefined;
-      
-      const isSpecial = item.isSpecialPrice;
       const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
       
-      let basePrice = 0;
       let originalProfit = 0;
 
       if (isSack) {
-        if (isSpecial && sackPrice?.specialPrice?.price) {
-          basePrice = sackPrice.specialPrice.price;
-          originalProfit = sackPrice.specialPrice.profit || 0;
-        } else {
-          basePrice = sackPrice?.price || 0;
-          originalProfit = sackPrice?.profit || 0;
-        }
+        originalProfit = sackPrice?.profit || 0;
       } else {
-        basePrice = item.product.perKiloPrice?.price || 0;
         originalProfit = item.product.perKiloPrice?.profit || 0;
       }
 
-      if (item.isDiscounted && item.discountedPrice) {
-        const discountAmount = basePrice - item.discountedPrice;
-        originalProfit -= discountAmount;
-      }
-
-      const normalProfit = !isSpecial ? originalProfit : 0;
-      const specialProfit = isSpecial ? originalProfit : 0;
+      const normalProfit = originalProfit;
+      const specialProfit = 0;
 
       return {
         productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
         productName: item.product.name,
+        productImage: item.product.picture,
         sackType: sackType,
         priceType: priceType,
-        normalQty: !isSpecial ? item.quantity : 0,
-        specialQty: isSpecial ? item.quantity : 0,
+        normalQty: item.quantity,
+        specialQty: 0,
+        isAsin: item.product.name.toLowerCase().includes("asin"),
+        normalProfit: normalProfit,
+        specialProfit: specialProfit,
+      };
+    })
+  );
+
+  const previousDayMappedSalesData = previousDaySales.flatMap((sale) =>
+    sale.SaleItem.map((item) => {
+      const isSack = !!item.sackPriceId;
+      const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
+      const sackType = item.sackType as SackType | undefined;
+      const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
+      
+      let originalProfit = 0;
+
+      if (isSack) {
+        originalProfit = sackPrice?.profit || 0;
+      } else {
+        originalProfit = item.product.perKiloPrice?.profit || 0;
+      }
+
+      const normalProfit = originalProfit;
+      const specialProfit = 0;
+
+      return {
+        productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
+        productName: item.product.name,
+        productImage: item.product.picture,
+        sackType: sackType,
+        priceType: priceType,
+        normalQty: item.quantity,
+        specialQty: 0,
         isAsin: item.product.name.toLowerCase().includes("asin"),
         normalProfit: normalProfit,
         specialProfit: specialProfit,
@@ -144,11 +176,19 @@ export default function ProfitList() {
       />
 
       {isLoading ? (
-        <LoadingSales />
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
+          <Spinner/>
+          <p className="text-gray-500 mt-4">Loading profit data...</p>
+        </div>
       ) : (
         <>
-          {filteredSales.length > 0 ? (
-            <ProfitTracker salesData={mappedSalesData} />
+          {filteredSales.length > 0 || previousDaySales.length > 0 ? (
+            <ProfitTracker 
+              salesData={mappedSalesData} 
+              previousDaySalesData={previousDayMappedSalesData}
+              selectedDate={date || new Date()}
+              dateFilterMode={dateFilterMode}
+            />
           ) : (
             <div className="bg-gray-50 rounded-lg p-6 text-center">
               <p className="text-gray-500 text-lg">No profit data available for the selected period.</p>

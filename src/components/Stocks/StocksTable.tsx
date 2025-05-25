@@ -1,162 +1,128 @@
-"use client"
-
-import React from "react"
-import { useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { ChevronDown, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { parseProductType } from "../../../utils/parsers/productType.parser"
+"use client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
+import Image from "next/image";
+import { parseProductType } from "../../../utils/parsers/productType.parser";
 
 interface StocksTableProps {
-  products: ProductResponse[]
+  products: ProductResponse[];
 }
 
 export default function StocksTable({ products }: StocksTableProps) {
-  const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({})
-
-  const toggleProductExpand = (productId: string) => {
-    setExpandedProducts((prev) => ({
-      ...prev,
-      [productId]: !prev[productId],
-    }))
-  }
-
   if (products.length === 0) {
     return (
       <div className="text-center py-12 border rounded-md bg-muted/20">
         <p className="text-muted-foreground mb-2 text-lg">No products found</p>
         <p className="text-muted-foreground">No stock data available</p>
       </div>
-    )
+    );
   }
+
+  const tableRows: Array<{
+    productId: string;
+    productName: string;
+    productImage: string;
+    isFirstRow: boolean;
+    rowSpan: number;
+    type: string;
+    price: number;
+    stock: number;
+    isPerKilo: boolean;
+  }> = [];
+
+  products.forEach((product) => {
+    let rowCount = product.SackPrice.length;
+    if (product.perKiloPrice) rowCount += 1;
+
+    product.SackPrice.forEach((sack, index) => {
+      tableRows.push({
+        productId: product.id,
+        productName: product.name,
+        productImage: product.picture || "/placeholder.svg",
+        isFirstRow: index === 0,
+        rowSpan: rowCount,
+        type: sack.type,
+        price: sack.price,
+        stock: sack.stock,
+        isPerKilo: false,
+      });
+    });
+
+    if (product.perKiloPrice) {
+      tableRows.push({
+        productId: product.id,
+        productName: product.name,
+        productImage: product.picture || "/placeholder.svg",
+        isFirstRow: product.SackPrice.length === 0,
+        rowSpan: rowCount,
+        type: "PER_KILO",
+        price: product.perKiloPrice.price,
+        stock: product.perKiloPrice.stock,
+        isPerKilo: true,
+      });
+    }
+  });
 
   return (
     <div className="border rounded-md overflow-hidden shadow-sm">
       <Table>
         <TableHeader>
           <TableRow className="bg-primary/5">
-            <TableHead className="w-[50px]"></TableHead>
-            <TableHead className="w-[300px] font-semibold text-base">Product</TableHead>
-            <TableHead className="font-semibold text-base">Total Stock (Sacks)</TableHead>
-            <TableHead className="font-semibold text-base">Total Stock (Kg)</TableHead>
+            <TableHead className="font-semibold text-base w-[30%]">Product</TableHead>
+            <TableHead className="font-semibold text-base w-[20%]">Type</TableHead>
+            <TableHead className="font-semibold text-base w-[50%]">Stock</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => {
-            const isExpanded = expandedProducts[product.id] || false
-            const totalSackStock = product.SackPrice.reduce((sum, sack) => sum + sack.stock, 0)
-            const totalKiloStock = product.perKiloPrice?.stock || 0
-
-            return (
-              <React.Fragment key={product.id}>
-                <TableRow className="hover:bg-muted/30 text-base">
-                  <TableCell className="p-0 w-[50px] pl-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => toggleProductExpand(product.id)}
-                    >
-                      {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                      <span className="sr-only">Toggle details</span>
-                    </Button>
-                  </TableCell>
-                  <TableCell className="font-medium py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0 border">
-                        <Image
-                          src={product.picture || "/placeholder.svg"}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <div className="text-base font-medium">{product.name}</div>
-                      </div>
+          {tableRows.map((row, index) => (
+            <TableRow
+              key={`${row.productId}-${row.type}-${index}`}
+              className={`hover:bg-muted/30 text-base ${
+                !row.isFirstRow ? "border-t border-black/40" : "border-t-2 border-black/40"
+              } ${row.isFirstRow ? "py-8" : "py-2"}`}
+            >
+              {row.isFirstRow && (
+                <TableCell
+                  className="font-medium py-6 pl-4 pr-2"
+                  rowSpan={row.rowSpan}
+                  style={{ verticalAlign: "middle" }}
+                >
+                  <div className="flex items-center">
+                    <div className="relative w-20 h-20 rounded-md overflow-hidden flex-shrink-0 border">
+                      <Image
+                        src={row.productImage || "/placeholder.svg"}
+                        alt={row.productName}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-base">{totalSackStock}</span>
-                      {product.SackPrice.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {product.SackPrice.length} types
-                        </Badge>
-                      )}
+                    <div className="text-lg font-bold ml-3">
+                      {row.productName}
                     </div>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    {product.perKiloPrice ? (
-                      <span className="font-medium text-base">{totalKiloStock} kg</span>
-                    ) : (
-                      <span className="text-muted-foreground">N/A</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-
-                {isExpanded && (
-                  <TableRow key={`${product.id}-expanded`} className="bg-muted/5 border-t-0">
-                    <TableCell colSpan={4} className="p-0">
-                      <div className="px-4 py-3 pl-16">
-                        <div className="grid gap-6">
-                          {/* Sack Types Section */}
-                          {product.SackPrice.length > 0 && (
-                            <div>
-                              <h4 className="text-sm font-semibold mb-2 text-primary">Sack Types</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {product.SackPrice.map((sack) => (
-                                  <div
-                                    key={sack.id}
-                                    className="bg-white rounded-md border p-3 flex justify-between items-center"
-                                  >
-                                    <div>
-                                      <div className="font-medium">{parseProductType(sack.type)}</div>
-                                      <div className="text-sm text-muted-foreground">
-                                        ₱{sack.price.toFixed(2)} per sack
-                                      </div>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-lg font-bold">{sack.stock}</div>
-                                      <div className="text-xs text-muted-foreground">in stock</div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Per Kilo Section */}
-                          {product.perKiloPrice && (
-                            <div>
-                              <h4 className="text-sm font-semibold mb-2 text-primary">Per Kilo</h4>
-                              <div className="bg-white rounded-md border p-3 flex justify-between items-center max-w-xs">
-                                <div>
-                                  <div className="font-medium">{parseProductType("PER_KILO")}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    ₱{product.perKiloPrice.price.toFixed(2)} per kg
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-lg font-bold">{product.perKiloPrice.stock} kg</div>
-                                  <div className="text-xs text-muted-foreground">in stock</div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            )
-          })}
+                  </div>
+                </TableCell>
+              )}
+              <TableCell className="pl-2 pr-1">
+                <div className="font-bold text-base">
+                  {parseProductType(row.type)}
+                </div>
+              </TableCell>
+              <TableCell className="pl-1 pr-4">
+                <div className="font-semibold text-base">
+                  {row.stock} {row.isPerKilo ? "kg" : "sacks"}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
