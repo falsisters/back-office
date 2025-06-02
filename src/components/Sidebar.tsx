@@ -1,9 +1,21 @@
-"use client"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2, DollarSign, BanknoteIcon, Package2 } from "lucide-react"
-import LogoutButton from "./LogoutButton"
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import {
+  Home,
+  Users,
+  ShoppingBag,
+  FileText,
+  Truck,
+  Menu,
+  X,
+  Link2,
+  DollarSign,
+  BanknoteIcon,
+  Package2,
+} from "lucide-react";
+import LogoutButton from "./LogoutButton";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -15,17 +27,17 @@ const navItems = [
   { href: "/expenses", label: "Expenses", icon: BanknoteIcon },
   { href: "/profits", label: "Profits", icon: DollarSign },
   { href: "/stocks", label: "Stocks", icon: Package2 },
-
-]
+  { href: "/usage", label: "Usage", icon: FileText },
+];
 
 export function Sidebar() {
-  const pathname = usePathname()
-  const [isOpen, setIsOpen] = useState(false)
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const toggleSidebar = () => {
-    setIsOpen(!isOpen)
-  }
+    setIsOpen(!isOpen);
+  };
 
   return (
     <>
@@ -78,7 +90,7 @@ export function Sidebar() {
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const isHovered = hoveredItem === item.href;
-              
+
               return (
                 <li key={item.href}>
                   <Link
@@ -86,9 +98,10 @@ export function Sidebar() {
                     className={`
                       flex items-center px-6 py-3 text-base relative
                       transition-all duration-200 ease-in-out
-                      ${isActive 
-                        ? "bg-primary-foreground/10 text-white font-medium border-l-2 border-secondary" 
-                        : "text-white/90"
+                      ${
+                        isActive
+                          ? "bg-primary-foreground/10 text-white font-medium border-l-2 border-secondary"
+                          : "text-white/90"
                       }
                     `}
                     onClick={() => setIsOpen(false)}
@@ -98,26 +111,36 @@ export function Sidebar() {
                     {!isActive && isHovered && (
                       <div className="absolute left-0 top-0 h-full w-1 bg-secondary/70 transform transition-transform duration-300 ease-out"></div>
                     )}
-                    <div className={`
+                    <div
+                      className={`
                       flex items-center w-full
                       ${!isActive && isHovered ? "translate-x-1" : ""}
                       transition-transform duration-200
-                    `}>
-                      <item.icon className={`
+                    `}
+                    >
+                      <item.icon
+                        className={`
                         h-5 w-5 mr-4
-                        ${!isActive && isHovered ? "text-secondary scale-110" : ""}
+                        ${
+                          !isActive && isHovered
+                            ? "text-secondary scale-110"
+                            : ""
+                        }
                         transition-all duration-200
-                      `} />
-                      <span className={`
+                      `}
+                      />
+                      <span
+                        className={`
                         ${!isActive && isHovered ? "text-white" : ""}
-                      `}>
+                      `}
+                      >
                         {item.label}
                       </span>
                     </div>
-                    
+
                     {/* Hover Background Effect */}
                     {!isActive && (
-                      <div 
+                      <div
                         className={`
                           absolute inset-0 bg-primary-foreground/5
                           transform-gpu transition-opacity duration-200 ease-in-out
@@ -139,7 +162,12 @@ export function Sidebar() {
       </div>
 
       {/* Overlay for mobile */}
-      {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={toggleSidebar} />}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
     </>
-  )
+  );
 }
