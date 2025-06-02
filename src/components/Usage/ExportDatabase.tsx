@@ -35,9 +35,11 @@ export const ExportDatabase = () => {
       saveAs(blob, fileName);
 
       console.log("Database exported successfully");
+      // Consider adding a toast notification here for success
     } catch (error) {
       console.error("Error exporting database:", error);
-      // You might want to show a toast notification here
+      // Consider showing a user-friendly error message
+      alert("Failed to export database. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -48,11 +50,13 @@ export const ExportDatabase = () => {
     try {
       await clearDatabase();
       console.log("Database cleared successfully");
-      // You might want to refresh the page or update the UI here
+      // Consider adding a success toast before reload
+      alert("Database cleared successfully!");
       window.location.reload();
     } catch (error) {
       console.error("Error clearing database:", error);
-      // You might want to show a toast notification here
+      // Show user-friendly error message
+      alert("Failed to clear database. Please try again.");
     } finally {
       setIsClearing(false);
     }

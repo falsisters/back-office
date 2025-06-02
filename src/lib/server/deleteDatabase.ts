@@ -20,9 +20,7 @@ export const clearDatabase = async () => {
 
   if (!response.ok) {
     const error: NestApiError = await response.json();
-    throw new Error(
-      error.message?.toString() || "Failed to create/update bill count"
-    );
+    throw new Error(error.message?.toString() || "Failed to clear database");
   }
 
   revalidatePath("/");
