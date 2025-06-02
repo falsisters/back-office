@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { exportDatabase } from "@/lib/server/exportDatabase";
+import { clearDatabase } from "@/lib/server/deleteDatabase";
+import { saveAs } from "file-saver";
 
 export const ExportDatabase = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -22,11 +25,19 @@ export const ExportDatabase = () => {
   const handleExportDatabase = async () => {
     setIsExporting(true);
     try {
-      // TODO: Implement database export logic
-      console.log("Exporting database...");
-      // Add your export logic here
+      const csvData = await exportDatabase();
+
+      // Create and download CSV file
+      const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+      const fileName = `database-export-${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
+      saveAs(blob, fileName);
+
+      console.log("Database exported successfully");
     } catch (error) {
       console.error("Error exporting database:", error);
+      // You might want to show a toast notification here
     } finally {
       setIsExporting(false);
     }
@@ -35,11 +46,13 @@ export const ExportDatabase = () => {
   const handleClearDatabase = async () => {
     setIsClearing(true);
     try {
-      // TODO: Implement database clear logic
-      console.log("Clearing database...");
-      // Add your clear logic here
+      await clearDatabase();
+      console.log("Database cleared successfully");
+      // You might want to refresh the page or update the UI here
+      window.location.reload();
     } catch (error) {
       console.error("Error clearing database:", error);
+      // You might want to show a toast notification here
     } finally {
       setIsClearing(false);
     }
