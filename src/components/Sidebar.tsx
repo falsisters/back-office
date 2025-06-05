@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2, DollarSign, BanknoteIcon, Package2 } from "lucide-react"
+import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2, DollarSign, BanknoteIcon, Package2, BoxIcon } from "lucide-react"
 import LogoutButton from "./LogoutButton"
 
 const navItems = [
@@ -15,7 +15,7 @@ const navItems = [
   { href: "/expenses", label: "Expenses", icon: BanknoteIcon },
   { href: "/profits", label: "Profits", icon: DollarSign },
   { href: "/stocks", label: "Stocks", icon: Package2 },
-
+  { href: "/kahon", label: "Kahon", icon: BoxIcon },
 ]
 
 export function Sidebar() {
