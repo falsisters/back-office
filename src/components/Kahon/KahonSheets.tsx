@@ -3,43 +3,42 @@
 import React, { useState, useEffect, useRef } from "react"
 import { DateRangePicker } from "./DateRangePicker"
 import { getUserSheetsByDate } from "@/lib/server/getSheetsByDateRange"
+import { SaveChangesModal } from "./SaveChangesModal"
+import { SheetToolbar } from "./SheetToolbar"
 import jspreadsheet from "jspreadsheet-ce"
 import "jspreadsheet-ce/dist/jspreadsheet.css"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Loader2, RefreshCw, Save } from "lucide-react"
-import { format } from "date-fns"
-import type {
-  GetUserSheetsByDatePayload,
-  GetUserSheetsByDateParams,
-} from "../../../utils/types/getSheetsByDateRange.type"
-import type { Sheet, Row, Cell, KahonItem } from "../../../utils/types/schema.type"
 import type { DateRange } from "react-day-picker"
-
-interface KahonSheetData extends Sheet {
-  Rows: (Row & {
-    Cells: Cell[]
-    item?: KahonItem | null
-  })[]
-}
+import { useKahon } from "@/context/KahonContext"
+import { AddItemRowModal } from "./AddItemRowModal"
+import { AddCalculationRowButton } from "./AddCalculationRowButton"
+import { BatchCellEditor } from "./BatchCellEditor"
+import { Loader2 } from "lucide-react"
 
 export default function KahonSheets() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [sheetsData, setSheetsData] = useState<KahonSheetData | null>(null)
+  const [sheetData, setSheetData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-
-  // Use useRef to store the spreadsheet instance and element reference
-  const spreadsheetRef = useRef<jspreadsheet.JspreadsheetInstance | null>(null)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const spreadsheetRef = useRef<any>(null)
   const spreadsheetElementRef = useRef<HTMLDivElement>(null)
+  
+  const {
+    selectedSheet,
+    setSelectedSheet,
+    addItemRow,
+    addCalculationRow,
+    updateCells,
+    deleteRow,
+    loadingOperations
+  } = useKahon()
 
-  const initializeSpreadsheet = React.useCallback((sheetData: GetUserSheetsByDatePayload) => {
-    // First, make sure the element is empty
+  const initializeSpreadsheet = React.useCallback((sheetData: any) => {
     if (spreadsheetElementRef.current) {
       spreadsheetElementRef.current.innerHTML = ""
     }
 
-    // Destroy existing spreadsheet if it exists
-    if (spreadsheetRef.current && spreadsheetElementRef.current) {
+    if (spreadsheetRef.current) {
       try {
         spreadsheetRef.current.destroy()
       } catch (error) {
@@ -48,27 +47,25 @@ export default function KahonSheets() {
       spreadsheetRef.current = null
     }
 
-    // Transform the data for jspreadsheet
-    const data = sheetData.Rows.map((row: Row & { Cells: Cell[] }) => {
-      return row.Cells.sort((a, b) => a.columnIndex - b.columnIndex)
-        .slice(0, 5) // Limit to 5 columns (A to E)
-        .map((cell: Cell) => cell.value || "")
+    const data = sheetData.Rows.map((row: any) => {
+      return row.Cells.sort((a: any, b: any) => a.columnIndex - b.columnIndex)
+        .slice(0, 5)
+        .map((cell: any) => cell.value || "")
     })
 
-    // Wider columns for better readability
-    const columns: { type: "text"; width: number; title: string; name: string }[] = [
-      { type: "text", width: 150, title: "Quantity", name: "quantity" },
-      { type: "text", width: 400, title: "Name", name: "name" },
-      { type: "text", width: 200, title: "C", name: "col_c" },
-      { type: "text", width: 200, title: "D", name: "col_d" },
-      { type: "text", width: 200, title: "E", name: "col_e" },
+    const columns = [
+      { type: "text" as const, width: 150, title: "Quantity", name: "quantity" },
+      { type: "text" as const, width: 400, title: "Name", name: "name" },
+      { type: "text" as const, width: 200, title: "C", name: "col_c" },
+      { type: "text" as const, width: 200, title: "D", name: "col_d" },
+      { type: "text" as const, width: 200, title: "E", name: "col_e" },
     ]
 
     const options = {
       data: data,
       columns: columns,
       allowExport: true,
-      allowInsertColumn: false, 
+      allowInsertColumn: false,
       allowInsertRow: true,
       allowDeleteColumn: false,
       allowDeleteRow: true,
@@ -80,50 +77,70 @@ export default function KahonSheets() {
       style: {
         fontSize: "14px",
       },
+      onchange: (
+        instance: any,
+        cell: HTMLTableCellElement,
+        colIndex: string | number,
+        rowIndex: string | number,
+        newValue: any,
+        oldValue: any
+      ) => {
+        // Ensure colIndex and rowIndex are numbers for array access
+        const col = typeof colIndex === "string" ? parseInt(colIndex, 10) : colIndex
+        const row = typeof rowIndex === "string" ? parseInt(rowIndex, 10) : rowIndex
+        const cellId = sheetData?.Rows?.[row]?.Cells?.[col]?.id
+        if (cellId) {
+          updateCells({
+            cells: [{
+              id: cellId,
+              value: newValue,
+              // Include other cell properties if needed
+            }]
+          })
+        }
+      },
+      oninsertrow: (instance: any, rowIndex: number) => {
+        // You can implement row insertion logic here
+        console.log("Row inserted at index:", rowIndex)
+      }
     }
 
-    // Add a small delay to ensure the DOM is ready
     setTimeout(() => {
       if (spreadsheetElementRef.current) {
         try {
-          console.log("Initializing spreadsheet with data:", data)
           const instance = jspreadsheet(spreadsheetElementRef.current, options)
           spreadsheetRef.current = instance
-          console.log("Spreadsheet initialized:", instance)
+          setSelectedSheet(sheetData.id)
         } catch (error) {
           console.error("Error initializing spreadsheet:", error)
         }
       }
     }, 100)
-  }, [])
+  }, [updateCells, deleteRow, setSelectedSheet])
 
   const fetchSheetsData = React.useCallback(async () => {
-    if (!dateRange?.from || !dateRange?.to) {
-      return
-    }
+    if (!dateRange?.from || !dateRange?.to) return
 
     setLoading(true)
     try {
-      const params: GetUserSheetsByDateParams = {
+      const response = await getUserSheetsByDate({
         startDate: dateRange.from.toISOString(),
-        endDate: dateRange.to.toISOString(),
-      }
-
-      const response = await getUserSheetsByDate(params)
+        endDate: dateRange.to.toISOString()
+      })
 
       if (response) {
-        setSheetsData(response)
+        setSheetData(response)
         initializeSpreadsheet(response)
       } else {
-        setSheetsData(null)
+        setSheetData(null)
       }
     } catch (error) {
       console.error("Failed to fetch sheets:", error)
-      setSheetsData(null)
+      setSheetData(null)
     } finally {
       setLoading(false)
     }
-  }, [dateRange?.from, dateRange?.to, initializeSpreadsheet])
+  }, [dateRange, initializeSpreadsheet])
 
   useEffect(() => {
     if (dateRange?.from && dateRange?.to) {
@@ -131,77 +148,49 @@ export default function KahonSheets() {
     }
   }, [dateRange, fetchSheetsData])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      const spreadsheetInstance = spreadsheetRef.current
-      if (spreadsheetInstance) {
+      if (spreadsheetRef.current) {
         try {
-          spreadsheetInstance.destroy()
+          spreadsheetRef.current.destroy()
         } catch (error) {
-          console.warn("Error destroying spreadsheet on unmount:", error)
+          console.warn("Error cleaning up spreadsheet:", error)
         }
       }
     }
   }, [])
 
-  const saveSpreadsheetData = () => {
-    if (spreadsheetRef.current) {
-      const data = spreadsheetRef.current.getData()
-      console.log("Spreadsheet data:", data)
-      // Here you can implement the save functionality
-      // You might want to call an API to save the updated data
-    }
+  const handleSaveChanges = () => {
+    setIsSaveModalOpen(true)
   }
 
-  const totalRows = sheetsData?.Rows.length || 0
+  const handleConfirmSave = () => {
+    if (spreadsheetRef.current) {
+      const data = spreadsheetRef.current.getData()
+      console.log("Spreadsheet data to save:", data)
+      // Implement save logic here
+    }
+    setIsSaveModalOpen(false)
+  }
+
+  const totalRows = sheetData?.Rows.length || 0
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-medium text-foreground">Kahon Sheets</h3>
-          <p className="text-sm text-muted-foreground">
-            {dateRange?.from && dateRange?.to
-              ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(dateRange.to, "MMM dd, yyyy")}`
-              : "Select date range to view data"}
-          </p>
-        </div>
+      <SheetToolbar
+        dateRange={dateRange}
+        loading={loading || loadingOperations}
+        onRefresh={fetchSheetsData}
+        onSave={handleSaveChanges}
+      />
 
-        <div className="flex gap-2">
-          <Button
-            onClick={fetchSheetsData}
-            disabled={loading || !dateRange || !dateRange.from || !dateRange.to}
-            variant="outline"
-            size="sm"
-            className="border-primary/30 text-primary"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh Data
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={saveSpreadsheetData}
-            disabled={!sheetsData || loading}
-            size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
-        </div>
-      </div>
-
-      <div className="mb-6 flex justify-start">
+      <div className="flex flex-wrap items-center gap-4 mb-6">
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+        <div className="flex gap-2">
+          <AddItemRowModal />
+          <AddCalculationRowButton />
+          <BatchCellEditor />
+        </div>
       </div>
 
       {loading ? (
@@ -209,7 +198,7 @@ export default function KahonSheets() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2 text-primary font-medium">Loading data...</span>
         </div>
-      ) : !sheetsData && dateRange?.from && dateRange?.to ? (
+      ) : !sheetData && dateRange?.from && dateRange?.to ? (
         <Card className="w-full shadow-md bg-gradient-to-b from-white to-gray-50">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -232,7 +221,7 @@ export default function KahonSheets() {
           <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
             <CardTitle className="text-primary text-xl">Sheet Details</CardTitle>
             <CardDescription>
-              {sheetsData?.name} • {totalRows} rows
+              {sheetData?.name} • {totalRows} rows
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -252,6 +241,13 @@ export default function KahonSheets() {
           </CardContent>
         </Card>
       )}
+
+      <SaveChangesModal
+        open={isSaveModalOpen}
+        onOpenChange={setIsSaveModalOpen}
+        onConfirm={handleConfirmSave}
+        loading={loading || loadingOperations}
+      />
     </div>
   )
 }
