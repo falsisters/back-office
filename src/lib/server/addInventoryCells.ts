@@ -28,6 +28,6 @@ export const addInventoryCells = async (payload: InventoryCellOperationBatch) =>
         : error.message || "Failed to add cells"
     );
   }
-  revalidatePath("/inventory");
+  revalidatePath("/kahon");
   return response.json();
 };

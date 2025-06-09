@@ -3,17 +3,25 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useKahon } from "@/context/KahonContext";
+import { useInventory } from "@/context/InventoryContext";
 import { Input } from "../ui/input";
 
-export function AddCalculationRowButton() {
-  const { selectedSheet, addCalculationRow, loadingOperations } = useKahon();
+interface AddCalculationRowButtonProps {
+  mode: 'kahon' | 'inventory';
+}
+
+export function AddCalculationRowButton({ mode }: AddCalculationRowButtonProps) {
+  const kahonContext = useKahon();
+  const inventoryContext = useInventory();
   const [rowIndex, setRowIndex] = useState<number | "">("");
 
+  const context = mode === 'kahon' ? kahonContext : inventoryContext;
+
   const handleClick = async () => {
-    if (!selectedSheet || rowIndex === "") return;
+    if (!context.selectedSheet || rowIndex === "") return;
     
-    await addCalculationRow({
-      sheetId: selectedSheet,
+    await context.addCalculationRow({
+      sheetId: context.selectedSheet,
       rowIndex: Number(rowIndex)
     });
     
@@ -31,7 +39,7 @@ export function AddCalculationRowButton() {
       />
       <Button 
         onClick={handleClick}
-        disabled={loadingOperations || rowIndex === ""}
+        disabled={context.loadingOperations || rowIndex === ""}
         variant="secondary"
         size="sm"
       >

@@ -28,6 +28,6 @@ export const updateInventoryCell = async (id: string, payload: UpdateInventoryCe
         : error.message || "Failed to update inventory cell"
     );
   }
-  revalidatePath("/inventory");
+  revalidatePath("/kahon");
   return response.json();
 };

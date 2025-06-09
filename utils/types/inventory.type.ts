@@ -27,7 +27,8 @@ export type GetInventorySheetsByDateParams = z.infer<typeof GetInventorySheetsBy
 
 // Cell Operations
 export const InventoryCellOperationSchema = z.object({
-  rowId: z.string().optional(),
+  id: z.string().optional(), // For updates
+  rowId: z.string().optional(), // For new cells
   columnIndex: z.number().optional(),
   value: z.string(),
   color: z.string().optional(),

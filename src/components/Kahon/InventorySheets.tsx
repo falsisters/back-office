@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { DateRangePicker } from "./DateRangePicker"
 import { getInventorySheetsByDate } from "@/lib/server/getInventorySheetsByDate"
+import { useInventory } from "@/context/InventoryContext"
 import jspreadsheet from "jspreadsheet-ce"
 import "jspreadsheet-ce/dist/jspreadsheet.css"
 import { Button } from "@/components/ui/button"
@@ -14,15 +15,29 @@ import type {
   GetInventorySheetPayload,
   GetInventorySheetsByDateParams,
 } from "../../../utils/types/inventory.type"
+import { AddItemRowModal } from "./AddItemRowModal"
+import { AddCalculationRowButton } from "./AddCalculationRowButton"
+import { BatchCellEditor } from "./BatchCellEditor"
+import { SaveChangesModal } from "./SaveChangesModal"
+import { SheetToolbar } from "./SheetToolbar"
+import { SheetEmptyState } from "./SheetEmptyState"
 
 export default function InventorySheets() {
+  const {
+    selectedSheet,
+    setSelectedSheet,
+    updateCells,
+    loadingOperations
+  } = useInventory();
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [sheetsData, setSheetsData] = useState<GetInventorySheetPayload | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const spreadsheetRef = useRef<jspreadsheet.JspreadsheetInstance | null>(null)
   const spreadsheetElementRef = useRef<HTMLDivElement>(null)
 
-  const initializeSpreadsheet = React.useCallback((sheetData: GetInventorySheetPayload) => {
+  const initializeSpreadsheet = useCallback((sheetData: GetInventorySheetPayload) => {
     if (spreadsheetElementRef.current) {
       spreadsheetElementRef.current.innerHTML = ""
     }
@@ -78,6 +93,57 @@ export default function InventorySheets() {
       style: {
         fontSize: "14px",
       },
+      onchange: async (
+        instance: any,
+        cell: HTMLTableCellElement,
+        colIndex: string | number,
+        rowIndex: string | number,
+        newValue: any,
+      ) => {
+        const col = typeof colIndex === "string" ? parseInt(colIndex, 10) : colIndex;
+        const row = typeof rowIndex === "string" ? parseInt(rowIndex, 10) : rowIndex;
+        const cellId = sheetData?.Rows?.[row]?.Cells?.[col]?.id;
+        // Get old value directly from the cell element
+        const oldValue = cell.innerText;
+
+        if (cellId) {
+          try {
+            const isFormula = newValue.toString().startsWith('=');
+            await updateCells({
+              cells: [{
+                id: cellId, // Use id instead of rowId
+                value: isFormula ? "" : String(newValue || ''),
+                formula: isFormula ? String(newValue) : undefined,
+              }]
+            });
+          } catch (error) {
+            console.error('Failed to update cell:', error);
+            // Set the old value directly to the cell
+            cell.innerText = oldValue;
+          }
+        }
+      },
+      updateCell: (instance: any, cell: HTMLTableCellElement, x: number, y: number, value: string) => {
+        const cellId = sheetData?.Rows?.[y]?.Cells?.[x]?.id;
+        if (cellId) {
+          cell.setAttribute('id', cellId);
+        }
+        return value;
+      },
+      onload: (instance: any) => {
+        setSelectedSheet(sheetData.id);
+        // Set cell IDs and initialize the sheet data
+        sheetData.Rows.forEach((row, y) => {
+          row.Cells.forEach((cell, x) => {
+            const element = instance.getCellFromCoords(x, y);
+            if (element && cell.id) {
+              element.setAttribute('id', cell.id);
+              // Set the initial value
+              instance.setValue(x, y, cell.value || '');
+            }
+          });
+        });
+      }
     }
 
     setTimeout(() => {
@@ -90,7 +156,7 @@ export default function InventorySheets() {
         }
       }
     }, 100)
-  }, [])
+  }, [updateCells, setSelectedSheet]) // Removed fetchSheetsData from dependencies
 
   const fetchSheetsData = React.useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) return
@@ -135,63 +201,88 @@ export default function InventorySheets() {
     }
   }, [])
 
-  const saveSpreadsheetData = () => {
-    if (spreadsheetRef.current) {
-      const data = spreadsheetRef.current.getData()
-      console.log("Inventory spreadsheet data:", data)
-      // Implement save functionality here
+  const saveSpreadsheetData = async () => {
+    if (spreadsheetRef.current && sheetsData) {
+      try {
+        console.log('🔄 Starting save operation...');
+        const changes: { id: string; value: string; formula?: string }[] = [];
+        const currentData = spreadsheetRef.current.getData();
+        console.log('📊 Current spreadsheet data:', currentData);
+        console.log('🗄️ Sheet data from state:', sheetsData);
+        
+        sheetsData.Rows.forEach((row, rowIndex) => {
+          row.Cells.forEach((cell) => {
+            const newValue = currentData[rowIndex][cell.columnIndex];
+            const cellElement = document.getElementById(cell.id);
+            const oldValue = cell.value || '';
+            
+            if (newValue !== oldValue) {
+              console.log(`📝 Change detected in cell ${cell.id}:`, {
+                old: oldValue,
+                new: newValue,
+                element: cellElement?.innerText
+              });
+              
+              const isFormula = String(newValue).startsWith('=');
+              changes.push({
+                id: cell.id,
+                value: isFormula ? "" : String(newValue || ''),
+                formula: isFormula ? String(newValue) : undefined
+              });
+            }
+          });
+        });
+
+        console.log('📦 Changes to be sent:', changes);
+        
+        if (changes.length > 0) {
+          console.log('🚀 Sending update request...');
+          await updateCells({ cells: changes });
+          console.log('✅ Update successful');
+          await fetchSheetsData();
+          console.log('🔄 Data refreshed');
+        } else {
+          console.log('ℹ️ No changes detected');
+        }
+      } catch (error) {
+        console.error('❌ Save operation failed:', error);
+        throw error;
+      }
     }
-  }
+  };
+
+  const handleSaveChanges = async () => {
+    console.log('🔰 Save changes triggered');
+    try {
+      await saveSpreadsheetData();
+      setIsSaveModalOpen(false);
+      console.log('✅ Save completed successfully');
+    } catch (error) {
+      console.error('❌ Save changes failed:', error);
+      // You might want to show an error toast here
+    }
+  };
 
   const totalRows = sheetsData?.Rows.length || 0
   const totalColumns = sheetsData?.Rows[0]?.Cells.length || 0
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-medium text-foreground">Inventory Sheets</h3>
-          <p className="text-sm text-muted-foreground">
-            {dateRange?.from && dateRange?.to
-              ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(dateRange.to, "MMM dd, yyyy")}`
-              : "Select date range to view inventory data"}
-          </p>
-        </div>
+      <SheetToolbar
+        mode="inventory"
+        dateRange={dateRange}
+        loading={loading || loadingOperations}
+        onRefresh={fetchSheetsData}
+        onSave={() => setIsSaveModalOpen(true)}
+      />
 
-        <div className="flex gap-2">
-          <Button
-            onClick={fetchSheetsData}
-            disabled={loading || !dateRange || !dateRange.from || !dateRange.to}
-            variant="outline"
-            size="sm"
-            className="border-primary/30 text-primary"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh Data
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={saveSpreadsheetData}
-            disabled={!sheetsData || loading}
-            size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
-        </div>
-      </div>
-
-      <div className="mb-6 flex justify-start">
+      <div className="flex flex-wrap items-center gap-4 mb-6">
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+        <div className="flex gap-2">
+          <AddItemRowModal mode="inventory" />
+          <AddCalculationRowButton mode="inventory" />
+          <BatchCellEditor mode="inventory" />
+        </div>
       </div>
 
       {loading ? (
@@ -200,25 +291,15 @@ export default function InventorySheets() {
           <span className="ml-2 text-primary font-medium">Loading inventory data...</span>
         </div>
       ) : !sheetsData && dateRange?.from && dateRange?.to ? (
-        <Card className="w-full shadow-md bg-gradient-to-b from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                No inventory data found for the selected date range.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <SheetEmptyState 
+          mode="inventory"
+          message="No inventory data found for the selected date range."
+        />
       ) : !dateRange?.from || !dateRange?.to ? (
-        <Card className="w-full shadow-md bg-gradient-to-b from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                Please select a date range to view inventory sheets
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <SheetEmptyState 
+          mode="inventory"
+          message="Please select a date range to view inventory sheets"
+        />
       ) : (
         <Card className="w-full shadow-md overflow-hidden border-t-4 border-t-orange-500">
           <CardHeader className="bg-gradient-to-r from-orange-50 to-transparent">
@@ -244,6 +325,13 @@ export default function InventorySheets() {
           </CardContent>
         </Card>
       )}
+
+      <SaveChangesModal
+        open={isSaveModalOpen}
+        onOpenChange={setIsSaveModalOpen}
+        onConfirm={handleSaveChanges}
+        loading={loading || loadingOperations}
+      />
     </div>
   )
 }

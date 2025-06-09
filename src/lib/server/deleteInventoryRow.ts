@@ -25,6 +25,6 @@ export const deleteInventoryRow = async (rowId: string) => {
         : error.message || "Failed to delete inventory row"
     );
   }
-  revalidatePath("/inventory");
+  revalidatePath("/kahon");
   return response.json();
 };

@@ -25,6 +25,6 @@ export const deleteInventoryCell = async (cellId: string) => {
         : error.message || "Failed to delete inventory cell"
     );
   }
-  revalidatePath("/inventory");
+  revalidatePath("/kahon");
   return response.json();
 };

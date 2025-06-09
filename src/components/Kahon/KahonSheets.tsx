@@ -15,6 +15,7 @@ import { AddCalculationRowButton } from "./AddCalculationRowButton"
 import { BatchCellEditor } from "./BatchCellEditor"
 import { Loader2 } from "lucide-react"
 import { KahonFormulas } from "./KahonFormulas"
+import { SheetEmptyState } from "./SheetEmptyState"
 
 export default function KahonSheets() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
@@ -244,19 +245,20 @@ export default function KahonSheets() {
   return (
     <div className="space-y-6">
       <SheetToolbar
+        mode="kahon"
         dateRange={dateRange}
         loading={loading || loadingOperations}
         onRefresh={fetchSheetsData}
-        onSave={handleSaveChanges}
+        onSave={() => setIsSaveModalOpen(true)}
       />
 
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         <div className="flex gap-2">
-          <AddItemRowModal />
-          <AddCalculationRowButton />
-          <BatchCellEditor />
-          <KahonFormulas /> 
+          <AddItemRowModal mode="kahon" />
+          <AddCalculationRowButton mode="kahon" />
+          <BatchCellEditor mode={"kahon"} />
+          <KahonFormulas />
         </div>
       </div>
 
@@ -266,23 +268,15 @@ export default function KahonSheets() {
           <span className="ml-2 text-primary font-medium">Loading data...</span>
         </div>
       ) : !sheetData && dateRange?.from && dateRange?.to ? (
-        <Card className="w-full shadow-md bg-gradient-to-b from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                No data found for the selected date range. Please try a different date range.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <SheetEmptyState 
+          mode="kahon"
+          message="No data found for the selected date range. Please try a different date range."
+        />
       ) : !dateRange?.from || !dateRange?.to ? (
-        <Card className="w-full shadow-md bg-gradient-to-b from-white to-gray-50">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">Please select a date range to view sheets</p>
-            </div>
-          </CardContent>
-        </Card>
+        <SheetEmptyState 
+          mode="kahon"
+          message="Please select a date range to view sheets"
+        />
       ) : (
         <Card className="w-full shadow-md overflow-hidden border-t-4 border-t-primary">
           <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">

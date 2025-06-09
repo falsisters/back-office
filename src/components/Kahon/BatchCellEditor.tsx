@@ -6,9 +6,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useKahon } from "@/context/KahonContext";
+import { useInventory } from "@/context/InventoryContext";
 
-export function BatchCellEditor() {
-  const { updateCells, loadingOperations } = useKahon();
+interface BatchCellEditorProps {
+  mode: 'kahon' | 'inventory';
+}
+
+export function BatchCellEditor({ mode }: BatchCellEditorProps) {
+  const kahonContext = useKahon();
+  const inventoryContext = useInventory();
+  const context = mode === 'kahon' ? kahonContext : inventoryContext;
   const [open, setOpen] = useState(false);
   const [cellData, setCellData] = useState("");
 
@@ -21,7 +28,7 @@ export function BatchCellEditor() {
       }).filter(cell => cell.id && cell.value);
       
       if (cells.length > 0) {
-        await updateCells({ cells });
+        await context.updateCells({ cells });
         setOpen(false);
         setCellData("");
       }
@@ -53,10 +60,10 @@ export function BatchCellEditor() {
           </div>
           <Button 
             onClick={handleSubmit}
-            disabled={loadingOperations || !cellData.trim()}
+            disabled={!cellData.trim()}
             className="w-full"
           >
-            {loadingOperations ? "Updating..." : "Update Cells"}
+            Update Cells
           </Button>
         </div>
       </DialogContent>

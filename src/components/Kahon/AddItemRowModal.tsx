@@ -7,25 +7,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useKahon } from "@/context/KahonContext";
+import { useInventory } from "@/context/InventoryContext";
 
-export function AddItemRowModal() {
-  const { selectedSheet, addItemRow, loadingOperations } = useKahon();
-  const [kahonItemId, setKahonItemId] = useState("");
+interface AddItemRowModalProps {
+  mode: 'kahon' | 'inventory';
+}
+
+export function AddItemRowModal({ mode }: AddItemRowModalProps) {
+  const kahonContext = useKahon();
+  const inventoryContext = useInventory();
+  const [itemId, setItemId] = useState("");
   const [rowIndex, setRowIndex] = useState<number | "">("");
   const [open, setOpen] = useState(false);
 
+  const context = mode === 'kahon' ? kahonContext : inventoryContext;
+  const itemLabel = mode === 'kahon' ? 'Kahon Item ID' : 'Inventory Item ID';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSheet || !kahonItemId || rowIndex === "") return;
+    if (!context.selectedSheet || !itemId || rowIndex === "") return;
     
-    await addItemRow({
-      sheetId: selectedSheet,
-      kahonItemId,
-      rowIndex: Number(rowIndex)
-    });
+    if (mode === 'kahon') {
+      await kahonContext.addItemRow({
+        sheetId: context.selectedSheet,
+        kahonItemId: itemId,
+        rowIndex: Number(rowIndex)
+      });
+    } else {
+      await inventoryContext.addItemRow({
+        sheetId: context.selectedSheet,
+        inventoryItemId: itemId,
+        rowIndex: Number(rowIndex)
+      });
+    }
     
     setOpen(false);
-    setKahonItemId("");
+    setItemId("");
     setRowIndex("");
   };
 
@@ -38,15 +55,15 @@ export function AddItemRowModal() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Item Row</DialogTitle>
+          <DialogTitle>Add New {mode === 'kahon' ? 'Kahon' : 'Inventory'} Item Row</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="itemId">Item ID</Label>
+            <Label htmlFor="itemId">{itemLabel}</Label>
             <Input
               id="itemId"
-              value={kahonItemId}
-              onChange={(e) => setKahonItemId(e.target.value)}
+              value={itemId}
+              onChange={(e) => setItemId(e.target.value)}
               required
             />
           </div>
@@ -62,10 +79,10 @@ export function AddItemRowModal() {
           </div>
           <Button 
             type="submit" 
-            disabled={loadingOperations}
+            disabled={context.loadingOperations}
             className="w-full"
           >
-            {loadingOperations ? "Adding..." : "Add Row"}
+            {context.loadingOperations ? "Adding..." : "Add Row"}
           </Button>
         </form>
       </DialogContent>

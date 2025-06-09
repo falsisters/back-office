@@ -28,6 +28,6 @@ export const addInventoryItemRow = async (payload: AddItemRowParams) => {
         : error.message || "Failed to add inventory item row"
     );
   }
-  revalidatePath("/inventory");
+  revalidatePath("/kahon");
   return response.json();
 };

@@ -11,13 +11,16 @@ interface SheetToolbarProps {
   loading: boolean;
   onRefresh: () => void;
   onSave: () => void;
+  mode: 'kahon' | 'inventory';
 }
 
-export function SheetToolbar({ dateRange, loading, onRefresh, onSave }: SheetToolbarProps) {
+export function SheetToolbar({ dateRange, loading, onRefresh, onSave, mode }: SheetToolbarProps) {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h3 className="text-lg font-medium text-foreground">Kahon Sheets</h3>
+        <h3 className="text-lg font-medium text-foreground">
+          {mode === 'kahon' ? 'Kahon Sheets' : 'Inventory Sheets'}
+        </h3>
         <p className="text-sm text-muted-foreground">
           {dateRange?.from && dateRange?.to
             ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(dateRange.to, "MMM dd, yyyy")}`

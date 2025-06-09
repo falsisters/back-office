@@ -28,6 +28,6 @@ export const addInventoryCalculationRows = async (payload: AddCalculationRowsPar
         : error.message || "Failed to add calculation rows"
     );
   }
-  revalidatePath("/inventory");
+  revalidatePath("/kahon");
   return response.json();
 };
