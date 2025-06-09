@@ -14,6 +14,7 @@ import { AddItemRowModal } from "./AddItemRowModal"
 import { AddCalculationRowButton } from "./AddCalculationRowButton"
 import { BatchCellEditor } from "./BatchCellEditor"
 import { Loader2 } from "lucide-react"
+import { KahonFormulas } from "./KahonFormulas"
 
 export default function KahonSheets() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
@@ -85,23 +86,68 @@ export default function KahonSheets() {
         newValue: any,
         oldValue: any
       ) => {
-        // Ensure colIndex and rowIndex are numbers for array access
-        const col = typeof colIndex === "string" ? parseInt(colIndex, 10) : colIndex
-        const row = typeof rowIndex === "string" ? parseInt(rowIndex, 10) : rowIndex
-        const cellId = sheetData?.Rows?.[row]?.Cells?.[col]?.id
+        const col = typeof colIndex === "string" ? parseInt(colIndex, 10) : colIndex;
+        const row = typeof rowIndex === "string" ? parseInt(rowIndex, 10) : rowIndex;
+        const cellId = sheetData?.Rows?.[row]?.Cells?.[col]?.id;
+
         if (cellId) {
+          const isFormula = newValue.toString().startsWith('=');
           updateCells({
             cells: [{
               id: cellId,
-              value: newValue,
-              // Include other cell properties if needed
+              value: isFormula ? "" : newValue,
+              formula: isFormula ? newValue : undefined,
             }]
-          })
+          }).then(() => {
+            // After updating, refresh dependent cells
+            if (isFormula) {
+              const dependentCells = findDependentCells(instance, col, row);
+              dependentCells.forEach(([depRow, depCol]) => {
+                const depCell = instance.getCell(depCol, depRow);
+                if (depCell) {
+                  const formula = instance.getValue(depCol, depRow);
+                  if (formula.startsWith('=')) {
+                    // Trigger recalculation of dependent cell
+                    instance.setValue(depCol, depRow, formula);
+                  }
+                }
+              });
+            }
+          });
         }
       },
-      oninsertrow: (instance: any, rowIndex: number) => {
-        // You can implement row insertion logic here
-        console.log("Row inserted at index:", rowIndex)
+
+      updateTable: (instance: any, cell: HTMLTableCellElement, col: number, row: number, value: any) => {
+        if (value && typeof value === 'string' && value.startsWith('=')) {
+          try {
+            // Let the server handle the calculation
+            return value;
+          } catch (error) {
+            console.error('Formula calculation error:', error);
+            return '#ERROR!';
+          }
+        }
+        return value;
+      },
+
+      updateCell: (instance: any, cell: HTMLTableCellElement, x: number, y: number, value: string) => {
+        // Add cell ID as a data attribute
+        const cellId = sheetData?.Rows?.[y]?.Cells?.[x]?.id;
+        if (cellId) {
+          cell.setAttribute('id', cellId);
+        }
+        return value;
+      },
+      onload: (instance: any) => {
+        // Set cell IDs after the spreadsheet is loaded
+        sheetData.Rows.forEach((row: any, y: number) => {
+          row.Cells.forEach((cell: any, x: number) => {
+            const element = instance.getCellFromCoords(x, y);
+            if (element && cell.id) {
+              element.setAttribute('id', cell.id);
+            }
+          });
+        });
       }
     }
 
@@ -116,7 +162,27 @@ export default function KahonSheets() {
         }
       }
     }, 100)
-  }, [updateCells, deleteRow, setSelectedSheet])
+  }, [updateCells, setSelectedSheet])
+
+  // Add helper function to find dependent cells
+  const findDependentCells = (instance: any, col: number, row: number) => {
+    const dependentCells = [];
+    const totalRows = instance.rows.length;
+    const totalCols = instance.headers.length;
+    const currentCellRef = `${String.fromCharCode(65 + col)}${row + 1}`;
+
+    for (let r = 0; r < totalRows; r++) {
+      for (let c = 0; c < totalCols; c++) {
+        const value = instance.getValue(c, r);
+        if (value && typeof value === 'string' && value.startsWith('=')) {
+          if (value.includes(currentCellRef)) {
+            dependentCells.push([r, c]);
+          }
+        }
+      }
+    }
+    return dependentCells;
+  };
 
   const fetchSheetsData = React.useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) return
@@ -190,6 +256,7 @@ export default function KahonSheets() {
           <AddItemRowModal />
           <AddCalculationRowButton />
           <BatchCellEditor />
+          <KahonFormulas /> 
         </div>
       </div>
 
