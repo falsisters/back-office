@@ -7,6 +7,7 @@ import {
   InventorySchema
 } from "./schema.type";
 
+// Sheet Data
 export const GetInventorySheetPayloadSchema = InventorySheetSchema.extend({
   Rows: z.array(
     InventoryRowSchema.extend({
@@ -15,35 +16,51 @@ export const GetInventorySheetPayloadSchema = InventorySheetSchema.extend({
     })
   )
 });
-
 export type GetInventorySheetPayload = z.infer<typeof GetInventorySheetPayloadSchema>;
 
+// Date Range Params
 export const GetInventorySheetsByDateParamsSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional()
 });
+export type GetInventorySheetsByDateParams = z.infer<typeof GetInventorySheetsByDateParamsSchema>;
 
-export type GetInventorySheetsByDateParams = z.infer<
-  typeof GetInventorySheetsByDateParamsSchema
->;
+// Cell Operations
+export const InventoryCellOperationSchema = z.object({
+  rowId: z.string().optional(),
+  columnIndex: z.number().optional(),
+  value: z.string(),
+  color: z.string().optional(),
+  formula: z.string().optional()
+});
+export type InventoryCellOperation = z.infer<typeof InventoryCellOperationSchema>;
 
-export const AddInventoryItemRowParamsSchema = z.object({
+// Batch Cell Operations
+export const InventoryCellOperationBatchSchema = z.object({
+  cells: z.array(InventoryCellOperationSchema)
+});
+export type InventoryCellOperationBatch = z.infer<typeof InventoryCellOperationBatchSchema>;
+
+// Row Operations
+export const AddItemRowParamsSchema = z.object({
   sheetId: z.string(),
   inventoryItemId: z.string(),
   rowIndex: z.number()
 });
+export type AddItemRowParams = z.infer<typeof AddItemRowParamsSchema>;
 
-export type AddInventoryItemRowParams = z.infer<typeof AddInventoryItemRowParamsSchema>;
-
-export const AddInventoryCalculationRowParamsSchema = z.object({
+export const AddCalculationRowParamsSchema = z.object({
   sheetId: z.string(),
   rowIndex: z.number(),
   description: z.string().optional()
 });
+export type AddCalculationRowParams = z.infer<typeof AddCalculationRowParamsSchema>;
 
-export type AddInventoryCalculationRowParams = z.infer<
-  typeof AddInventoryCalculationRowParamsSchema
->;
+export const AddCalculationRowsParamsSchema = z.object({
+  sheetId: z.string(),
+  rowIndexes: z.array(z.number())
+});
+export type AddCalculationRowsParams = z.infer<typeof AddCalculationRowsParamsSchema>;
 
 export const UpdateInventoryCellParamsSchema = z.object({
   cellId: z.string(),
@@ -51,5 +68,4 @@ export const UpdateInventoryCellParamsSchema = z.object({
   formula: z.string().optional(),
   color: z.string().optional()
 });
-
 export type UpdateInventoryCellParams = z.infer<typeof UpdateInventoryCellParamsSchema>;

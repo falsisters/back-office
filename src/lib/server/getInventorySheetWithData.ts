@@ -1,29 +1,18 @@
-// src/lib/server/getInventorySheetsByDate.ts
 "use server";
 
 import { cookies } from "next/headers";
-import type { GetInventorySheetPayload, GetInventorySheetsByDateParams } from "../../../utils/types/inventory.type";
+import type { GetInventorySheetPayload } from "../../../utils/types/inventory.type";
 import type { NestApiError } from "../../../utils/types/error.type";
 
-export const getInventorySheetsByDate = async (
-  params?: GetInventorySheetsByDateParams
+export const getInventorySheetWithData = async (
+  sheetId: string
 ): Promise<GetInventorySheetPayload | null> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const url = new URL(`${process.env.API_URL}/inventory/user/date`);
-  
-  if (params?.startDate) {
-    url.searchParams.append("startDate", params.startDate);
-  }
-  
-  if (params?.endDate) {
-    url.searchParams.append("endDate", params.endDate);
-  }
-
-  const response = await fetch(url.toString(), {
+  const response = await fetch(`${process.env.API_URL}/inventory/sheet/${sheetId}`, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
@@ -35,7 +24,7 @@ export const getInventorySheetsByDate = async (
     throw new Error(
       Array.isArray(error.message)
         ? error.message.join(", ")
-        : error.message || "Failed to fetch inventory sheets"
+        : error.message || "Failed to fetch inventory sheet data"
     );
   }
 
