@@ -1,19 +1,19 @@
-// src/lib/server/updateCells.ts
+// src/lib/server/updateKahonCells.ts
 "use server";
 
 import { cookies } from "next/headers";
 import type { EditCellsPayload } from "../../../utils/types/sheet.type";
 import type { NestApiError } from "../../../utils/types/error.type";
-import { prepareCellForStorage, prepareCellForKahonStorage } from "@/utils/formulaUtils";
+import { prepareCellForKahonStorage } from "@/utils/formulaUtils";
 import { revalidatePath } from "next/cache";
 
-export const updateCells = async (payload: EditCellsPayload) => {
+export const updateKahonCells = async (payload: EditCellsPayload) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Prepare cells for storage with proper formula handling
+  // Prepare cells for storage with proper formula handling and rounding for Kahon
   const getCellValue = (col: number, row: number): string | number => {
     // This would ideally come from current sheet state
     // For now, return empty as formulas should be self-contained
@@ -22,7 +22,7 @@ export const updateCells = async (payload: EditCellsPayload) => {
 
   const processedCells = payload.cells.map((cell) => {
     if (cell.formula && cell.formula.startsWith("=")) {
-      const prepared = prepareCellForStorage(cell, getCellValue);
+      const prepared = prepareCellForKahonStorage(cell, getCellValue);
       return {
         id: cell.id,
         value: prepared.value,

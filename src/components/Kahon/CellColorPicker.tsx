@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -50,17 +50,35 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
   const inventoryContext = useInventory();
   const context = mode === "kahon" ? kahonContext : inventoryContext;
 
+  // Real-time selection monitoring
+  useEffect(() => {
+    if (!open) return;
+
+    const updateSelection = () => {
+      const cells = captureSelectedCells();
+      setSelectedCells(cells);
+    };
+
+    // Monitor for selection changes
+    const interval = setInterval(updateSelection, 100);
+
+    // Initial capture
+    updateSelection();
+
+    return () => clearInterval(interval);
+  }, [open]);
+
   const captureSelectedCells = (): SelectedCellInfo[] => {
     const selectedElements = document.querySelectorAll(".jexcel_selected");
     const cells: SelectedCellInfo[] = [];
 
-    for (const cell of selectedElements) {
-      const col = parseInt(cell.getAttribute("data-x") || "0");
-      const row = parseInt(cell.getAttribute("data-y") || "0");
-      const cellElement = cell.closest("td") as HTMLElement;
-      const cellId = cellElement?.getAttribute("id");
+    for (const element of selectedElements) {
+      const cellElement = element as HTMLElement;
+      const col = parseInt(cellElement.getAttribute("data-x") || "0");
+      const row = parseInt(cellElement.getAttribute("data-y") || "0");
+      const cellId = cellElement.getAttribute("id");
 
-      if (cellId && cellElement) {
+      if (cellId) {
         cells.push({ cellId, col, row, element: cellElement });
       }
     }
@@ -70,26 +88,16 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    
+
     if (isOpen) {
-      // Capture selected cells when opening
+      // Immediate capture when opening
       const cells = captureSelectedCells();
-      if (cells.length > 0) {
-        setSelectedCells(cells);
-        // Keep cells visually selected
-        cells.forEach(({ element }) => {
-          element.classList.add("jexcel_selected");
-        });
-      } else {
-        // Set to empty array but still allow popover to open to show the message
-        setSelectedCells([]);
-      }
+      setSelectedCells(cells);
     } else {
-      // Clear stored info when closing
+      // Clear when closing
       setSelectedCells([]);
     }
   };
-
   const applyColor = async (color: string) => {
     if (!context.selectedSheet) {
       toast.error("No sheet selected");
@@ -102,10 +110,11 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
     }
 
     try {
-      // Update cells with new color - include current value to satisfy type requirements
-      const cellUpdates = selectedCells.map(({ cellId, element }) => ({
+      // For now, we'll use a placeholder value and let the backend handle it properly
+      // The actual implementations in KahonSheets and InventorySheets get the real values from sheetData
+      const cellUpdates = selectedCells.map(({ cellId }) => ({
         id: cellId,
-        value: element?.textContent || "", // Preserve current cell value
+        value: "", // Placeholder - backend should preserve existing values
         color: color,
       }));
 
@@ -121,13 +130,6 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
         }
       });
 
-      // Restore cell selection after color application
-      setTimeout(() => {
-        selectedCells.forEach(({ element }) => {
-          element.classList.add("jexcel_selected");
-        });
-      }, 100);
-
       toast.success(`Applied color to ${selectedCells.length} cell(s)`);
       setOpen(false);
     } catch (error) {
@@ -135,7 +137,6 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
       console.error("Color application error:", error);
     }
   };
-
   const removeColor = async () => {
     if (!context.selectedSheet) {
       toast.error("No sheet selected");
@@ -148,11 +149,12 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
     }
 
     try {
-      // Remove color from cells - include current value to satisfy type requirements
-      const cellUpdates = selectedCells.map(({ cellId, element }) => ({
+      // For now, we'll use a placeholder value and let the backend handle it properly
+      // The actual implementations in KahonSheets and InventorySheets get the real values from sheetData
+      const cellUpdates = selectedCells.map(({ cellId }) => ({
         id: cellId,
-        value: element?.textContent || "", // Preserve current cell value
-        color: undefined, // Use undefined instead of null
+        value: "", // Placeholder - backend should preserve existing values
+        color: undefined,
       }));
 
       await context.updateCells({
@@ -166,13 +168,6 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
           element.removeAttribute("data-cell-color");
         }
       });
-
-      // Restore cell selection after color removal
-      setTimeout(() => {
-        selectedCells.forEach(({ element }) => {
-          element.classList.add("jexcel_selected");
-        });
-      }, 100);
 
       toast.success(`Removed color from ${selectedCells.length} cell(s)`);
       setOpen(false);
@@ -203,7 +198,12 @@ export function CellColorPicker({ mode = "kahon" }: CellColorPickerProps) {
 
         {selectedCells.length > 0 ? (
           <div className="mb-4 p-2 text-xs text-muted-foreground bg-gray-50 rounded">
-            Selected {selectedCells.length} cell(s)
+            Selected {selectedCells.length} cell(s):{" "}
+            {selectedCells
+              .map(
+                (cell) => `${String.fromCharCode(65 + cell.col)}${cell.row + 1}`
+              )
+              .join(", ")}
           </div>
         ) : (
           <div className="mb-4 p-2 text-xs text-amber-600 bg-amber-50 rounded">

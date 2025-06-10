@@ -17,9 +17,12 @@ import {
 import { Loader2, RefreshCw, Save } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
+// Update imports to use correct types
 import type {
   GetInventorySheetPayload,
   GetInventorySheetsByDateParams,
+  InventoryCellOperationBatch,
+  UpdateInventoryCellParams,
 } from "../../../utils/types/inventory.type";
 import { AddItemRowModal } from "./AddItemRowModal";
 import { AddCalculationRowButton } from "./AddCalculationRowButton";
@@ -32,6 +35,10 @@ import {
   parseFormula,
   parseCellReference,
   getCellReference,
+  createSumColumnAbove,
+  createSumRowLeft,
+  createMultiplyRow,
+  createAddRow,
 } from "@/utils/formulaUtils";
 import { CellColorPicker } from "./CellColorPicker";
 import { KahonFormulas } from "./KahonFormulas";
@@ -72,6 +79,7 @@ export default function InventorySheets() {
     useInventory();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  // Update type usage
   const [sheetsData, setSheetsData] = useState<GetInventorySheetPayload | null>(
     null
   );
@@ -87,16 +95,21 @@ export default function InventorySheets() {
   useEffect(() => {
     injectCellColorStyles();
   }, []);
-
   const getCellValue = (col: number, row: number): string | number => {
-    if (
-      !sheetsData?.Rows?.[row]?.Cells?.find((cell) => cell.columnIndex === col)
-    )
-      return "";
-    const cell = sheetsData.Rows[row].Cells.find(
+    if (!sheetsData?.Rows?.[row]) return "";
+
+    const cell = sheetsData.Rows[row].Cells?.find(
       (cell) => cell.columnIndex === col
     );
-    return cell?.value || "";
+    if (!cell) return "";
+
+    // If cell has a formula, return the evaluated result from the database
+    if (cell.formula && cell.formula.startsWith("=")) {
+      // Use the stored value which should be the evaluated result
+      return cell.value || "";
+    }
+
+    return cell.value || "";
   };
 
   const evaluateCellFormula = (formula: string): number | string => {
@@ -118,32 +131,32 @@ export default function InventorySheets() {
     }
   };
 
-  const applyFormulaToSelection = async (formulaType: string) => {
-    if (selectedCells.length === 0) {
-      toast.error("No cells selected");
-      return;
-    }
-
-    const cellToUpdate = selectedCells[0];
-    const { col, row, cellId } = cellToUpdate;
+  const applyFormulaToCell = async (
+    cell: {
+      col: number;
+      row: number;
+      cellId: string;
+    },
+    formulaType: string
+  ) => {
+    const { col, row, cellId } = cell;
 
     let formula = "";
     let description = "";
-    const maxCols = 5;
 
     switch (formulaType) {
-      case "add-all-vertical":
+      case "sum-column-above":
         if (row === 0) {
           toast.error("No cells above to sum");
           return;
         }
-        formula = `=SUM(${getCellReference(col, row - 1)}:${getCellReference(
+        formula = `=SUM(${getCellReference(col, 0)}:${getCellReference(
           col,
-          0
+          row - 1
         )})`;
-        description = "Add All (Vertical)";
+        description = "Sum column above";
         break;
-      case "add-all-horizontal":
+      case "sum-row-left":
         if (col === 0) {
           toast.error("No cells to the left to sum");
           return;
@@ -152,55 +165,30 @@ export default function InventorySheets() {
           col - 1,
           row
         )})`;
-        description = "Add All (Horizontal)";
+        description = "Sum row left";
         break;
-      case "average-all-vertical":
+      case "average-column-above":
         if (row === 0) {
           toast.error("No cells above to average");
           return;
         }
-        formula = `=AVERAGE(${getCellReference(
+        formula = `=AVERAGE(${getCellReference(col, 0)}:${getCellReference(
           col,
           row - 1
-        )}:${getCellReference(col, 0)})`;
-        description = "Average All (Vertical)";
-        break;
-      case "average-all-horizontal":
-        if (col === 0) {
-          toast.error("No cells to the left to average");
-          return;
-        }
-        formula = `=AVERAGE(${getCellReference(0, row)}:${getCellReference(
-          col - 1,
-          row
         )})`;
-        description = "Average All (Horizontal)";
+        description = "Average column above";
         break;
-      case "count-all-vertical":
+      case "count-column-above":
         if (row === 0) {
           toast.error("No cells above to count");
           return;
         }
-        formula = `=COUNTA(${getCellReference(col, row - 1)}:${getCellReference(
+        formula = `=COUNTA(${getCellReference(col, 0)}:${getCellReference(
           col,
-          0
+          row - 1
         )})`;
-        description = "Count All (Vertical)";
+        description = "Count column above";
         break;
-      case "count-all-horizontal":
-        if (col === 0) {
-          toast.error("No cells to the left to count");
-          return;
-        }
-        formula = `=COUNTA(${getCellReference(0, row)}:${getCellReference(
-          col - 1,
-          row
-        )})`;
-        description = "Count All (Horizontal)";
-        break;
-      default:
-        toast.error("Invalid formula type");
-        return;
     }
 
     try {
@@ -213,39 +201,153 @@ export default function InventorySheets() {
     }
   };
 
-  const applyColorToSelection = async (color: string) => {
-    if (selectedCells.length === 0) {
-      toast.error("No cells selected");
-      return;
+  // Enhanced formula application for inventory context
+  const applyQuickFormula = async (
+    cells: Array<{ col: number; row: number; cellId: string }>,
+    formulaType: string
+  ) => {
+    if (cells.length === 0) return;
+
+    const cell = cells[0];
+    const { col, row, cellId } = cell;
+
+    let formula = "";
+
+    switch (formulaType) {
+      case "sum-column-above":
+        formula = createSumColumnAbove(col, row);
+        break;
+      case "sum-row-left":
+        formula = createSumRowLeft(col, row);
+        break;
+      case "average-column-above":
+        if (row === 0) return;
+        formula = `=AVERAGE(${getCellReference(col, 0)}:${getCellReference(
+          col,
+          row - 1
+        )})`;
+        break;
+      case "count-column-above":
+        if (row === 0) return;
+        formula = `=COUNTA(${getCellReference(col, 0)}:${getCellReference(
+          col,
+          row - 1
+        )})`;
+        break;
+      case "multiply-inventory-calc":
+        // For inventory: multiply quantity × price or similar
+        if (col < 2) return;
+        formula = createMultiplyRow(0, 1, row); // Quantity × Item value
+        break;
     }
 
+    if (formula) {
+      try {
+        await updateCells({
+          cells: [{ id: cellId, value: "", formula: formula }],
+        });
+        toast.success("Formula applied successfully");
+      } catch (error) {
+        toast.error("Failed to apply formula");
+      }
+    }
+  };
+  const applyColorToCells = async (
+    cells: Array<{ cellId: string }>,
+    color: string
+  ) => {
     try {
-      const cellUpdates = selectedCells.map(({ cellId }) => {
-        const cellElement = document.getElementById(cellId);
-        return {
-          id: cellId,
-          value: cellElement?.textContent || "",
-          color: color,
-        };
-      });
+      const cellUpdates: InventoryCellOperationBatch["cells"] = cells.map(
+        ({ cellId }) => {
+          // Find the current value from sheetsData instead of DOM textContent
+          let currentValue = "";
+
+          // Find the cell in sheetsData by ID
+          for (const row of sheetsData?.Rows || []) {
+            for (const cell of row.Cells || []) {
+              if (cell.id === cellId) {
+                // If it's a formula cell, use the evaluated value, otherwise use the raw value
+                currentValue =
+                  cell.formula && cell.formula.startsWith("=")
+                    ? cell.value || ""
+                    : cell.value || "";
+                break;
+              }
+            }
+            if (currentValue !== "") break;
+          }
+
+          return {
+            id: cellId,
+            value: currentValue,
+            color: color,
+          };
+        }
+      );
 
       await updateCells({ cells: cellUpdates });
 
-      selectedCells.forEach(({ cellId }) => {
+      cells.forEach(({ cellId }) => {
         const cellElement = document.getElementById(cellId);
         if (cellElement) {
           applyCellColor(cellElement, color);
         }
       });
 
-      toast.success(`Applied color to ${selectedCells.length} cell(s)`);
+      toast.success(`Applied color to ${cells.length} cell(s)`);
     } catch (error) {
       toast.error("Failed to apply color");
     }
   };
+  const removeColorFromCells = async (cells: Array<{ cellId: string }>) => {
+    try {
+      const cellUpdates: InventoryCellOperationBatch["cells"] = cells.map(
+        ({ cellId }) => {
+          // Find the current value from sheetsData instead of DOM textContent
+          let currentValue = "";
 
+          // Find the cell in sheetsData by ID
+          for (const row of sheetsData?.Rows || []) {
+            for (const cell of row.Cells || []) {
+              if (cell.id === cellId) {
+                // If it's a formula cell, use the evaluated value, otherwise use the raw value
+                currentValue =
+                  cell.formula && cell.formula.startsWith("=")
+                    ? cell.value || ""
+                    : cell.value || "";
+                break;
+              }
+            }
+            if (currentValue !== "") break;
+          }
+
+          return {
+            id: cellId,
+            value: currentValue,
+            color: undefined,
+          };
+        }
+      );
+
+      await updateCells({ cells: cellUpdates });
+
+      cells.forEach(({ cellId }) => {
+        const cellElement = document.getElementById(cellId);
+        if (cellElement) {
+          cellElement.style.removeProperty("--cell-bg-color");
+          cellElement.removeAttribute("data-cell-color");
+        }
+      });
+
+      toast.success(`Removed color from ${cells.length} cell(s)`);
+    } catch (error) {
+      toast.error("Failed to remove color");
+    }
+  };
+
+  // Initialize the spreadsheet with data and settings
   const initializeSpreadsheet = useCallback(
-    (sheetData: GetInventorySheetPayload) => {
+    (sheetData: NonNullable<GetInventorySheetPayload>) => {
       if (spreadsheetElementRef.current) {
         spreadsheetElementRef.current.innerHTML = "";
       }
@@ -262,16 +364,14 @@ export default function InventorySheets() {
       // Determine the maximum number of columns from the data
       const maxColumns = sheetData.Rows.reduce((max, row) => {
         return Math.max(max, row.Cells.length);
-      }, 0);
-
-      // Transform the data for jspreadsheet with formula evaluation
+      }, 0); // Transform the data for jspreadsheet with formula evaluation
       const data = sheetData.Rows.map((row) => {
         const rowData: string[] = [];
         row.Cells.forEach((cell) => {
-          // If cell has formula, evaluate it and show result
+          // If cell has formula, show the stored value (which should be the evaluated result)
           if (cell.formula && cell.formula.startsWith("=")) {
-            const result = evaluateCellFormula(cell.formula);
-            rowData[cell.columnIndex] = result.toString();
+            // Return the stored value, not re-evaluate the formula
+            rowData[cell.columnIndex] = cell.value || "";
           } else {
             rowData[cell.columnIndex] = cell.value || "";
           }
@@ -327,7 +427,6 @@ export default function InventorySheets() {
           const row =
             typeof rowIndex === "string" ? parseInt(rowIndex, 10) : rowIndex;
 
-          // Find the cell by matching row and column indices
           const targetCell = sheetData?.Rows?.[row]?.Cells?.find(
             (cell) => cell.columnIndex === col
           );
@@ -336,44 +435,24 @@ export default function InventorySheets() {
           if (cellId) {
             try {
               const isFormula = newValue.toString().startsWith("=");
-              const cellData: any = {
+              const cellData: InventoryCellOperationBatch["cells"][0] = {
                 id: cellId,
-                value: String(newValue || ""), // Always send the actual value
+                value: String(newValue || ""),
               };
-
               if (isFormula) {
                 cellData.formula = newValue;
-                // For formulas, evaluate them and set both formula and calculated value
-                try {
-                  const result = evaluateCellFormula(newValue);
-                  cellData.value = result.toString(); // Set the calculated result as value
+                // Don't evaluate formulas on the frontend - let the backend handle it
+                // The backend will evaluate and store the result
+                cellData.value = ""; // Clear value, backend will populate with evaluated result
 
-                  // Update display immediately
-                  setTimeout(() => {
-                    try {
-                      if (
-                        spreadsheetRef.current &&
-                        spreadsheetRef.current.setValueFromCoords
-                      ) {
-                        spreadsheetRef.current.setValueFromCoords(
-                          col,
-                          row,
-                          result.toString(),
-                          true
-                        );
-                      }
-                      markFormulaCell(cell, true);
-                    } catch (error) {
-                      console.error(
-                        "Error updating formula cell display:",
-                        error
-                      );
-                    }
-                  }, 10);
-                } catch (evalError) {
-                  console.error("Formula evaluation error:", evalError);
-                  cellData.value = "#ERROR!";
-                }
+                // Mark as formula cell for styling
+                setTimeout(() => {
+                  try {
+                    markFormulaCell(cell, true);
+                  } catch (error) {
+                    console.error("Error marking formula cell:", error);
+                  }
+                }, 10);
               } else {
                 markFormulaCell(cell, false);
               }
@@ -382,7 +461,6 @@ export default function InventorySheets() {
                 cells: [cellData],
               });
 
-              // Update dependent cells
               if (isFormula) {
                 const currentCellRef = getCellReference(col, row);
                 updateDependentCells(
@@ -412,22 +490,11 @@ export default function InventorySheets() {
             // Apply cell color if it exists
             if (cellData.color) {
               applyCellColor(cell, cellData.color);
-            }
-
-            // Mark formula cells and show evaluated result
+            } // Mark formula cells and show stored evaluated result
             if (cellData.formula && cellData.formula.startsWith("=")) {
               markFormulaCell(cell, true);
-              // If there's a stored value from the backend, use it; otherwise evaluate
-              if (cellData.value && cellData.value !== "0") {
-                return cellData.value;
-              } else {
-                try {
-                  const result = evaluateCellFormula(cellData.formula);
-                  return result.toString();
-                } catch (error) {
-                  return "#ERROR!";
-                }
-              }
+              // Return the stored value (which should be the evaluated result)
+              return cellData.value || "";
             }
           }
 
@@ -463,12 +530,11 @@ export default function InventorySheets() {
 
           return value;
         },
-
         onload: (instance: any) => {
           setSelectedSheet(sheetData.id);
           // Set cell IDs and apply styling after the spreadsheet is loaded
           sheetData.Rows.forEach((row, y) => {
-            row.Cells.forEach((cell, x) => {
+            row.Cells.forEach((cell) => {
               // Use setTimeout to ensure DOM is ready and access cells directly from DOM
               setTimeout(() => {
                 const cellElement =
@@ -484,21 +550,11 @@ export default function InventorySheets() {
                   // Apply cell color
                   if (cell.color) {
                     applyCellColor(cellElement, cell.color);
-                  }
-
-                  // Mark formula cells and evaluate them
+                  } // Mark formula cells and show stored evaluated result
                   if (cell.formula && cell.formula.startsWith("=")) {
                     markFormulaCell(cellElement, true);
-                    // Use the stored value if available, otherwise evaluate
-                    let displayValue = cell.value;
-                    if (!displayValue || displayValue === "0") {
-                      try {
-                        const result = evaluateCellFormula(cell.formula);
-                        displayValue = result.toString();
-                      } catch (error) {
-                        displayValue = "#ERROR!";
-                      }
-                    }
+                    // Use the stored value (which should be the evaluated result)
+                    const displayValue = cell.value || "";
 
                     if (
                       spreadsheetRef.current &&
@@ -518,165 +574,155 @@ export default function InventorySheets() {
           });
         },
 
+        // Enhanced context menu for inventory
         contextMenu: function (
           instance: any,
           colIndex: string | null,
           rowIndex: string | null,
           event: PointerEvent
         ) {
-          // Convert string indices to numbers, handle null values
+          event.preventDefault();
+          event.stopPropagation();
+
           const x = colIndex ? parseInt(colIndex, 10) : 0;
           const y = rowIndex ? parseInt(rowIndex, 10) : 0;
 
-          // Update selected cells when context menu opens
-          const newSelectedCells: Array<{
+          // Get the actual clicked cell element
+          const clickedCell = event.target as HTMLElement;
+          const actualCell = clickedCell.closest("td") as HTMLElement;
+
+          const currentSelectedCells: Array<{
             col: number;
             row: number;
             cellId: string;
           }> = [];
 
-          // Get currently selected cells
-          const selectedElements = document.querySelectorAll(".jexcel_selected");
+          const selectedElements =
+            document.querySelectorAll(".jexcel_selected");
           selectedElements.forEach((element: Element) => {
-            const col = parseInt(element.getAttribute("data-x") || "0");
-            const row = parseInt(element.getAttribute("data-y") || "0");
-            const cellElement = element.closest("td") as HTMLElement;
-            const cellId = cellElement?.getAttribute("id");
+            const cellElement = element as HTMLElement;
+            const col = parseInt(cellElement.getAttribute("data-x") || "0");
+            const row = parseInt(cellElement.getAttribute("data-y") || "0");
+            const cellId = cellElement.getAttribute("id");
 
             if (cellId) {
-              newSelectedCells.push({ col, row, cellId });
+              currentSelectedCells.push({ col, row, cellId });
             }
           });
 
-          setSelectedCells(newSelectedCells);
+          // Store selection for use in menu actions - use actual clicked cell if no selection
+          const menuSelectedCells =
+            currentSelectedCells.length > 0
+              ? currentSelectedCells
+              : actualCell?.getAttribute("id")
+              ? [
+                  {
+                    col: x,
+                    row: y,
+                    cellId: actualCell.getAttribute("id") || "",
+                  },
+                ]
+              : [
+                  {
+                    col: x,
+                    row: y,
+                    cellId:
+                      sheetData?.Rows?.[y]?.Cells?.find(
+                        (c) => c.columnIndex === x
+                      )?.id || "",
+                  },
+                ];
 
           const items: object[] = [
             {
-              title: "Insert row",
-              onclick: () => {
-                if (instance && instance.insertRow) {
-                  instance.insertRow(y);
-                }
-              },
-            },
-            {
-              title: "Delete row",
-              onclick: () => {
-                if (instance && instance.deleteRow) {
-                  instance.deleteRow(y);
-                }
-              },
-            },
-            {
-              title: "Insert column",
-              onclick: () => {
-                if (instance && instance.insertColumn) {
-                  instance.insertColumn(x);
-                }
-              },
-            },
-            {
-              title: "Delete column",
-              onclick: () => {
-                if (instance && instance.deleteColumn) {
-                  instance.deleteColumn(x);
-                }
-              },
+              title: `Selected: ${getCellReference(x, y)}`,
+              onclick: () => {},
+              disabled: true,
             },
             { type: "line" },
             {
-              title: "Quick Formulas",
+              title: "Inventory Formulas",
               submenu: [
                 {
-                  title: "Add All Vertical",
-                  onclick: () => applyFormulaToSelection("add-all-vertical"),
+                  title: "Sum Column Above",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "sum-column-above"),
+                  disabled: y === 0,
                 },
                 {
-                  title: "Add All Horizontal",
-                  onclick: () => applyFormulaToSelection("add-all-horizontal"),
+                  title: "Average Column Above",
+                  onclick: () =>
+                    applyQuickFormula(
+                      menuSelectedCells,
+                      "average-column-above"
+                    ),
+                  disabled: y === 0,
                 },
                 {
-                  title: "Average All Vertical",
-                  onclick: () => applyFormulaToSelection("average-all-vertical"),
+                  title: "Count Items Above",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "count-column-above"),
+                  disabled: y === 0,
                 },
                 {
-                  title: "Average All Horizontal",
-                  onclick: () => applyFormulaToSelection("average-all-horizontal"),
-                },
-                {
-                  title: "Count All Vertical",
-                  onclick: () => applyFormulaToSelection("count-all-vertical"),
-                },
-                {
-                  title: "Count All Horizontal",
-                  onclick: () => applyFormulaToSelection("count-all-horizontal"),
+                  title: "Multiply Quantity × Value",
+                  onclick: () =>
+                    applyQuickFormula(
+                      menuSelectedCells,
+                      "multiply-inventory-calc"
+                    ),
+                  disabled: x < 2,
                 },
               ],
             },
+            { type: "line" },
             {
               title: "Cell Colors",
               submenu: [
                 {
                   title: "🟡 Light Yellow",
-                  onclick: () => applyColorToSelection("#fffacd"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#fffacd"),
                 },
                 {
                   title: "🔵 Light Blue",
-                  onclick: () => applyColorToSelection("#e6f3ff"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#e6f3ff"),
                 },
                 {
                   title: "🟢 Light Green",
-                  onclick: () => applyColorToSelection("#e6ffe6"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#e6ffe6"),
                 },
                 {
                   title: "🌸 Light Pink",
-                  onclick: () => applyColorToSelection("#ffe6f3"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#ffe6f3"),
                 },
                 {
                   title: "🟠 Light Orange",
-                  onclick: () => applyColorToSelection("#ffe6cc"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#ffe6cc"),
                 },
                 {
                   title: "🟣 Light Purple",
-                  onclick: () => applyColorToSelection("#f3e6ff"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#f3e6ff"),
                 },
                 {
                   title: "⚫ Light Gray",
-                  onclick: () => applyColorToSelection("#f0f0f0"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#f0f0f0"),
                 },
                 {
                   title: "⚪ White",
-                  onclick: () => applyColorToSelection("#ffffff"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#ffffff"),
                 },
                 { type: "line" },
                 {
                   title: "Remove Color",
-                  onclick: async () => {
-                    if (selectedCells.length === 0) return;
-                    try {
-                      const cellUpdates = selectedCells.map(({ cellId }) => {
-                        const cellElement = document.getElementById(cellId);
-                        return {
-                          id: cellId,
-                          value: cellElement?.textContent || "",
-                          color: undefined,
-                        };
-                      });
-                      await updateCells({ cells: cellUpdates });
-                      selectedCells.forEach(({ cellId }) => {
-                        const cellElement = document.getElementById(cellId);
-                        if (cellElement) {
-                          cellElement.style.removeProperty("--cell-bg-color");
-                          cellElement.removeAttribute("data-cell-color");
-                        }
-                      });
-                      toast.success(
-                        `Removed color from ${selectedCells.length} cell(s)`
-                      );
-                    } catch (error) {
-                      toast.error("Failed to remove color");
-                    }
-                  },
+                  onclick: () => removeColorFromCells(menuSelectedCells),
                 },
               ],
             },
@@ -730,9 +776,8 @@ export default function InventorySheets() {
         }
       }, 100);
     },
-    [updateCells, setSelectedSheet, selectedCells]
+    [updateCells, setSelectedSheet]
   );
-
   const updateDependentCells = (
     instance: any,
     sheetData: any,
@@ -743,20 +788,23 @@ export default function InventorySheets() {
       console.warn("Spreadsheet instance not ready for dependent cell updates");
       return;
     }
-
     sheetData.Rows.forEach((row: any, rowIndex: number) => {
-      row.Cells.forEach((cell: any, colIndex: number) => {
+      row.Cells.forEach((cell: any) => {
         if (cell.formula && cell.formula.startsWith("=")) {
           const cellRefs = parseFormula(cell.formula);
           if (cellRefs.includes(changedCellRef)) {
             setTimeout(() => {
               try {
-                const result = evaluateCellFormula(cell.formula);
+                // Use stored evaluated result instead of re-evaluating
+                const storedValue =
+                  cell.evaluatedValue !== undefined
+                    ? cell.evaluatedValue
+                    : cell.value;
                 if (instance.setValueFromCoords) {
                   instance.setValueFromCoords(
-                    colIndex,
+                    cell.columnIndex,
                     rowIndex,
-                    result.toString(),
+                    storedValue?.toString() || "",
                     true
                   );
                 }
@@ -817,7 +865,7 @@ export default function InventorySheets() {
     if (spreadsheetRef.current && sheetsData) {
       try {
         console.log("🔄 Starting save operation...");
-        const changes: { id: string; value: string; formula?: string }[] = [];
+        const changes: InventoryCellOperationBatch["cells"] = [];
         const currentData = spreadsheetRef.current.getData();
         console.log("📊 Current spreadsheet data:", currentData);
         console.log("🗄️ Sheet data from state:", sheetsData);
@@ -835,20 +883,14 @@ export default function InventorySheets() {
               });
 
               const isFormula = String(newValue).startsWith("=");
-              const cellUpdate: any = {
+              const cellUpdate: InventoryCellOperationBatch["cells"][0] = {
                 id: cell.id,
                 value: String(newValue || ""),
               };
-
               if (isFormula) {
                 cellUpdate.formula = String(newValue);
-                // For formulas, calculate the actual value
-                try {
-                  const result = evaluateCellFormula(String(newValue));
-                  cellUpdate.value = result.toString();
-                } catch (error) {
-                  cellUpdate.value = "#ERROR!";
-                }
+                // Don't evaluate formulas locally - let backend handle evaluation
+                cellUpdate.value = ""; // Backend will calculate and store the result
               }
 
               changes.push(cellUpdate);
@@ -902,8 +944,7 @@ export default function InventorySheets() {
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         <div className="flex gap-2">
-          <AddItemRowModal mode="inventory" />
-          <AddCalculationRowButton mode="inventory" />
+          {/* TODO: Enable in next release - AddCalculationRowButton still buggy */}
           <BatchCellEditor mode="inventory" />
           {selectedCells.length > 0 && (
             <div className="text-sm text-muted-foreground bg-orange-50 px-3 py-1 rounded">

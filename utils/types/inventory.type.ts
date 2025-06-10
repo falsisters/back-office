@@ -1,72 +1,126 @@
 // src/utils/types/inventory.type.ts
 import { z } from "zod";
-import {
-  InventorySheetSchema,
-  InventoryRowSchema,
-  InventoryCellSchema,
-  InventorySchema
-} from "./schema.type";
 
-// Sheet Data
-export const GetInventorySheetPayloadSchema = InventorySheetSchema.extend({
-  Rows: z.array(
-    InventoryRowSchema.extend({
-      Cells: z.array(InventoryCellSchema),
-      item: InventorySchema.optional().nullable()
-    })
-  )
+// Base inventory cell schema
+export const InventoryCellSchema = z.object({
+  id: z.string(),
+  columnIndex: z.number(),
+  inventoryRowId: z.string(),
+  color: z.string().nullable().optional(),
+  value: z.string().nullable().optional(),
+  formula: z.string().nullable().optional(),
+  isCalculated: z.boolean().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
-export type GetInventorySheetPayload = z.infer<typeof GetInventorySheetPayloadSchema>;
 
-// Date Range Params
-export const GetInventorySheetsByDateParamsSchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional()
+// Inventory row schema
+export const InventoryRowSchema = z.object({
+  id: z.string(),
+  rowIndex: z.number(),
+  inventorySheetId: z.string(),
+  isItemRow: z.boolean(),
+  itemId: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  Cells: z.array(InventoryCellSchema),
 });
-export type GetInventorySheetsByDateParams = z.infer<typeof GetInventorySheetsByDateParamsSchema>;
 
-// Cell Operations
-export const InventoryCellOperationSchema = z.object({
-  id: z.string().optional(), // For updates
-  rowId: z.string().optional(), // For new cells
-  columnIndex: z.number().optional(),
+// Inventory sheet schema
+export const InventorySheetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  inventoryId: z.string(),
+  columns: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  Rows: z.array(InventoryRowSchema),
+});
+
+// Inventory schema
+export const InventorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  userId: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  InventorySheet: z.array(InventorySheetSchema).optional(),
+});
+
+// Export types
+export type InventoryCell = z.infer<typeof InventoryCellSchema>;
+export type InventoryRow = z.infer<typeof InventoryRowSchema>;
+export type InventorySheet = z.infer<typeof InventorySheetSchema>;
+export type Inventory = z.infer<typeof InventorySchema>;
+
+// API payload types
+export const AddInventoryCellPayloadSchema = z.object({
+  rowId: z.string(),
+  columnIndex: z.number(),
   value: z.string(),
   color: z.string().optional(),
-  formula: z.string().optional()
+  formula: z.string().optional(),
 });
-export type InventoryCellOperation = z.infer<typeof InventoryCellOperationSchema>;
 
-// Batch Cell Operations
+export const UpdateInventoryCellParamsSchema = z.object({
+  value: z.string().optional(),
+  color: z.string().optional(),
+  formula: z.string().optional(),
+});
+
 export const InventoryCellOperationBatchSchema = z.object({
-  cells: z.array(InventoryCellOperationSchema)
+  cells: z.array(
+    z.object({
+      id: z.string().optional(), // For updates
+      rowId: z.string().optional(), // For new cells
+      columnIndex: z.number().optional(), // For new cells
+      value: z.string().optional(),
+      color: z.string().optional(),
+      formula: z.string().optional(),
+    })
+  ),
 });
-export type InventoryCellOperationBatch = z.infer<typeof InventoryCellOperationBatchSchema>;
 
-// Row Operations
 export const AddItemRowParamsSchema = z.object({
   sheetId: z.string(),
   inventoryItemId: z.string(),
-  rowIndex: z.number()
+  rowIndex: z.number(),
 });
-export type AddItemRowParams = z.infer<typeof AddItemRowParamsSchema>;
 
 export const AddCalculationRowParamsSchema = z.object({
-  sheetId: z.string(),
+  inventoryId: z.string(),
   rowIndex: z.number(),
-  description: z.string().optional()
 });
-export type AddCalculationRowParams = z.infer<typeof AddCalculationRowParamsSchema>;
 
 export const AddCalculationRowsParamsSchema = z.object({
-  sheetId: z.string(),
-  rowIndexes: z.array(z.number())
+  inventoryId: z.string(),
+  rowIndexes: z.array(z.number()),
 });
-export type AddCalculationRowsParams = z.infer<typeof AddCalculationRowsParamsSchema>;
 
-export const UpdateInventoryCellParamsSchema = z.object({
-  cellId: z.string(),
-  value: z.string(),
-  formula: z.string().optional(),
-  color: z.string().optional()
+export type AddInventoryCellPayload = z.infer<
+  typeof AddInventoryCellPayloadSchema
+>;
+export type UpdateInventoryCellParams = z.infer<
+  typeof UpdateInventoryCellParamsSchema
+>;
+export type InventoryCellOperationBatch = z.infer<
+  typeof InventoryCellOperationBatchSchema
+>;
+export type AddItemRowParams = z.infer<typeof AddItemRowParamsSchema>;
+export type AddCalculationRowParams = z.infer<
+  typeof AddCalculationRowParamsSchema
+>;
+export type AddCalculationRowsParams = z.infer<
+  typeof AddCalculationRowsParamsSchema
+>;
+
+// Get inventory sheets by date range
+export const GetInventorySheetsByDateParamsSchema = z.object({
+  startDate: z.string(),
+  endDate: z.string(),
 });
-export type UpdateInventoryCellParams = z.infer<typeof UpdateInventoryCellParamsSchema>;
+
+export type GetInventorySheetsByDateParams = z.infer<
+  typeof GetInventorySheetsByDateParamsSchema
+>;
+export type GetInventorySheetPayload = InventorySheet | null;

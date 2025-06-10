@@ -15,6 +15,7 @@ import {
   BanknoteIcon,
   Package2,
   BoxIcon,
+  User,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 
@@ -25,7 +26,7 @@ const navItems = [
   { href: "/sales", label: "Sales Report", icon: FileText },
   { href: "/deliveries", label: "Delivery", icon: Truck },
   { href: "/attachments", label: "Attachments", icon: Link2 },
-  { href: "/employees", label: "Employees", icon: Users },
+  { href: "/employees", label: "Employees", icon: User },
   { href: "/expenses", label: "Expenses", icon: BanknoteIcon },
   { href: "/profits", label: "Profits", icon: DollarSign },
   { href: "/stocks", label: "Stocks", icon: Package2 },

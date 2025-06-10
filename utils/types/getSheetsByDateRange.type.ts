@@ -5,17 +5,17 @@ import {
   RowSchema,
   CellSchema,
   KahonItemSchema,
-  KahonSchema
+  KahonSchema,
 } from "./schema.type";
 
 export const GetUserSheetsByDatePayloadSchema = SheetSchema.extend({
   Rows: z.array(
     RowSchema.extend({
       Cells: z.array(CellSchema),
-      item: KahonItemSchema.optional().nullable()
+      item: KahonItemSchema.optional().nullable(),
     })
   ),
-  kahon: KahonSchema
+  kahon: KahonSchema,
 });
 
 export type GetUserSheetsByDatePayload = z.infer<
@@ -23,8 +23,8 @@ export type GetUserSheetsByDatePayload = z.infer<
 >;
 
 export const GetUserSheetsByDateParamsSchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional()
+  startDate: z.string(),
+  endDate: z.string(),
 });
 
 export type GetUserSheetsByDateParams = z.infer<

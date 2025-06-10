@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 import { addItemRow } from "@/lib/server/addItemRow";
 import { addCalculationRow } from "@/lib/server/addCalculationRow";
 import { addCells } from "@/lib/server/addCells";
-import { updateCells } from "@/lib/server/updateCells";
+import { updateKahonCells } from "@/lib/server/updateKahonCells";
 import { deleteRow } from "@/lib/server/deleteRow";
 import { deleteCell } from "@/lib/server/deleteCell";
 import type {
@@ -103,7 +103,7 @@ export function KahonProvider({ children }: { children: React.ReactNode }) {
         color: cell.color === null ? undefined : cell.color,
       }));
 
-      await updateCells({ cells: cellsWithValues });
+      await updateKahonCells({ cells: cellsWithValues });
     } finally {
       setLoadingOperations(false);
     }

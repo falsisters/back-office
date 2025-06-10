@@ -1,16 +1,22 @@
 // src/components/Kahon/AddItemRowModal.tsx
-"use client"
+"use client";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useKahon } from "@/context/KahonContext";
 import { useInventory } from "@/context/InventoryContext";
 
 interface AddItemRowModalProps {
-  mode: 'kahon' | 'inventory';
+  mode: "kahon" | "inventory";
 }
 
 export function AddItemRowModal({ mode }: AddItemRowModalProps) {
@@ -20,30 +26,34 @@ export function AddItemRowModal({ mode }: AddItemRowModalProps) {
   const [rowIndex, setRowIndex] = useState<number | "">("");
   const [open, setOpen] = useState(false);
 
-  const context = mode === 'kahon' ? kahonContext : inventoryContext;
-  const itemLabel = mode === 'kahon' ? 'Kahon Item ID' : 'Inventory Item ID';
+  const context = mode === "kahon" ? kahonContext : inventoryContext;
+  const itemLabel = mode === "kahon" ? "Kahon Item ID" : "Inventory Item ID";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!context.selectedSheet || !itemId || rowIndex === "") return;
-    
-    if (mode === 'kahon') {
-      await kahonContext.addItemRow({
-        sheetId: context.selectedSheet,
-        kahonItemId: itemId,
-        rowIndex: Number(rowIndex)
-      });
-    } else {
-      await inventoryContext.addItemRow({
-        sheetId: context.selectedSheet,
-        inventoryItemId: itemId,
-        rowIndex: Number(rowIndex)
-      });
+
+    try {
+      if (mode === "kahon") {
+        await kahonContext.addItemRow({
+          sheetId: context.selectedSheet,
+          kahonItemId: itemId,
+          rowIndex: Number(rowIndex),
+        });
+      } else {
+        await inventoryContext.addItemRow({
+          sheetId: context.selectedSheet,
+          inventoryItemId: itemId,
+          rowIndex: Number(rowIndex),
+        });
+      }
+
+      setOpen(false);
+      setItemId("");
+      setRowIndex("");
+    } catch (error) {
+      console.error("Failed to add item row:", error);
     }
-    
-    setOpen(false);
-    setItemId("");
-    setRowIndex("");
   };
 
   return (
@@ -55,7 +65,9 @@ export function AddItemRowModal({ mode }: AddItemRowModalProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New {mode === 'kahon' ? 'Kahon' : 'Inventory'} Item Row</DialogTitle>
+          <DialogTitle>
+            Add New {mode === "kahon" ? "Kahon" : "Inventory"} Item Row
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -77,8 +89,8 @@ export function AddItemRowModal({ mode }: AddItemRowModalProps) {
               required
             />
           </div>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={context.loadingOperations}
             className="w-full"
           >

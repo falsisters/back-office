@@ -16,20 +16,28 @@ import {
 } from "@/components/ui/card";
 import type { DateRange } from "react-day-picker";
 import { useKahon } from "@/context/KahonContext";
-import { AddItemRowModal } from "./AddItemRowModal";
 import { AddCalculationRowButton } from "./AddCalculationRowButton";
 import { BatchCellEditor } from "./BatchCellEditor";
 import { Loader2 } from "lucide-react";
-import { KahonFormulas } from "./KahonFormulas";
 import { SheetEmptyState } from "./SheetEmptyState";
 import {
   evaluateFormula,
   parseFormula,
   parseCellReference,
   getCellReference,
+  createSumColumnAbove,
+  createSumRowLeft,
+  createMultiplyRow,
+  createAddRow,
 } from "@/utils/formulaUtils";
-import { CellColorPicker } from "./CellColorPicker";
 import { toast } from "sonner";
+import { CellColorPicker } from "./CellColorPicker";
+// Update imports to use correct types
+import type {
+  GetUserSheetsByDatePayload,
+  GetUserSheetsByDateParams,
+} from "../../../utils/types/getSheetsByDateRange.type";
+import type { EditCellsPayload } from "../../../utils/types/sheet.type";
 
 // Custom CSS for cell colors
 const injectCellColorStyles = () => {
@@ -63,7 +71,10 @@ const injectCellColorStyles = () => {
 
 export default function KahonSheets() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [sheetData, setSheetData] = useState<any>(null);
+  // Update type usage
+  const [sheetData, setSheetData] = useState<GetUserSheetsByDatePayload | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [selectedCells, setSelectedCells] = useState<
@@ -75,10 +86,8 @@ export default function KahonSheets() {
   const {
     selectedSheet,
     setSelectedSheet,
-    addItemRow,
     addCalculationRow,
     updateCells,
-    deleteRow,
     loadingOperations,
   } = useKahon();
 
@@ -86,15 +95,23 @@ export default function KahonSheets() {
   useEffect(() => {
     injectCellColorStyles();
   }, []);
-
   const getCellValue = (col: number, row: number): string | number => {
     if (!sheetData?.Rows?.[row]?.Cells?.[col]) return "";
     const cell = sheetData.Rows[row].Cells[col];
+
+    // If cell has a formula, return the evaluated result from the database
+    if (cell.formula && cell.formula.startsWith("=")) {
+      // Use the stored value which should be the evaluated result
+      return cell.value || "";
+    }
+
     return cell.value || "";
   };
-
   const evaluateCellFormula = (formula: string): number | string => {
-    return evaluateFormula(formula, getCellValue);
+    const result = evaluateFormula(formula, getCellValue);
+    // For KahonSheets, round down numeric results to whole numbers
+    const numericValue = parseFloat(String(result));
+    return !isNaN(numericValue) ? Math.floor(numericValue) : result;
   };
 
   const applyCellColor = (element: HTMLElement, color: string) => {
@@ -112,90 +129,80 @@ export default function KahonSheets() {
     }
   };
 
-  // New function to apply formulas
+  // Enhanced formula application functions
   const applyFormulaToSelection = async (formulaType: string) => {
     if (selectedCells.length === 0) {
       toast.error("No cells selected");
       return;
     }
 
-    const cellToUpdate = selectedCells[0]; // Use first selected cell
+    const cellToUpdate = selectedCells[0];
     const { col, row, cellId } = cellToUpdate;
 
     let formula = "";
     let description = "";
-    const maxCols = 5;
 
     switch (formulaType) {
-      case "add-all-vertical":
-        if (row === 0) {
-          toast.error("No cells above to sum");
-          return;
-        }
-        const allCellsAbove = Array.from({ length: row }, (_, i) =>
-          getCellReference(col, i)
-        ).join("+");
-        formula = `=${allCellsAbove}`;
-        description = "Sum of all cells above";
+      case "sum-column-above":
+        formula = createSumColumnAbove(col, row);
+        description = "Sum column above";
         break;
-      case "add-vertical":
+      case "sum-row-left":
+        formula = createSumRowLeft(col, row);
+        description = "Sum row left";
+        break;
+      case "add-above":
         if (row === 0) {
-          toast.error("No cells above to add");
+          toast.error("No cell above to reference");
           return;
         }
-        const cellsToAdd = Array.from({ length: row }, (_, i) =>
-          getCellReference(col, i)
-        ).join("+");
-        formula = `=${cellsToAdd}`;
-        description = "Addition of all cells above";
+        formula = `=${getCellReference(col, row - 1)}`;
+        description = "Reference cell above";
+        break;
+      case "add-left":
+        if (col === 0) {
+          toast.error("No cell to the left to reference");
+          return;
+        }
+        formula = `=${getCellReference(col - 1, row)}`;
+        description = "Reference cell left";
+        break;
+      case "multiply-left-two":
+        if (col < 2) {
+          toast.error("Need at least 2 cells to the left");
+          return;
+        }
+        formula = createMultiplyRow(col - 2, col - 1, row);
+        description = "Multiply two cells left";
+        break;
+      case "add-all-vertical":
+        formula = createSumColumnAbove(col, row);
+        description = "Sum all cells above";
         break;
       case "multiply-all-rows":
-        if (col === 0) {
-          toast.error("No cells to the left to multiply");
+        if (col < 2) {
+          toast.error("Need at least column C for row multiplication");
           return;
         }
-        const allCellsInRow = Array.from({ length: maxCols }, (_, i) =>
-          getCellReference(i, row)
-        ).join("*");
-        formula = `=${allCellsInRow}`;
-        description = "Multiplication of all cells in the row";
-        break;
-      case "subtract-vertical":
-        if (row === 0) {
-          toast.error("No cells above to subtract");
-          return;
-        }
-        const allCellsBelow = Array.from({ length: row }, (_, i) =>
-          getCellReference(col, i)
-        ).join("-");
-        formula = `=${allCellsBelow}`;
-        description = "Subtraction of all cells above";
+        formula = createMultiplyRow(2, 4, row); // Columns C, D, E
+        description = "Multiply row cells";
         break;
       case "add-all-rows":
-        if (col === 0) {
-          toast.error("No cells to the left to add");
+        if (col < 2) {
+          toast.error("Need at least column C for row addition");
           return;
         }
-        const allCellsInColumn = Array.from({ length: maxCols }, (_, i) =>
-          getCellReference(col, i)
-        ).join("+");
-        formula = `=${allCellsInColumn}`;
-        description = "Addition of all cells in the column";
-        break;
-      case "multiply-left":
-        if (col === 0) {
-          toast.error("No cells to the left to multiply");
-          return;
-        }
-        const leftCells = Array.from({ length: maxCols }, (_, i) =>
-          getCellReference(col - 1, i)
-        ).join("*");
-        formula = `=${leftCells}`;
-        description = "Multiplication of all cells to the left";
+        formula = createAddRow(2, 4, row); // Columns C, D, E
+        description = "Add row cells";
         break;
       default:
         toast.error("Invalid formula type");
         return;
+    }
+
+    if (!formula) {
+      toast.error(`Cannot create ${description.toLowerCase()}`);
+      return;
     }
 
     try {
@@ -207,7 +214,6 @@ export default function KahonSheets() {
       toast.error("Failed to apply formula");
     }
   };
-
   // New function to apply colors to selection
   const applyColorToSelection = async (color: string) => {
     if (selectedCells.length === 0) {
@@ -217,10 +223,27 @@ export default function KahonSheets() {
 
     try {
       const cellUpdates = selectedCells.map(({ cellId }) => {
-        const cellElement = document.getElementById(cellId);
+        // Find the current value from sheetData instead of DOM textContent
+        let currentValue = "";
+
+        // Find the cell in sheetData by ID
+        for (const row of sheetData?.Rows || []) {
+          for (const cell of row.Cells || []) {
+            if (cell.id === cellId) {
+              // If it's a formula cell, use the evaluated value, otherwise use the raw value
+              currentValue =
+                cell.formula && cell.formula.startsWith("=")
+                  ? cell.value || ""
+                  : cell.value || "";
+              break;
+            }
+          }
+          if (currentValue !== "") break;
+        }
+
         return {
           id: cellId,
-          value: cellElement?.textContent || "",
+          value: currentValue,
           color: color,
         };
       });
@@ -240,9 +263,98 @@ export default function KahonSheets() {
       toast.error("Failed to apply color");
     }
   };
+  // Helper functions for context menu actions
+  const applyColorToCells = async (
+    cells: Array<{ cellId: string }>,
+    color: string
+  ) => {
+    try {
+      const cellUpdates = cells.map(({ cellId }) => {
+        // Find the current value from sheetData instead of DOM textContent
+        let currentValue = "";
+
+        // Find the cell in sheetData by ID
+        for (const row of sheetData?.Rows || []) {
+          for (const cell of row.Cells || []) {
+            if (cell.id === cellId) {
+              // If it's a formula cell, use the evaluated value, otherwise use the raw value
+              currentValue =
+                cell.formula && cell.formula.startsWith("=")
+                  ? cell.value || ""
+                  : cell.value || "";
+              break;
+            }
+          }
+          if (currentValue !== "") break;
+        }
+
+        return {
+          id: cellId,
+          value: currentValue,
+          color: color,
+        };
+      });
+
+      await updateCells({ cells: cellUpdates });
+
+      cells.forEach(({ cellId }) => {
+        const cellElement = document.getElementById(cellId);
+        if (cellElement) {
+          applyCellColor(cellElement, color);
+        }
+      });
+
+      toast.success(`Applied color to ${cells.length} cell(s)`);
+    } catch (error) {
+      toast.error("Failed to apply color");
+    }
+  };
+  const removeColorFromCells = async (cells: Array<{ cellId: string }>) => {
+    try {
+      const cellUpdates = cells.map(({ cellId }) => {
+        // Find the current value from sheetData instead of DOM textContent
+        let currentValue = "";
+
+        // Find the cell in sheetData by ID
+        for (const row of sheetData?.Rows || []) {
+          for (const cell of row.Cells || []) {
+            if (cell.id === cellId) {
+              // If it's a formula cell, use the evaluated value, otherwise use the raw value
+              currentValue =
+                cell.formula && cell.formula.startsWith("=")
+                  ? cell.value || ""
+                  : cell.value || "";
+              break;
+            }
+          }
+          if (currentValue !== "") break;
+        }
+
+        return {
+          id: cellId,
+          value: currentValue,
+          color: undefined,
+        };
+      });
+
+      await updateCells({ cells: cellUpdates });
+
+      cells.forEach(({ cellId }) => {
+        const cellElement = document.getElementById(cellId);
+        if (cellElement) {
+          cellElement.style.removeProperty("--cell-bg-color");
+          cellElement.removeAttribute("data-cell-color");
+        }
+      });
+
+      toast.success(`Removed color from ${cells.length} cell(s)`);
+    } catch (error) {
+      toast.error("Failed to remove color");
+    }
+  };
 
   const initializeSpreadsheet = React.useCallback(
-    (sheetData: any) => {
+    (sheetData: NonNullable<GetUserSheetsByDatePayload>) => {
       if (spreadsheetElementRef.current) {
         spreadsheetElementRef.current.innerHTML = "";
       }
@@ -255,15 +367,14 @@ export default function KahonSheets() {
         }
         spreadsheetRef.current = null;
       }
-
       const data = sheetData.Rows.map((row: any) => {
         return row.Cells.sort((a: any, b: any) => a.columnIndex - b.columnIndex)
           .slice(0, 5)
           .map((cell: any) => {
-            // If cell has formula, evaluate it and show result
+            // If cell has formula, show the stored value (which should be the evaluated result)
             if (cell.formula && cell.formula.startsWith("=")) {
-              const result = evaluateCellFormula(cell.formula);
-              return result.toString();
+              // Return the stored value, not re-evaluate the formula
+              return cell.value || "";
             }
             return cell.value || "";
           });
@@ -310,48 +421,32 @@ export default function KahonSheets() {
             typeof colIndex === "string" ? parseInt(colIndex, 10) : colIndex;
           const row =
             typeof rowIndex === "string" ? parseInt(rowIndex, 10) : rowIndex;
-          const cellId = sheetData?.Rows?.[row]?.Cells?.[col]?.id;
+
+          const targetCell = sheetData?.Rows?.[row]?.Cells?.find(
+            (cell) => cell.columnIndex === col
+          );
+          const cellId = targetCell?.id;
 
           if (cellId) {
             const isFormula = newValue.toString().startsWith("=");
-            const cellData: any = {
+            const cellData: EditCellsPayload["cells"][0] = {
               id: cellId,
-              value: String(newValue || ""), // Always send the actual value
+              value: String(newValue || ""),
             };
-
             if (isFormula) {
               cellData.formula = newValue;
-              // For formulas, evaluate them and set both formula and calculated value
-              try {
-                const result = evaluateCellFormula(newValue);
-                cellData.value = result.toString(); // Set the calculated result as value
+              // Don't evaluate formulas on the frontend - let the backend handle it
+              // The backend will evaluate and store the result
+              cellData.value = ""; // Clear value, backend will populate with evaluated result
 
-                // Update display immediately
-                setTimeout(() => {
-                  try {
-                    if (
-                      spreadsheetRef.current &&
-                      spreadsheetRef.current.setValueFromCoords
-                    ) {
-                      spreadsheetRef.current.setValueFromCoords(
-                        col,
-                        row,
-                        result.toString(),
-                        true
-                      );
-                    }
-                    markFormulaCell(cell, true);
-                  } catch (error) {
-                    console.error(
-                      "Error updating formula cell display:",
-                      error
-                    );
-                  }
-                }, 10);
-              } catch (evalError) {
-                console.error("Formula evaluation error:", evalError);
-                cellData.value = "#ERROR!";
-              }
+              // Mark as formula cell for styling
+              setTimeout(() => {
+                try {
+                  markFormulaCell(cell, true);
+                } catch (error) {
+                  console.error("Error marking formula cell:", error);
+                }
+              }, 10);
             } else {
               markFormulaCell(cell, false);
             }
@@ -359,7 +454,6 @@ export default function KahonSheets() {
             updateCells({
               cells: [cellData],
             }).then(() => {
-              // Update dependent cells
               if (isFormula) {
                 const currentCellRef = getCellReference(col, row);
                 updateDependentCells(
@@ -371,7 +465,6 @@ export default function KahonSheets() {
             });
           }
         },
-
         updateTable: (
           instance: any,
           cell: HTMLTableCellElement,
@@ -379,7 +472,9 @@ export default function KahonSheets() {
           row: number,
           value: any
         ) => {
-          const cellData = sheetData?.Rows?.[row]?.Cells?.[col];
+          const cellData = sheetData?.Rows?.[row]?.Cells?.find(
+            (c) => c.columnIndex === col
+          );
 
           if (cellData) {
             // Apply cell color if it exists
@@ -387,18 +482,16 @@ export default function KahonSheets() {
               applyCellColor(cell, cellData.color);
             }
 
-            // Mark formula cells
+            // Mark formula cells and show stored evaluated result
             if (cellData.formula && cellData.formula.startsWith("=")) {
               markFormulaCell(cell, true);
-              // Show evaluated result instead of formula
-              const result = evaluateCellFormula(cellData.formula);
-              return result.toString();
+              // Return the stored value (which should be the evaluated result)
+              return cellData.value || "";
             }
           }
 
           return value;
         },
-
         updateCell: (
           instance: any,
           cell: HTMLTableCellElement,
@@ -406,11 +499,12 @@ export default function KahonSheets() {
           y: number,
           value: string
         ) => {
-          const cellId = sheetData?.Rows?.[y]?.Cells?.[x]?.id;
-          const cellData = sheetData?.Rows?.[y]?.Cells?.[x];
+          const cellData = sheetData?.Rows?.[y]?.Cells?.find(
+            (c) => c.columnIndex === x
+          );
 
-          if (cellId) {
-            cell.setAttribute("id", cellId);
+          if (cellData?.id) {
+            cell.setAttribute("id", cellData.id);
           }
 
           if (cellData) {
@@ -427,16 +521,17 @@ export default function KahonSheets() {
 
           return value;
         },
-
         onload: (instance: any) => {
           // Set cell IDs and apply styling after the spreadsheet is loaded
           sheetData.Rows.forEach((row: any, y: number) => {
-            row.Cells.forEach((cell: any, x: number) => {
+            row.Cells.forEach((cell: any) => {
               // Use setTimeout to ensure DOM is ready and access cells directly from DOM
               setTimeout(() => {
                 const cellElement =
                   spreadsheetElementRef.current?.querySelector(
-                    `tbody tr:nth-child(${y + 1}) td:nth-child(${x + 1})`
+                    `tbody tr:nth-child(${y + 1}) td:nth-child(${
+                      cell.columnIndex + 1
+                    })`
                   ) as HTMLElement;
 
                 if (cellElement && cell.id) {
@@ -445,21 +540,20 @@ export default function KahonSheets() {
                   // Apply cell color
                   if (cell.color) {
                     applyCellColor(cellElement, cell.color);
-                  }
-
-                  // Mark formula cells and evaluate them
+                  } // Mark formula cells and show stored evaluated result
                   if (cell.formula && cell.formula.startsWith("=")) {
                     markFormulaCell(cellElement, true);
-                    const result = evaluateCellFormula(cell.formula);
-                    // Use the spreadsheetRef instead of instance parameter
+                    // Show the stored value (which should be the evaluated result)
                     if (
                       spreadsheetRef.current &&
                       spreadsheetRef.current.setValueFromCoords
                     ) {
+                      // Use the stored value, don't re-evaluate
+                      const displayValue = cell.value || "";
                       spreadsheetRef.current.setValueFromCoords(
-                        x,
+                        cell.columnIndex,
                         y,
-                        result.toString(),
+                        displayValue,
                         true
                       );
                     }
@@ -477,161 +571,161 @@ export default function KahonSheets() {
           rowIndex: string | null,
           event: PointerEvent
         ) {
-          // Convert string indices to numbers, handle null values
+          // Prevent default context menu behavior
+          event.preventDefault();
+          event.stopPropagation();
+
           const x = colIndex ? parseInt(colIndex, 10) : 0;
           const y = rowIndex ? parseInt(rowIndex, 10) : 0;
 
-          // Update selected cells when context menu opens
-          const newSelectedCells: Array<{
+          // Get the actual clicked cell element
+          const clickedCell = event.target as HTMLElement;
+          const actualCell = clickedCell.closest("td") as HTMLElement;
+
+          // Capture current selection without triggering updates
+          const currentSelectedCells: Array<{
             col: number;
             row: number;
             cellId: string;
           }> = [];
 
-          // Get currently selected cells
           const selectedElements =
             document.querySelectorAll(".jexcel_selected");
           selectedElements.forEach((element: Element) => {
-            const col = parseInt(element.getAttribute("data-x") || "0");
-            const row = parseInt(element.getAttribute("data-y") || "0");
-            const cellElement = element.closest("td") as HTMLElement;
-            const cellId = cellElement?.getAttribute("id");
+            const cellElement = element as HTMLElement;
+            const col = parseInt(cellElement.getAttribute("data-x") || "0");
+            const row = parseInt(cellElement.getAttribute("data-y") || "0");
+            const cellId = cellElement.getAttribute("id");
 
             if (cellId) {
-              newSelectedCells.push({ col, row, cellId });
+              currentSelectedCells.push({ col, row, cellId });
             }
-          });
+          }); // Store selection for use in menu actions - use actual clicked cell if no selection
+          const menuSelectedCells =
+            currentSelectedCells.length > 0
+              ? currentSelectedCells
+              : actualCell?.getAttribute("id")
+              ? [
+                  {
+                    col: x,
+                    row: y,
+                    cellId: actualCell.getAttribute("id") || "",
+                  },
+                ]
+              : [
+                  {
+                    col: x,
+                    row: y,
+                    cellId:
+                      sheetData?.Rows?.[y]?.Cells?.find(
+                        (cell) => cell.columnIndex === x
+                      )?.id || "",
+                  },
+                ];
 
-          setSelectedCells(newSelectedCells);
-
-          // Create custom context menu items
           const items: object[] = [
             {
-              title: "Insert row",
-              onclick: () => {
-                if (instance && instance.insertRow) {
-                  instance.insertRow(y);
-                }
-              },
-            },
-            {
-              title: "Delete row",
-              onclick: () => {
-                if (instance && instance.deleteRow) {
-                  instance.deleteRow(y);
-                }
-              },
-            },
-            {
-              title: "Insert column",
-              onclick: () => {
-                if (instance && instance.insertColumn) {
-                  instance.insertColumn(x);
-                }
-              },
-            },
-            {
-              title: "Delete column",
-              onclick: () => {
-                if (instance && instance.deleteColumn) {
-                  instance.deleteColumn(x);
-                }
-              },
+              title: `Selected: ${getCellReference(x, y)}`,
+              onclick: () => {},
+              disabled: true,
             },
             { type: "line" },
             {
               title: "Quick Formulas",
               submenu: [
                 {
-                  title: "Add All Vertical Cells",
-                  onclick: () => applyFormulaToSelection("add-all-vertical"),
+                  title: "Sum Column Above",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "sum-column-above"),
+                  disabled: y === 0,
                 },
                 {
-                  title: "Add Vertical Cells",
-                  onclick: () => applyFormulaToSelection("add-vertical"),
+                  title: "Sum Row Left",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "sum-row-left"),
+                  disabled: x === 0,
                 },
                 {
-                  title: "Multiply All Row Cells",
-                  onclick: () => applyFormulaToSelection("multiply-all-rows"),
+                  title: "Reference Cell Above",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "add-above"),
+                  disabled: y === 0,
                 },
                 {
-                  title: "Subtract Vertical Cells",
-                  onclick: () => applyFormulaToSelection("subtract-vertical"),
+                  title: "Reference Cell Left",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "add-left"),
+                  disabled: x === 0,
                 },
                 {
-                  title: "Add All Row Cells",
-                  onclick: () => applyFormulaToSelection("add-all-rows"),
+                  title: "Multiply Left Two",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "multiply-left-two"),
+                  disabled: x < 2,
+                },
+                { type: "line" },
+                {
+                  title: "Multiply Row (C×D×E)",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "multiply-all-rows"),
+                  disabled: x < 2,
                 },
                 {
-                  title: "Multiply Left Cells",
-                  onclick: () => applyFormulaToSelection("multiply-left"),
+                  title: "Add Row (C+D+E)",
+                  onclick: () =>
+                    applyQuickFormula(menuSelectedCells, "add-all-rows"),
+                  disabled: x < 2,
                 },
               ],
             },
+            { type: "line" },
             {
               title: "Cell Colors",
               submenu: [
                 {
                   title: "🟡 Light Yellow",
-                  onclick: () => applyColorToSelection("#fffacd"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#fffacd"),
                 },
                 {
                   title: "🔵 Light Blue",
-                  onclick: () => applyColorToSelection("#e6f3ff"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#e6f3ff"),
                 },
                 {
                   title: "🟢 Light Green",
-                  onclick: () => applyColorToSelection("#e6ffe6"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#e6ffe6"),
                 },
                 {
                   title: "🌸 Light Pink",
-                  onclick: () => applyColorToSelection("#ffe6f3"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#ffe6f3"),
                 },
                 {
                   title: "🟠 Light Orange",
-                  onclick: () => applyColorToSelection("#ffe6cc"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#ffe6cc"),
                 },
                 {
                   title: "🟣 Light Purple",
-                  onclick: () => applyColorToSelection("#f3e6ff"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#f3e6ff"),
                 },
                 {
                   title: "⚫ Light Gray",
-                  onclick: () => applyColorToSelection("#f0f0f0"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#f0f0f0"),
                 },
                 {
                   title: "⚪ White",
-                  onclick: () => applyColorToSelection("#ffffff"),
+                  onclick: () =>
+                    applyColorToCells(menuSelectedCells, "#ffffff"),
                 },
                 { type: "line" },
                 {
                   title: "Remove Color",
-                  onclick: async () => {
-                    if (selectedCells.length === 0) return;
-                    try {
-                      const cellUpdates = selectedCells.map(({ cellId }) => {
-                        const cellElement = document.getElementById(cellId);
-                        return {
-                          id: cellId,
-                          value: cellElement?.textContent || "",
-                          color: undefined,
-                        };
-                      });
-                      await updateCells({ cells: cellUpdates });
-                      selectedCells.forEach(({ cellId }) => {
-                        const cellElement = document.getElementById(cellId);
-                        if (cellElement) {
-                          cellElement.style.removeProperty("--cell-bg-color");
-                          cellElement.removeAttribute("data-cell-color");
-                        }
-                      });
-                      toast.success(
-                        `Removed color from ${selectedCells.length} cell(s)`
-                      );
-                    } catch (error) {
-                      toast.error("Failed to remove color");
-                    }
-                  },
+                  onclick: () => removeColorFromCells(menuSelectedCells),
                 },
               ],
             },
@@ -654,10 +748,11 @@ export default function KahonSheets() {
             row: number;
             cellId: string;
           }> = [];
-
           for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
             for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
-              const cellData = sheetData?.Rows?.[y]?.Cells?.[x];
+              const cellData = sheetData?.Rows?.[y]?.Cells?.find(
+                (cell) => cell.columnIndex === x
+              );
               if (cellData?.id) {
                 newSelectedCells.push({ col: x, row: y, cellId: cellData.id });
               }
@@ -685,33 +780,82 @@ export default function KahonSheets() {
         }
       }, 100);
     },
-    [updateCells, setSelectedSheet, selectedCells]
+    [updateCells, setSelectedSheet]
   );
 
+  // Helper function for quick formulas from context menu
+  const applyQuickFormula = async (
+    cells: Array<{ col: number; row: number; cellId: string }>,
+    formulaType: string
+  ) => {
+    if (cells.length === 0) return;
+
+    const cell = cells[0]; // Apply to first selected cell
+    const { col, row, cellId } = cell;
+
+    let formula = "";
+
+    switch (formulaType) {
+      case "sum-column-above":
+        formula = createSumColumnAbove(col, row);
+        break;
+      case "sum-row-left":
+        formula = createSumRowLeft(col, row);
+        break;
+      case "add-above":
+        formula = `=${getCellReference(col, row - 1)}`;
+        break;
+      case "add-left":
+        formula = `=${getCellReference(col - 1, row)}`;
+        break;
+      case "multiply-left-two":
+        formula = createMultiplyRow(col - 2, col - 1, row);
+        break;
+      case "multiply-all-rows":
+        formula = createMultiplyRow(2, 4, row);
+        break;
+      case "add-all-rows":
+        formula = createAddRow(2, 4, row);
+        break;
+    }
+
+    if (formula) {
+      try {
+        await updateCells({
+          cells: [{ id: cellId, value: "", formula: formula }],
+        });
+        toast.success("Formula applied successfully");
+      } catch (error) {
+        toast.error("Failed to apply formula");
+      }
+    }
+  };
   const updateDependentCells = (
     instance: any,
     sheetData: any,
     changedCellRef: string
   ) => {
-    // Add safety check for instance
     if (!instance || !instance.setValueFromCoords) {
       console.warn("Spreadsheet instance not ready for dependent cell updates");
       return;
     }
-
     sheetData.Rows.forEach((row: any, rowIndex: number) => {
-      row.Cells.forEach((cell: any, colIndex: number) => {
+      row.Cells.forEach((cell: any) => {
         if (cell.formula && cell.formula.startsWith("=")) {
           const cellRefs = parseFormula(cell.formula);
           if (cellRefs.includes(changedCellRef)) {
             setTimeout(() => {
               try {
-                const result = evaluateCellFormula(cell.formula);
+                // Use stored evaluated result instead of re-evaluating
+                const storedValue =
+                  cell.evaluatedValue !== undefined
+                    ? cell.evaluatedValue
+                    : cell.value;
                 if (instance.setValueFromCoords) {
                   instance.setValueFromCoords(
-                    colIndex,
+                    cell.columnIndex,
                     rowIndex,
-                    result.toString(),
+                    storedValue?.toString() || "",
                     true
                   );
                 }
@@ -730,10 +874,12 @@ export default function KahonSheets() {
 
     setLoading(true);
     try {
-      const response = await getUserSheetsByDate({
+      const params: GetUserSheetsByDateParams = {
         startDate: dateRange.from.toISOString(),
         endDate: dateRange.to.toISOString(),
-      });
+      };
+
+      const response = await getUserSheetsByDate(params);
 
       if (response) {
         setSheetData(response);
@@ -795,10 +941,8 @@ export default function KahonSheets() {
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         <div className="flex gap-2">
-          <AddItemRowModal mode="kahon" />
-          <AddCalculationRowButton mode="kahon" />
+          {/* TODO: Enable in next release - AddCalculationRowButton still buggy */}
           <BatchCellEditor mode={"kahon"} />
-          {/* Remove KahonFormulas and CellColorPicker as they're now in context menu */}
           {selectedCells.length > 0 && (
             <div className="text-sm text-muted-foreground bg-blue-50 px-3 py-1 rounded">
               {selectedCells.length} cell(s) selected • Right-click for options

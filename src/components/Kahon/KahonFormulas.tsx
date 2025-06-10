@@ -12,7 +12,12 @@ import { Plus, X } from "lucide-react";
 import { useKahon } from "@/context/KahonContext";
 import { useInventory } from "@/context/InventoryContext";
 import { toast } from "sonner";
-import { getCellReference } from "@/utils/formulaUtils";
+import {
+  getCellReference,
+  createSumColumnAbove,
+  createAddRow,
+  createMultiplyRow,
+} from "@/utils/formulaUtils";
 
 interface KahonFormulasProps {
   mode?: "kahon" | "inventory";
@@ -88,14 +93,7 @@ export function KahonFormulas({ mode = "kahon" }: KahonFormulasProps) {
 
       switch (formulaType) {
         case "add-all-vertical":
-          if (row === 0) {
-            toast.error("No cells above to sum");
-            return;
-          }
-          const allCellsAbove = Array.from({ length: row }, (_, i) =>
-            getCellReference(col, i)
-          ).join("+");
-          formula = `=${allCellsAbove}`;
+          formula = createSumColumnAbove(col, row);
           description = "Sum of all cells above";
           break;
 
@@ -104,26 +102,17 @@ export function KahonFormulas({ mode = "kahon" }: KahonFormulasProps) {
             toast.error("Need at least 2 cells above");
             return;
           }
-          const twoAbove = [
-            getCellReference(col, row - 2),
-            getCellReference(col, row - 1),
-          ].join("+");
+          const twoAbove = `${getCellReference(
+            col,
+            row - 2
+          )}+${getCellReference(col, row - 1)}`;
           formula = `=${twoAbove}`;
           description = "Sum of next two cells above";
           break;
 
         case "multiply-all-rows":
-          const rowCells = [];
-          for (let c = 2; c < maxCols; c++) {
-            if (c !== col) {
-              rowCells.push(getCellReference(c, row));
-            }
-          }
-          if (rowCells.length === 0) {
-            toast.error("No valid cells to multiply in this row");
-            return;
-          }
-          formula = `=${rowCells.join("*")}`;
+          // Skip first two columns (Quantity and Name)
+          formula = createMultiplyRow(2, Math.min(maxCols - 1, 4), row);
           description = "Multiply all row cells (excluding A and B)";
           break;
 
@@ -140,17 +129,8 @@ export function KahonFormulas({ mode = "kahon" }: KahonFormulasProps) {
           break;
 
         case "add-all-rows":
-          const addRowCells = [];
-          for (let c = 2; c < maxCols; c++) {
-            if (c !== col) {
-              addRowCells.push(getCellReference(c, row));
-            }
-          }
-          if (addRowCells.length === 0) {
-            toast.error("No valid cells to add in this row");
-            return;
-          }
-          formula = `=${addRowCells.join("+")}`;
+          // Skip first two columns (Quantity and Name)
+          formula = createAddRow(2, Math.min(maxCols - 1, 4), row);
           description = "Add all row cells (excluding A and B)";
           break;
 
@@ -159,16 +139,17 @@ export function KahonFormulas({ mode = "kahon" }: KahonFormulasProps) {
             toast.error("Need at least 2 cells to the left");
             return;
           }
-          const twoLeft = [
-            getCellReference(col - 2, row),
-            getCellReference(col - 1, row),
-          ].join("*");
-          formula = `=${twoLeft}`;
+          formula = createMultiplyRow(col - 2, col - 1, row);
           description = "Multiply next two cells to the left";
           break;
 
         default:
           return;
+      }
+
+      if (!formula) {
+        toast.error(`Cannot create formula: ${description}`);
+        return;
       }
 
       await context.updateCells({

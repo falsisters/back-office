@@ -1,13 +1,23 @@
-export interface ItemRowOperation {
-  sheetId: string;
-  kahonItemId: string;
-  rowIndex: number;
-}
+import { z } from "zod";
 
-export interface RowOperation {
-  sheetId: string;
-  rowIndex: number;
-}
+// Row Operations
+export const RowOperationSchema = z.object({
+  sheetId: z.string(),
+  rowIndex: z.number(),
+});
+export type RowOperation = z.infer<typeof RowOperationSchema>;
+
+export const ItemRowOperationSchema = RowOperationSchema.extend({
+  kahonItemId: z.string(),
+});
+export type ItemRowOperation = z.infer<typeof ItemRowOperationSchema>;
+
+// Add calculation row operations
+export const AddCalculationRowSchema = z.object({
+  sheetId: z.string(),
+  rowIndex: z.number(),
+});
+export type AddCalculationRow = z.infer<typeof AddCalculationRowSchema>;
 
 export interface CellOperation {
   value: string;

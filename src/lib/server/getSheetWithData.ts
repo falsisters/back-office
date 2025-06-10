@@ -4,8 +4,11 @@
 import { cookies } from "next/headers";
 import type { SheetWithDataPayload } from "../../../utils/types/sheet.type";
 import type { NestApiError } from "../../../utils/types/error.type";
+import { resolveDisplayValue } from "@/utils/formulaUtils";
 
-export const getSheetWithData = async (sheetId: string): Promise<SheetWithDataPayload | null> => {
+export const getSheetWithData = async (
+  sheetId: string
+): Promise<SheetWithDataPayload | null> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
@@ -27,5 +30,24 @@ export const getSheetWithData = async (sheetId: string): Promise<SheetWithDataPa
     );
   }
 
-  return response.json();
+  const sheetData = await response.json();
+
+  // Process formulas for display
+  if (sheetData?.Rows) {
+    const getCellValue = (col: number, row: number): string | number => {
+      const cell = sheetData.Rows?.[row]?.Cells?.[col];
+      return cell?.value || "";
+    };
+
+    sheetData.Rows.forEach((row: any) => {
+      row.Cells.forEach((cell: any) => {
+        if (cell.formula && cell.formula.startsWith("=")) {
+          // Resolve the display value for formulas
+          cell.displayValue = resolveDisplayValue(cell, getCellValue);
+        }
+      });
+    });
+  }
+
+  return sheetData;
 };
