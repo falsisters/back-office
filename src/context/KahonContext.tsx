@@ -1,5 +1,5 @@
 // src/context/KahonContext.tsx
-"use client"
+"use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { addItemRow } from "@/lib/server/addItemRow";
@@ -8,10 +8,10 @@ import { addCells } from "@/lib/server/addCells";
 import { updateCells } from "@/lib/server/updateCells";
 import { deleteRow } from "@/lib/server/deleteRow";
 import { deleteCell } from "@/lib/server/deleteCell";
-import type { 
-  ItemRowOperation, 
+import type {
+  ItemRowOperation,
   RowOperation,
-  CellOperationBatch
+  CellOperationBatch,
 } from "../../utils/types/kahon.type";
 
 interface KahonContextType {
@@ -55,11 +55,20 @@ export function KahonProvider({ children }: { children: React.ReactNode }) {
     try {
       // Filter out or throw error if any cell is missing required fields
       const validCells = payload.cells.filter(
-        (cell) => typeof cell.rowId === "string" && typeof cell.columnIndex === "number"
-      ) as { value: string; rowId: string; columnIndex: number; color?: string; formula?: string }[];
+        (cell) =>
+          typeof cell.rowId === "string" && typeof cell.columnIndex === "number"
+      ) as {
+        value: string;
+        rowId: string;
+        columnIndex: number;
+        color?: string;
+        formula?: string;
+      }[];
 
       if (validCells.length !== payload.cells.length) {
-        throw new Error("All cells must have rowId (string) and columnIndex (number).");
+        throw new Error(
+          "All cells must have rowId (string) and columnIndex (number)."
+        );
       }
 
       await addCells({ cells: validCells });
@@ -74,13 +83,27 @@ export function KahonProvider({ children }: { children: React.ReactNode }) {
       // Filter out or throw error if any cell is missing required id
       const validCells = payload.cells.filter(
         (cell) => typeof cell.id === "string"
-      ) as { value: string; id: string; color?: string; formula?: string }[];
+      ) as {
+        value?: string;
+        id: string;
+        color?: string | null | undefined; // Allow null and undefined
+        formula?: string;
+      }[];
 
       if (validCells.length !== payload.cells.length) {
         throw new Error("All cells must have an id (string).");
       }
 
-      await updateCells({ cells: validCells });
+      // For cells that only have color updates, we need to preserve existing values
+      // The frontend should handle this by providing the current value
+      const cellsWithValues = validCells.map((cell) => ({
+        ...cell,
+        value: cell.value || "", // Ensure value is always present
+        // Convert null to undefined for color to match expected type
+        color: cell.color === null ? undefined : cell.color,
+      }));
+
+      await updateCells({ cells: cellsWithValues });
     } finally {
       setLoadingOperations(false);
     }
@@ -105,17 +128,19 @@ export function KahonProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <KahonContext.Provider value={{
-      selectedSheet,
-      setSelectedSheet,
-      addItemRow: handleAddItemRow,
-      addCalculationRow: handleAddCalculationRow,
-      addCells: handleAddCells,
-      updateCells: handleUpdateCells,
-      deleteRow: handleDeleteRow,
-      deleteCell: handleDeleteCell,
-      loadingOperations
-    }}>
+    <KahonContext.Provider
+      value={{
+        selectedSheet,
+        setSelectedSheet,
+        addItemRow: handleAddItemRow,
+        addCalculationRow: handleAddCalculationRow,
+        addCells: handleAddCells,
+        updateCells: handleUpdateCells,
+        deleteRow: handleDeleteRow,
+        deleteCell: handleDeleteCell,
+        loadingOperations,
+      }}
+    >
       {children}
     </KahonContext.Provider>
   );
