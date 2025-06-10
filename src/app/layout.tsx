@@ -1,6 +1,7 @@
 import type React from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { getUserData } from "@/lib/server/getUserData";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { KahonProvider } from "@/context/KahonContext";
 import { InventoryProvider } from "@/context/InventoryContext";
@@ -9,6 +10,11 @@ export const metadata = {
   title: "Falsisters",
   description: "Back Office for Falsisters",
 };
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
 export default async function RootLayout({
   children,
@@ -30,7 +36,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body>
+      <body className={`${poppins.className} antialiased`}>
         <KahonProvider>
           <InventoryProvider>
             {user ? (

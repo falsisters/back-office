@@ -1,9 +1,22 @@
-"use client"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { Home, Users, ShoppingBag, FileText, Truck, Menu, X, Link2, DollarSign, BanknoteIcon, Package2, BoxIcon } from "lucide-react"
-import LogoutButton from "./LogoutButton"
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import {
+  Home,
+  Users,
+  ShoppingBag,
+  FileText,
+  Truck,
+  Menu,
+  X,
+  Link2,
+  DollarSign,
+  BanknoteIcon,
+  Package2,
+  BoxIcon,
+} from "lucide-react";
+import LogoutButton from "./LogoutButton";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -12,10 +25,11 @@ const navItems = [
   { href: "/sales", label: "Sales Report", icon: FileText },
   { href: "/deliveries", label: "Delivery", icon: Truck },
   { href: "/attachments", label: "Attachments", icon: Link2 },
+  { href: "/employees", label: "Employees", icon: Users },
   { href: "/expenses", label: "Expenses", icon: BanknoteIcon },
   { href: "/profits", label: "Profits", icon: DollarSign },
   { href: "/stocks", label: "Stocks", icon: Package2 },
-  { href: "/kahon", label: "Kahon", icon: BoxIcon },  
+  { href: "/kahon", label: "Kahon", icon: BoxIcon },
   { href: "/usage", label: "Usage", icon: FileText },
 ];
 
