@@ -98,6 +98,28 @@ export const ColorPickerSchema = z.object({
   color: z.string(),
 });
 
+// Change tracking types
+export const PendingCellChangeSchema = z.object({
+  id: z.string(), // Unique identifier for the change
+  rowId: z.string().optional(),
+  rowIndex: z.number(),
+  columnIndex: z.number(),
+  cellId: z.string().optional(), // Existing cell ID if updating
+  oldValue: z.string(),
+  newValue: z.string(),
+  formula: z.string().nullable().optional(), // Allow null values
+  color: z.string().nullable().optional(), // Allow null values
+  changeType: z.enum(["add", "update"]),
+  timestamp: z.number(),
+  isFormulaChange: z.boolean().default(false),
+});
+
+export const BatchUpdateRequestSchema = z.object({
+  changes: z.array(PendingCellChangeSchema),
+  sheetId: z.string().optional(),
+  inventoryId: z.string().optional(),
+});
+
 // Export types
 export type SheetWithData = z.infer<typeof SheetWithDataSchema>;
 export type InventorySheetWithData = z.infer<
@@ -115,3 +137,5 @@ export type AddCellsType = z.infer<typeof AddCellsSchema>;
 export type UpdateCellsType = z.infer<typeof UpdateCellsSchema>;
 export type DateRangeQueryType = z.infer<typeof DateRangeQuerySchema>;
 export type ColorPickerType = z.infer<typeof ColorPickerSchema>;
+export type PendingCellChange = z.infer<typeof PendingCellChangeSchema>;
+export type BatchUpdateRequest = z.infer<typeof BatchUpdateRequestSchema>;

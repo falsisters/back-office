@@ -14,11 +14,13 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import type {
   InventorySheetWithData,
   AddCellType,
+  PendingCellChange,
 } from "../../../utils/types/kahon.type";
 import { addInventoryCalculationRow } from "@/lib/server/manageInventoryRows";
 import {
   addInventoryCell,
   updateInventoryCell,
+  batchUpdateInventoryCells,
 } from "@/lib/server/manageCells";
 import {
   buildDependencyMap,
@@ -79,6 +81,12 @@ export default function InventoryAgGrid({
     currentValue?: string;
     currentFormula?: string;
   } | null>(null);
+
+  // New state for change tracking
+  const [pendingChanges, setPendingChanges] = useState<
+    Map<string, PendingCellChange>
+  >(new Map());
+  const [isSaving, setIsSaving] = useState(false);
 
   // Prepare grid data and build dependency map
   useEffect(() => {
@@ -146,13 +154,34 @@ export default function InventoryAgGrid({
       // Map cells to columns with formula evaluation for inventory sheets
       row.Cells.forEach((cell) => {
         const columnName = String.fromCharCode(65 + cell.columnIndex);
-        const displayValue = getCellDisplayValue(
-          cell,
-          data,
-          row.rowIndex,
-          cell.columnIndex,
-          "inventory" // Pass inventory sheet type
-        );
+        const changeKey = `${row.rowIndex}-${cell.columnIndex}`;
+        const pendingChange = pendingChanges.get(changeKey);
+
+        let displayValue: string;
+
+        if (pendingChange) {
+          // Use pending change value
+          if (pendingChange.formula && pendingChange.formula.startsWith("=")) {
+            // For formulas, evaluate using current sheet data + pending changes
+            displayValue = evaluateFormulaWithPendingChanges(
+              pendingChange.formula,
+              data,
+              row.rowIndex,
+              cell.columnIndex
+            );
+          } else {
+            displayValue = pendingChange.newValue;
+          }
+        } else {
+          // Use original cell value
+          displayValue = getCellDisplayValue(
+            cell,
+            data,
+            row.rowIndex,
+            cell.columnIndex,
+            "inventory"
+          );
+        }
 
         if (columnName in gridRow) {
           (gridRow as any)[columnName] = displayValue;
@@ -164,6 +193,70 @@ export default function InventoryAgGrid({
 
     return rows;
   };
+
+  // Helper function to evaluate formulas with pending changes
+  const evaluateFormulaWithPendingChanges = (
+    formula: string,
+    sheetData: any,
+    currentRow: number,
+    currentCol: number
+  ): string => {
+    if (!formula || !formula.startsWith("=")) {
+      return formula;
+    }
+
+    try {
+      // Create a temporary sheet data with pending changes applied
+      const tempSheetData = JSON.parse(JSON.stringify(sheetData));
+
+      // Apply all pending changes to temp data
+      pendingChanges.forEach((change, changeKey) => {
+        const [rowIndex, columnIndex] = changeKey.split("-").map(Number);
+        const row = tempSheetData.Rows?.find(
+          (r: any) => r.rowIndex === rowIndex
+        );
+        if (row) {
+          let cell = row.Cells?.find((c: any) => c.columnIndex === columnIndex);
+          if (cell) {
+            cell.value = change.newValue;
+            if (change.formula) {
+              cell.formula = change.formula;
+            }
+          } else if (change.rowId) {
+            // Add new cell if it doesn't exist
+            if (!row.Cells) row.Cells = [];
+            row.Cells.push({
+              id: `temp-${changeKey}`,
+              columnIndex: columnIndex,
+              value: change.newValue,
+              formula: change.formula || null,
+              color: change.color || null,
+            });
+          }
+        }
+      });
+
+      // Evaluate formula with temp data
+      return getCellDisplayValue(
+        { formula, value: "0" },
+        tempSheetData,
+        currentRow,
+        currentCol,
+        "inventory"
+      );
+    } catch (error) {
+      console.error("Error evaluating formula with pending changes:", error);
+      return "#ERROR";
+    }
+  };
+
+  // Update grid data when pending changes change
+  useEffect(() => {
+    if (sheetData) {
+      const data = prepareGridData(sheetData);
+      setGridData(data);
+    }
+  }, [sheetData, pendingChanges]);
 
   // Column definitions - 15 columns total (A-O)
   const columnDefs: ColDef[] = useMemo(() => {
@@ -180,10 +273,42 @@ export default function InventoryAgGrid({
           (c: any) => c.columnIndex === columnIndex
         );
 
+        // Check for pending changes
+        const changeKey = `${params.data.rowIndex}-${columnIndex}`;
+        const pendingChange = pendingChanges.get(changeKey);
+
         let style: CellStyle = {};
 
-        // Apply color styling
-        if (existingCell?.color) {
+        // Apply pending change styling (highest priority)
+        if (pendingChange) {
+          if (pendingChange.color) {
+            // Use pending color
+            const rgb = hexToRgb(pendingChange.color);
+            const textColor = rgb
+              ? (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000 > 128
+                ? "#000000"
+                : "#ffffff"
+              : "#000000";
+            style.backgroundColor = pendingChange.color;
+            style.color = textColor;
+          } else {
+            // Pending change indicator
+            style.backgroundColor = "#fff3cd";
+            style.border = "2px solid #ffc107";
+          }
+
+          // Add visual indication for pending formulas
+          if (pendingChange.formula?.startsWith("=")) {
+            const value = params.data[field];
+            if (value === "#ERROR") {
+              style.backgroundColor = "#fee2e2";
+              style.color = "#dc2626";
+            } else {
+              style.fontStyle = "italic";
+            }
+          }
+        } else if (existingCell?.color) {
+          // Apply existing color styling if no pending changes
           const rgb = hexToRgb(existingCell.color);
           const textColor = rgb
             ? (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000 > 128
@@ -193,16 +318,14 @@ export default function InventoryAgGrid({
 
           style.backgroundColor = existingCell.color;
           style.color = textColor;
-        }
 
-        // Add visual indication for formulas and errors
-        if (existingCell?.formula) {
-          if (existingCell.formula.startsWith("=")) {
+          // Add visual indication for existing formulas
+          if (existingCell.formula?.startsWith("=")) {
             if (params.data[field] === "#ERROR") {
-              style.backgroundColor = "#fee2e2"; // Light red for errors
-              style.color = "#dc2626"; // Dark red text
+              style.backgroundColor = "#fee2e2";
+              style.color = "#dc2626";
             } else {
-              style.fontStyle = "italic"; // Italic for formula cells
+              style.fontStyle = "italic";
             }
           }
         }
@@ -246,7 +369,7 @@ export default function InventoryAgGrid({
         cellStyle: getCellStyleFunction(col),
       })),
     ];
-  }, [sheetData]);
+  }, [sheetData, pendingChanges]);
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -268,119 +391,93 @@ export default function InventoryAgGrid({
     // Skip if value hasn't actually changed
     if (newValue === oldValue) return;
 
-    setIsLoading(true);
+    const rowIndex = data.rowIndex;
+    const field = colDef.field;
+    const columnIndex = field.charCodeAt(0) - 65;
+    const changeKey = `${rowIndex}-${columnIndex}`;
 
-    try {
-      const rowIndex = data.rowIndex;
-      const field = colDef.field;
-      const columnIndex = field.charCodeAt(0) - 65;
-      const changedCellRef = `${field}${rowIndex}`;
+    const existingRow = sheetData?.Rows.find((r) => r.rowIndex === rowIndex);
+    const existingCell = existingRow?.Cells.find(
+      (c) => c.columnIndex === columnIndex
+    );
 
-      const existingRow = sheetData?.Rows.find((r) => r.rowIndex === rowIndex);
-      const existingCell = existingRow?.Cells.find(
-        (c) => c.columnIndex === columnIndex
-      );
+    let cellValue = newValue || "";
+    let formula: string | null | undefined = undefined;
 
-      let cellValue = newValue || "";
-      let formula = undefined;
-
-      if (cellValue && cellValue.startsWith("=")) {
-        if (!isValidFormula(cellValue)) {
-          alert("Invalid formula syntax");
-          return;
-        }
-        formula = cellValue;
-        cellValue = "0";
-      }
-
-      const cellData = {
-        value: cellValue,
-        formula: formula,
-        color: existingCell?.color === null ? undefined : existingCell?.color,
-      };
-
-      // Update the primary cell
-      if (existingCell) {
-        await updateInventoryCell(existingCell.id, cellData);
-      } else if (existingRow) {
-        await addInventoryCell({
-          rowId: existingRow.id,
-          columnIndex: columnIndex,
-          ...cellData,
-        });
-      } else {
-        await addInventoryCalculationRow({
-          inventoryId: sheetData?.id,
-          rowIndex: rowIndex,
-        });
-        onRefresh();
-        return;
-      }
-
-      // Find and update dependent cells
-      const dependentCells = findDependentCells(changedCellRef, dependencyMap);
-
-      if (dependentCells.length > 0) {
-        console.log(`Updating ${dependentCells.length} dependent cells`);
-
-        // Create updated sheet data for formula calculations
-        let updatedSheetData = updateCellValueInSheetData(
-          sheetData,
-          rowIndex,
-          columnIndex,
-          formula ? "0" : cellValue
-        );
-
-        // Process dependent cells
-        for (const depCellRef of dependentCells) {
-          const depRow = parseInt(depCellRef.match(/\d+$/)?.[0] || "0");
-          const depColumnName = depCellRef.replace(/\d+$/, "");
-          const depColumnIndex = depColumnName.charCodeAt(0) - 65;
-
-          const depExistingRow = sheetData?.Rows.find(
-            (r) => r.rowIndex === depRow
-          );
-          const depExistingCell = depExistingRow?.Cells.find(
-            (c) => c.columnIndex === depColumnIndex
-          );
-
-          if (depExistingCell?.formula) {
-            // Recalculate the dependent cell's value
-            const newDepValue = getCellDisplayValue(
-              depExistingCell,
-              updatedSheetData,
-              depRow,
-              depColumnIndex,
-              "inventory"
-            );
-
-            // Update the dependent cell
-            await updateInventoryCell(depExistingCell.id, {
-              value: newDepValue,
-              formula: depExistingCell.formula,
-              color:
-                depExistingCell.color === null
-                  ? undefined
-                  : depExistingCell.color,
-            });
-
-            // Update our local sheet data for subsequent calculations
-            updatedSheetData = updateCellValueInSheetData(
-              updatedSheetData,
-              depRow,
-              depColumnIndex,
-              newDepValue
-            );
+    if (cellValue && cellValue.startsWith("=")) {
+      if (!isValidFormula(cellValue)) {
+        alert("Invalid formula syntax");
+        // Revert the change in the grid
+        if (gridRef.current) {
+          const api = gridRef.current.api;
+          const rowNode = api.getRowNode(data.id);
+          if (rowNode) {
+            rowNode.setDataValue(field, oldValue);
           }
         }
+        return;
+      }
+      formula = cellValue;
+      cellValue = "0";
+    }
+
+    // Create pending change
+    const pendingChange: PendingCellChange = {
+      id: `${changeKey}-${Date.now()}`,
+      rowId: existingRow?.id,
+      rowIndex,
+      columnIndex,
+      cellId: existingCell?.id,
+      oldValue: existingCell?.value || "",
+      newValue: cellValue,
+      formula,
+      color: existingCell?.color || undefined,
+      changeType: existingCell ? "update" : "add",
+      timestamp: Date.now(),
+      isFormulaChange: Boolean(formula), // Fix: Convert to boolean explicitly
+    };
+
+    // Add to pending changes
+    setPendingChanges((prev) => new Map(prev.set(changeKey, pendingChange)));
+  };
+
+  // Save all pending changes
+  const handleSaveChanges = async () => {
+    if (pendingChanges.size === 0) return;
+
+    setIsSaving(true);
+    try {
+      const changes = Array.from(pendingChanges.values());
+      const { results, errors } = await batchUpdateInventoryCells(changes);
+
+      if (errors.length > 0) {
+        console.error("Some changes failed:", errors);
+        alert(
+          `${errors.length} changes failed to save. Check console for details.`
+        );
       }
 
-      onRefresh();
+      if (results.length > 0) {
+        // Clear pending changes
+        setPendingChanges(new Map());
+        // Refresh to get latest data
+        onRefresh();
+      }
     } catch (error) {
-      console.error("Failed to update cell:", error);
-      alert("Failed to update cell");
+      console.error("Failed to save changes:", error);
+      alert("Failed to save changes");
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
+    }
+  };
+
+  // Discard all pending changes
+  const handleDiscardChanges = () => {
+    setPendingChanges(new Map());
+    // Refresh grid data to show original values
+    if (sheetData) {
+      const data = prepareGridData(sheetData);
+      setGridData(data);
     }
   };
 
@@ -470,7 +567,7 @@ export default function InventoryAgGrid({
 
     console.log("Starting clear cell operation for:", selectedCellInfo);
     setIsLoading(true);
-    
+
     try {
       const existingRow = sheetData?.Rows.find(
         (r) => r.rowIndex === selectedCellInfo.rowIndex
@@ -486,16 +583,16 @@ export default function InventoryAgGrid({
 
       if (existingCell) {
         console.log("Clearing cell with ID:", existingCell.id);
-        
+
         // Clear the cell by setting empty values for value, formula, and color
         const clearData = {
           value: "",
           formula: undefined,
           color: undefined,
         };
-        
+
         console.log("Sending clear data:", clearData);
-        
+
         const result = await updateInventoryCell(existingCell.id, clearData);
         console.log("Clear cell API result:", result);
 
@@ -509,8 +606,12 @@ export default function InventoryAgGrid({
       }
     } catch (error) {
       console.error("Failed to clear cell - detailed error:", error);
-      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace available');
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error(
+        "Error stack:",
+        error instanceof Error ? error.stack : "No stack trace available"
+      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       alert(`Failed to clear cell: ${errorMessage}`);
     } finally {
       setIsLoading(false);
@@ -520,82 +621,80 @@ export default function InventoryAgGrid({
   const handleColorChange = async (color: string) => {
     if (!selectedCellInfo) return;
 
-    setIsLoading(true);
-    try {
-      const existingRow = sheetData?.Rows.find(
-        (r) => r.rowIndex === selectedCellInfo.rowIndex
-      );
-      const columnIndex = selectedCellInfo.field.charCodeAt(0) - 65;
-      const existingCell = existingRow?.Cells.find(
-        (c) => c.columnIndex === columnIndex
-      );
+    const rowIndex = selectedCellInfo.rowIndex;
+    const columnIndex = selectedCellInfo.field.charCodeAt(0) - 65;
+    const changeKey = `${rowIndex}-${columnIndex}`;
 
-      if (existingCell) {
-        await updateInventoryCell(existingCell.id, {
-          value: existingCell.value || "",
-          formula: existingCell.formula || undefined,
-          color: color || undefined, // Convert empty string to undefined
-        });
-      } else if (existingRow) {
-        await addInventoryCell({
-          rowId: existingRow.id,
-          columnIndex: columnIndex,
-          value: selectedCellInfo.currentValue || "",
-          color: color || undefined, // Convert empty string to undefined
-        });
-      }
+    const existingRow = sheetData?.Rows.find((r) => r.rowIndex === rowIndex);
+    const existingCell = existingRow?.Cells.find(
+      (c) => c.columnIndex === columnIndex
+    );
 
-      setShowCellEditor(false);
-      onRefresh();
-    } catch (error) {
-      console.error("Failed to update cell color:", error);
-      alert("Failed to update cell color");
-    } finally {
-      setIsLoading(false);
-    }
+    // Get existing pending change or create new one
+    const existingPendingChange = pendingChanges.get(changeKey);
+
+    const updatedChange: PendingCellChange = {
+      id: existingPendingChange?.id || `${changeKey}-${Date.now()}`,
+      rowId: existingRow?.id,
+      rowIndex,
+      columnIndex,
+      cellId: existingCell?.id,
+      oldValue: existingPendingChange?.oldValue || existingCell?.value || "",
+      newValue: existingPendingChange?.newValue || existingCell?.value || "",
+      formula:
+        existingPendingChange?.formula || existingCell?.formula || undefined,
+      color: color || undefined,
+      changeType: existingCell ? "update" : "add",
+      timestamp: Date.now(),
+      isFormulaChange: false,
+    };
+
+    // Add to pending changes
+    setPendingChanges((prev) => new Map(prev.set(changeKey, updatedChange)));
+    setShowCellEditor(false);
   };
 
+  // Updated handleFormulaApply to work with pending changes
   const handleFormulaApply = async (formula: string) => {
     if (!selectedCellInfo) return;
 
-    try {
-      // Validate formula
-      if (formula.startsWith("=") && !isValidFormula(formula)) {
-        alert("Invalid formula syntax");
-        return;
-      }
-
-      const existingRow = sheetData?.Rows.find(
-        (r) => r.rowIndex === selectedCellInfo.rowIndex
-      );
-      const columnIndex = selectedCellInfo.field.charCodeAt(0) - 65;
-      const existingCell = existingRow?.Cells.find(
-        (c) => c.columnIndex === columnIndex
-      );
-
-      const cellData = {
-        value: formula.startsWith("=") ? "0" : formula,
-        formula: formula.startsWith("=") ? formula : undefined,
-        color: existingCell?.color === null ? undefined : existingCell?.color,
-      };
-
-      if (existingCell) {
-        await updateInventoryCell(existingCell.id, cellData);
-      } else if (existingRow) {
-        await addInventoryCell({
-          rowId: existingRow.id,
-          columnIndex: columnIndex,
-          ...cellData,
-        });
-      }
-
-      setShowCellEditor(false);
-      setSelectedCellInfo(null);
-      onRefresh();
-    } catch (error) {
-      console.error("Failed to apply formula:", error);
-      alert("Failed to apply formula");
+    // Validate formula
+    if (formula.startsWith("=") && !isValidFormula(formula)) {
+      alert("Invalid formula syntax");
+      return;
     }
+
+    const rowIndex = selectedCellInfo.rowIndex;
+    const columnIndex = selectedCellInfo.field.charCodeAt(0) - 65;
+    const changeKey = `${rowIndex}-${columnIndex}`;
+
+    const existingRow = sheetData?.Rows.find((r) => r.rowIndex === rowIndex);
+    const existingCell = existingRow?.Cells.find(
+      (c) => c.columnIndex === columnIndex
+    );
+
+    // Get existing pending change or create new one
+    const existingPendingChange = pendingChanges.get(changeKey);
+
+    const updatedChange: PendingCellChange = {
+      id: existingPendingChange?.id || `${changeKey}-${Date.now()}`,
+      rowId: existingRow?.id,
+      rowIndex,
+      columnIndex,
+      cellId: existingCell?.id,
+      oldValue: existingPendingChange?.oldValue || existingCell?.value || "",
+      newValue: formula.startsWith("=") ? "0" : formula,
+      formula: formula.startsWith("=") ? formula : undefined,
+      color: existingPendingChange?.color || existingCell?.color || undefined,
+      changeType: existingCell ? "update" : "add",
+      timestamp: Date.now(),
+      isFormulaChange: Boolean(formula.startsWith("=")), // Fix: Explicit boolean conversion
+    };
+
+    // Add to pending changes
+    setPendingChanges((prev) => new Map(prev.set(changeKey, updatedChange)));
+    setShowCellEditor(false);
+    setSelectedCellInfo(null);
   };
 
   const handleFormulaApplyToColumn = async (
@@ -604,21 +703,29 @@ export default function InventoryAgGrid({
   ) => {
     if (!selectedCellInfo || !sheetData) return;
 
-    setIsLoading(true);
-    try {
-      let formulasApplied = 0;
+    // Validate formula
+    if (baseFormula.startsWith("=") && !isValidFormula(baseFormula)) {
+      alert("Invalid formula syntax");
+      return;
+    }
 
-      // Get all rows sorted by row index
-      const sortedRows = [...sheetData.Rows].sort(
-        (a, b) => a.rowIndex - b.rowIndex
-      );
+    let formulasApplied = 0;
+    const newPendingChanges = new Map(pendingChanges);
 
-      for (const row of sortedRows) {
-        // Check if we need to verify numeric values for multiplication formulas
-        if (baseFormula.includes("*")) {
-          // For multiplication, check if the two left columns have valid data
-          if (columnIndex < 2) continue; // Need at least 2 columns to the left (C column minimum)
+    // Get all rows sorted by row index
+    const sortedRows = [...sheetData.Rows].sort(
+      (a, b) => a.rowIndex - b.rowIndex
+    );
 
+    for (const row of sortedRows) {
+      // Initialize shouldApply with default value
+      let shouldApply = false;
+
+      // Check if we need to verify numeric values for multiplication formulas
+      if (baseFormula.includes("*")) {
+        // For multiplication, check if the two left columns have valid data
+        if (columnIndex >= 2) {
+          // Need at least 2 columns to the left (C column minimum)
           const firstColumnIndex = columnIndex - 2;
           const secondColumnIndex = columnIndex - 1;
 
@@ -636,120 +743,71 @@ export default function InventoryAgGrid({
             secondCell?.value && !isNaN(parseFloat(secondCell.value));
 
           // Apply formula if at least one cell has a valid value
-          if (firstHasValue || secondHasValue) {
-            // Generate formula for this specific row
-            let rowFormula = baseFormula.replace(
-              /\d+/g,
-              row.rowIndex.toString()
-            );
-
-            const existingCell = row.Cells.find(
-              (c) => c.columnIndex === columnIndex
-            );
-            const cellData = {
-              value: "0",
-              formula: rowFormula,
-              color:
-                existingCell?.color === null ? undefined : existingCell?.color,
-            };
-
-            if (existingCell) {
-              await updateInventoryCell(existingCell.id, cellData);
-            } else {
-              await addInventoryCell({
-                rowId: row.id,
-                columnIndex: columnIndex,
-                ...cellData,
-              });
-            }
-            formulasApplied++;
-          }
-        } else if (baseFormula.includes("+") && baseFormula.includes("B")) {
-          // For addition formulas that exclude A column
-          // Check if at least one cell from B column onwards has valid data
-          let hasValidData = false;
-
-          // Check B column (index 1) and subsequent columns
-          for (let i = 1; i < columnIndex; i++) {
-            const cell = row.Cells.find((c) => c.columnIndex === i);
-            if (
-              cell?.value &&
-              cell.value.trim() !== "" &&
-              !isNaN(parseFloat(cell.value))
-            ) {
-              hasValidData = true;
-              break;
-            }
-          }
-
-          if (hasValidData) {
-            let rowFormula = baseFormula.replace(
-              /\d+/g,
-              row.rowIndex.toString()
-            );
-
-            const existingCell = row.Cells.find(
-              (c) => c.columnIndex === columnIndex
-            );
-            const cellData = {
-              value: "0",
-              formula: rowFormula,
-              color:
-                existingCell?.color === null ? undefined : existingCell?.color,
-            };
-
-            if (existingCell) {
-              await updateInventoryCell(existingCell.id, cellData);
-            } else {
-              await addInventoryCell({
-                rowId: row.id,
-                columnIndex: columnIndex,
-                ...cellData,
-              });
-            }
-            formulasApplied++;
-          }
-        } else {
-          // For other formulas, apply to all rows
-          let rowFormula = baseFormula.replace(/\d+/g, row.rowIndex.toString());
-
-          const existingCell = row.Cells.find(
-            (c) => c.columnIndex === columnIndex
-          );
-          const cellData = {
-            value: "0",
-            formula: rowFormula,
-            color:
-              existingCell?.color === null ? undefined : existingCell?.color,
-          };
-
-          if (existingCell) {
-            await updateInventoryCell(existingCell.id, cellData);
-          } else {
-            await addInventoryCell({
-              rowId: row.id,
-              columnIndex: columnIndex,
-              ...cellData,
-            });
-          }
-          formulasApplied++;
+          shouldApply = Boolean(firstHasValue || secondHasValue);
         }
-      }
+      } else if (baseFormula.includes("+") && baseFormula.includes("B")) {
+        // For addition formulas that exclude A column
+        // Check if at least one cell from B column onwards has valid data
+        let hasValidData = false;
 
-      setShowCellEditor(false);
-      setSelectedCellInfo(null);
-      onRefresh();
+        // Check B column (index 1) and subsequent columns
+        for (let i = 1; i < columnIndex; i++) {
+          const cell = row.Cells.find((c) => c.columnIndex === i);
+          if (
+            cell?.value &&
+            cell.value.trim() !== "" &&
+            !isNaN(parseFloat(cell.value))
+          ) {
+            hasValidData = true;
+            break;
+          }
+        }
 
-      if (formulasApplied > 0) {
-        alert(`Applied formula to ${formulasApplied} rows`);
+        shouldApply = hasValidData;
       } else {
-        alert("No valid data found for formula application");
+        // For other formulas, apply to all rows
+        shouldApply = true;
       }
-    } catch (error) {
-      console.error("Failed to apply formula to column:", error);
-      alert("Failed to apply formula to column");
-    } finally {
-      setIsLoading(false);
+
+      if (shouldApply) {
+        // Generate formula for this specific row
+        const rowFormula = baseFormula.replace(/\d+/g, row.rowIndex.toString());
+        const changeKey = `${row.rowIndex}-${columnIndex}`;
+        const existingCell = row.Cells.find(
+          (c) => c.columnIndex === columnIndex
+        );
+        const existingPendingChange = newPendingChanges.get(changeKey);
+
+        const updatedChange: PendingCellChange = {
+          id: existingPendingChange?.id || `${changeKey}-${Date.now()}`,
+          rowId: row.id,
+          rowIndex: row.rowIndex,
+          columnIndex,
+          cellId: existingCell?.id,
+          oldValue:
+            existingPendingChange?.oldValue || existingCell?.value || "",
+          newValue: "0",
+          formula: rowFormula,
+          color:
+            existingPendingChange?.color || existingCell?.color || undefined,
+          changeType: existingCell ? "update" : "add",
+          timestamp: Date.now(),
+          isFormulaChange: true,
+        };
+
+        newPendingChanges.set(changeKey, updatedChange);
+        formulasApplied++;
+      }
+    }
+
+    setPendingChanges(newPendingChanges);
+    setShowCellEditor(false);
+    setSelectedCellInfo(null);
+
+    if (formulasApplied > 0) {
+      alert(`Applied formula to ${formulasApplied} rows (pending save)`);
+    } else {
+      alert("No valid data found for formula application");
     }
   };
 
@@ -764,6 +822,28 @@ export default function InventoryAgGrid({
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Inventory Sheet</h3>
         <div className="space-x-2 flex items-center">
+          {pendingChanges.size > 0 && (
+            <>
+              <span className="text-sm text-orange-600 font-medium">
+                {pendingChanges.size} unsaved change
+                {pendingChanges.size > 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                onClick={handleDiscardChanges}
+                disabled={isSaving}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+              >
+                Discard
+              </button>
+            </>
+          )}
           <button
             onClick={addNewRow}
             disabled={isLoading}
@@ -795,6 +875,46 @@ export default function InventoryAgGrid({
         </div>
       </div>
 
+      {/* Pending Changes Summary */}
+      {pendingChanges.size > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <h4 className="font-medium text-yellow-800 mb-2">
+            Pending Changes ({pendingChanges.size}):
+          </h4>
+          <div className="max-h-32 overflow-y-auto space-y-1">
+            {Array.from(pendingChanges.values()).map((change) => (
+              <div
+                key={change.id}
+                className="text-sm text-yellow-700 flex items-center space-x-2"
+              >
+                <span className="font-mono">
+                  {String.fromCharCode(65 + change.columnIndex)}
+                  {change.rowIndex}:
+                </span>
+                {change.isFormulaChange ? (
+                  <span className="text-blue-600">
+                    Formula: {change.formula}
+                  </span>
+                ) : change.color ? (
+                  <div className="flex items-center space-x-1">
+                    <span>Color:</span>
+                    <div
+                      className="w-4 h-4 rounded border border-gray-300"
+                      style={{ backgroundColor: change.color }}
+                      title={change.color}
+                    />
+                  </div>
+                ) : (
+                  <span>
+                    "{change.oldValue}" → "{change.newValue}"
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Selected Cell Info */}
       {selectedCellInfo && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -802,6 +922,17 @@ export default function InventoryAgGrid({
             <span className="font-medium">Selected Cell:</span>{" "}
             {selectedCellInfo.field}
             {selectedCellInfo.rowIndex}
+            {(() => {
+              const changeKey = `${selectedCellInfo.rowIndex}-${
+                selectedCellInfo.field.charCodeAt(0) - 65
+              }`;
+              const pendingChange = pendingChanges.get(changeKey);
+              return pendingChange ? (
+                <span className="ml-2 px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs">
+                  Has pending changes
+                </span>
+              ) : null;
+            })()}
             {selectedCellInfo.currentValue && (
               <>
                 {" "}
@@ -855,9 +986,21 @@ export default function InventoryAgGrid({
       {showCellEditor && selectedCellInfo && (
         <ColorPicker
           isOpen={showCellEditor}
-          currentColor={selectedCellInfo.currentColor}
+          currentColor={(() => {
+            const changeKey = `${selectedCellInfo.rowIndex}-${
+              selectedCellInfo.field.charCodeAt(0) - 65
+            }`;
+            const pendingChange = pendingChanges.get(changeKey);
+            return pendingChange?.color || selectedCellInfo.currentColor;
+          })()}
           currentValue={selectedCellInfo.currentValue}
-          currentFormula={selectedCellInfo.currentFormula}
+          currentFormula={(() => {
+            const changeKey = `${selectedCellInfo.rowIndex}-${
+              selectedCellInfo.field.charCodeAt(0) - 65
+            }`;
+            const pendingChange = pendingChanges.get(changeKey);
+            return pendingChange?.formula || selectedCellInfo.currentFormula;
+          })()}
           cellPosition={{
             row: selectedCellInfo.rowIndex,
             column: selectedCellInfo.field,
@@ -869,7 +1012,6 @@ export default function InventoryAgGrid({
           onFormulaApplyToColumn={handleFormulaApplyToColumn}
           onClose={() => {
             setShowCellEditor(false);
-            // Don't clear selectedCellInfo here so user can see what's selected
           }}
         />
       )}

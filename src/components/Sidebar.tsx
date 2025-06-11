@@ -55,7 +55,7 @@ export function Sidebar() {
           {isOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
         </button>
         <div className="flex flex-col items-center">
-          <h1 className="text-2xl font-bold">FalSisters POS</h1>
+          <h1 className="text-2xl font-bold">Falsisters POS</h1>
           <p className="text-sm text-white/80">Backoffice</p>
         </div>
         <div className="w-11"></div> {/* Placeholder for layout balance */}
