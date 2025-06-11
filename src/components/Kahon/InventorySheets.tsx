@@ -6,7 +6,6 @@ import { getInventorySheetsByDate } from "@/lib/server/getInventorySheetsByDate"
 import { useInventory } from "@/context/InventoryContext";
 import jspreadsheet from "jspreadsheet-ce";
 import "jspreadsheet-ce/dist/jspreadsheet.css";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,18 +13,14 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2, RefreshCw, Save } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 // Update imports to use correct types
 import type {
   GetInventorySheetPayload,
   GetInventorySheetsByDateParams,
   InventoryCellOperationBatch,
-  UpdateInventoryCellParams,
 } from "../../../utils/types/inventory.type";
-import { AddItemRowModal } from "./AddItemRowModal";
-import { AddCalculationRowButton } from "./AddCalculationRowButton";
 import { BatchCellEditor } from "./BatchCellEditor";
 import { SaveChangesModal } from "./SaveChangesModal";
 import { SheetToolbar } from "./SheetToolbar";
@@ -33,15 +28,11 @@ import { SheetEmptyState } from "./SheetEmptyState";
 import {
   evaluateFormula,
   parseFormula,
-  parseCellReference,
   getCellReference,
   createSumColumnAbove,
   createSumRowLeft,
   createMultiplyRow,
-  createAddRow,
 } from "@/utils/formulaUtils";
-import { CellColorPicker } from "./CellColorPicker";
-import { KahonFormulas } from "./KahonFormulas";
 import { toast } from "sonner";
 
 // Custom CSS for cell colors - reuse the same injection function
@@ -95,26 +86,6 @@ export default function InventorySheets() {
   useEffect(() => {
     injectCellColorStyles();
   }, []);
-  const getCellValue = (col: number, row: number): string | number => {
-    if (!sheetsData?.Rows?.[row]) return "";
-
-    const cell = sheetsData.Rows[row].Cells?.find(
-      (cell) => cell.columnIndex === col
-    );
-    if (!cell) return "";
-
-    // If cell has a formula, return the evaluated result from the database
-    if (cell.formula && cell.formula.startsWith("=")) {
-      // Use the stored value which should be the evaluated result
-      return cell.value || "";
-    }
-
-    return cell.value || "";
-  };
-
-  const evaluateCellFormula = (formula: string): number | string => {
-    return evaluateFormula(formula, getCellValue);
-  };
 
   const applyCellColor = (element: HTMLElement, color: string) => {
     if (color && color.startsWith("#")) {

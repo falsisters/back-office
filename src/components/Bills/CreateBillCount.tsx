@@ -30,6 +30,7 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
     resolver: zodResolver(CreateBillCountSchema),
     defaultValues: {
       date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      startingAmount: 0,
       expenses: 0,
       showExpenses: false,
       beginningBalance: 0,
@@ -113,6 +114,29 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="startingAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Starting Amount</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2">₱</span>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        className="pl-8"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

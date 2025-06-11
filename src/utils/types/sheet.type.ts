@@ -18,5 +18,3 @@ export interface AddCellsPayload {
     formula?: string;
   }>;
 }
-
-// ...existing code...

@@ -2,7 +2,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { addItemRow } from "@/lib/server/addItemRow";
 import { addCalculationRow } from "@/lib/server/addCalculationRow";
 import { addCells } from "@/lib/server/addCells";
 import { updateKahonCells } from "@/lib/server/updateKahonCells";
@@ -17,7 +16,6 @@ import type {
 interface KahonContextType {
   selectedSheet: string | null;
   setSelectedSheet: (id: string) => void;
-  addItemRow: (payload: ItemRowOperation) => Promise<void>;
   addCalculationRow: (payload: RowOperation) => Promise<void>;
   addCells: (payload: CellOperationBatch) => Promise<void>;
   updateCells: (payload: CellOperationBatch) => Promise<void>;
@@ -31,15 +29,6 @@ const KahonContext = createContext<KahonContextType | undefined>(undefined);
 export function KahonProvider({ children }: { children: React.ReactNode }) {
   const [selectedSheet, setSelectedSheet] = useState<string | null>(null);
   const [loadingOperations, setLoadingOperations] = useState(false);
-
-  const handleAddItemRow = useCallback(async (payload: ItemRowOperation) => {
-    setLoadingOperations(true);
-    try {
-      await addItemRow(payload);
-    } finally {
-      setLoadingOperations(false);
-    }
-  }, []);
 
   const handleAddCalculationRow = useCallback(async (payload: RowOperation) => {
     setLoadingOperations(true);
@@ -132,7 +121,6 @@ export function KahonProvider({ children }: { children: React.ReactNode }) {
       value={{
         selectedSheet,
         setSelectedSheet,
-        addItemRow: handleAddItemRow,
         addCalculationRow: handleAddCalculationRow,
         addCells: handleAddCells,
         updateCells: handleUpdateCells,

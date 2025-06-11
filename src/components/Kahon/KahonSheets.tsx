@@ -21,9 +21,7 @@ import { BatchCellEditor } from "./BatchCellEditor";
 import { Loader2 } from "lucide-react";
 import { SheetEmptyState } from "./SheetEmptyState";
 import {
-  evaluateFormula,
   parseFormula,
-  parseCellReference,
   getCellReference,
   createSumColumnAbove,
   createSumRowLeft,
@@ -31,8 +29,6 @@ import {
   createAddRow,
 } from "@/utils/formulaUtils";
 import { toast } from "sonner";
-import { CellColorPicker } from "./CellColorPicker";
-// Update imports to use correct types
 import type {
   GetUserSheetsByDatePayload,
   GetUserSheetsByDateParams,
@@ -95,24 +91,6 @@ export default function KahonSheets() {
   useEffect(() => {
     injectCellColorStyles();
   }, []);
-  const getCellValue = (col: number, row: number): string | number => {
-    if (!sheetData?.Rows?.[row]?.Cells?.[col]) return "";
-    const cell = sheetData.Rows[row].Cells[col];
-
-    // If cell has a formula, return the evaluated result from the database
-    if (cell.formula && cell.formula.startsWith("=")) {
-      // Use the stored value which should be the evaluated result
-      return cell.value || "";
-    }
-
-    return cell.value || "";
-  };
-  const evaluateCellFormula = (formula: string): number | string => {
-    const result = evaluateFormula(formula, getCellValue);
-    // For KahonSheets, round down numeric results to whole numbers
-    const numericValue = parseFloat(String(result));
-    return !isNaN(numericValue) ? Math.floor(numericValue) : result;
-  };
 
   const applyCellColor = (element: HTMLElement, color: string) => {
     if (color && color.startsWith("#")) {

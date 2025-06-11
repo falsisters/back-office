@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const CashierPermissionsEnum = z.enum([
@@ -13,18 +12,10 @@ export const CashierPermissionsEnum = z.enum([
 ]);
 export type CashierPermissions = z.infer<typeof CashierPermissionsEnum>;
 
-export const SackTypeEnum = z.enum([
-  "FIFTY_KG",
-  "TWENTY_FIVE_KG",
-  "FIVE_KG",
-]);
+export const SackTypeEnum = z.enum(["FIFTY_KG", "TWENTY_FIVE_KG", "FIVE_KG"]);
 export type SackType = z.infer<typeof SackTypeEnum>;
 
-export const PaymentMethodEnum = z.enum([
-  "CASH",
-  "BANK_TRANSFER",
-  "CHECK",
-]);
+export const PaymentMethodEnum = z.enum(["CASH", "BANK_TRANSFER", "CHECK"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
 export const TransferTypeEnum = z.enum([
@@ -53,11 +44,7 @@ export const BillTypeEnum = z.enum([
 ]);
 export type BillType = z.infer<typeof BillTypeEnum>;
 
-export const OrderStatusEnum = z.enum([
-  "PENDING",
-  "COMPLETED",
-  "CANCELLED",
-]);
+export const OrderStatusEnum = z.enum(["PENDING", "COMPLETED", "CANCELLED"]);
 export type OrderStatus = z.infer<typeof OrderStatusEnum>;
 
 // Base Schemas
@@ -75,11 +62,12 @@ export const CashierSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   accessKey: z.string(),
-  secureCode: z.string().cuid().default(() => "generated-by-server"),
+  secureCode: z
+    .string()
+    .cuid()
+    .default(() => "generated-by-server"),
   permissions: z.array(CashierPermissionsEnum),
   userId: z.string(),
-  inventoryId: z.string().cuid().nullable().optional(),
-  kahonId: z.string().cuid().nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -222,7 +210,7 @@ export type Transfer = z.infer<typeof TransferSchema>;
 export const KahonSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  userId: z.string(),
+  cashierId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -231,7 +219,7 @@ export type Kahon = z.infer<typeof KahonSchema>;
 export const InventorySchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  userId: z.string(),
+  cashierId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -330,6 +318,7 @@ export type Attachment = z.infer<typeof AttachmentSchema>;
 export const BillCountSchema = z.object({
   id: z.string().cuid(),
   userId: z.string(),
+  startingAmount: z.number().min(0).default(0),
   expenses: z.number().min(0),
   showExpenses: z.boolean().default(false),
   beginningBalance: z.number().min(0),

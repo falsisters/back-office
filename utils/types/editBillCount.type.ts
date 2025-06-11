@@ -7,6 +7,7 @@ const BillDtoSchema = z.object({
 });
 
 export const UpdateBillCountSchema = z.object({
+  startingAmount: z.number().min(0).optional(),
   expenses: z.number().min(0).optional(),
   showExpenses: z.boolean().optional(),
   beginningBalance: z.number().min(0).optional(),

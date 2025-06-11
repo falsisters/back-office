@@ -1,9 +1,10 @@
 // src/hooks/useKahonSheet.ts
-"use client"
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { getUserSheetsByDate } from "@/lib/server/getSheetsByDateRange";
-import type { SheetWithData, DateRangeParams } from "../../utils/types/kahon.type";
+import type { SheetWithData } from "../../utils/types/kahon.type";
+import type { GetUserSheetsByDateParams } from "../../utils/types/getSheetsByDateRange.type";
 import type { DateRange } from "react-day-picker";
 
 export const useKahonSheet = () => {
@@ -11,23 +12,24 @@ export const useKahonSheet = () => {
   const [sheetData, setSheetData] = useState<SheetWithData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const fetchSheetData = useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) return;
 
     setLoading(true);
     setError(null);
-    
+
     try {
-      const params: DateRangeParams = {
+      const params: GetUserSheetsByDateParams = {
         startDate: dateRange.from.toISOString(),
-        endDate: dateRange.to.toISOString()
+        endDate: dateRange.to.toISOString(),
       };
-      
+
       const data = await getUserSheetsByDate(params);
       setSheetData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch sheet data");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch sheet data"
+      );
       setSheetData(null);
     } finally {
       setLoading(false);
@@ -44,6 +46,6 @@ export const useKahonSheet = () => {
     sheetData,
     loading,
     error,
-    refresh: fetchSheetData
+    refresh: fetchSheetData,
   };
 };

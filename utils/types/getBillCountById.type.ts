@@ -15,11 +15,13 @@ const BillsByTypeSchema = z.record(
 
 export const GetBillCountByIdPayloadSchema = z.object({
   id: z.string().cuid(),
+  startingAmount: z.number().min(0),
   date: z.date(),
   expenses: z.number().min(0),
   showExpenses: z.boolean(),
   beginningBalance: z.number().min(0),
   showBeginningBalance: z.boolean(),
+  totalCash: z.number().min(0),
   bills: z.array(BillSchema),
   billsByType: BillsByTypeSchema,
   billsTotal: z.number().min(0),
