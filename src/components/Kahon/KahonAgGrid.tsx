@@ -18,10 +18,17 @@ import type {
 import { addKahonCalculationRow } from "@/lib/server/manageKahonRows";
 import { addKahonCell, updateKahonCell } from "@/lib/server/manageCells";
 import {
+  buildDependencyMap,
+  findDependentCells,
+  resolveAllFormulas,
+  type DependencyMap,
+} from "@/lib/utils/dependencyTracker";
+import {
   getColumnName,
   getColumnIndex,
   getCellDisplayValue,
   isValidFormula,
+  updateCellValueInSheetData,
 } from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
 
@@ -59,6 +66,7 @@ export default function KahonAgGrid({
   const gridRef = useRef<AgGridReact>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [gridData, setGridData] = useState<GridRow[]>([]);
+  const [dependencyMap, setDependencyMap] = useState<DependencyMap>({});
   const [showCellEditor, setShowCellEditor] = useState(false);
   const [selectedCellInfo, setSelectedCellInfo] = useState<{
     cellId: string;
@@ -69,11 +77,18 @@ export default function KahonAgGrid({
     currentFormula?: string;
   } | null>(null);
 
-  // Prepare grid data from sheet data
+  // Prepare grid data and build dependency map
   useEffect(() => {
     if (sheetData) {
       const data = prepareGridData(sheetData);
       setGridData(data);
+
+      // Build dependency map for formula tracking
+      const depMap = buildDependencyMap(sheetData, "kahon");
+      setDependencyMap(depMap);
+
+      // Resolve all formulas on initialization
+      resolveFormulasOnInit();
     }
   }, [sheetData]);
 
@@ -121,6 +136,30 @@ export default function KahonAgGrid({
     });
 
     return rows;
+  };
+
+  const resolveFormulasOnInit = async () => {
+    if (!sheetData) return;
+
+    try {
+      const updates = resolveAllFormulas(sheetData, "kahon");
+
+      if (updates.length > 0) {
+        console.log(`Resolving ${updates.length} formulas on initialization`);
+
+        // Apply updates via API
+        for (const update of updates) {
+          await updateKahonCell(update.cellId, {
+            value: update.newValue,
+          });
+        }
+
+        // Refresh the grid to show updated values
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Failed to resolve formulas on init:", error);
+    }
   };
 
   // Column definitions - 15 columns total (Quantity + Name + A-M)
@@ -302,8 +341,11 @@ export default function KahonAgGrid({
   const handleCellValueChanged = async (event: CellValueChangedEvent) => {
     if (isLoading) return;
 
-    const { data, colDef, newValue } = event;
+    const { data, colDef, newValue, oldValue } = event;
     if (!data || !colDef?.field) return;
+
+    // Skip if value hasn't actually changed
+    if (newValue === oldValue) return;
 
     setIsLoading(true);
 
@@ -311,6 +353,7 @@ export default function KahonAgGrid({
       const rowIndex = data.rowIndex;
       const field = colDef.field;
       const columnIndex = getColumnIndex(field);
+      const changedCellRef = `${field}${rowIndex}`;
 
       const existingRow = sheetData?.Rows.find((r) => r.rowIndex === rowIndex);
       const existingCell = existingRow?.Cells.find(
@@ -321,21 +364,21 @@ export default function KahonAgGrid({
       let formula = undefined;
 
       if (cellValue && cellValue.startsWith("=")) {
-        // Validate formula before saving
         if (!isValidFormula(cellValue)) {
           alert("Invalid formula syntax");
           return;
         }
         formula = cellValue;
-        cellValue = "0"; // Backend will calculate actual value
+        cellValue = "0";
       }
 
       const cellData = {
         value: cellValue,
         formula: formula,
-        color: existingCell?.color || undefined,
+        color: existingCell?.color === null ? undefined : existingCell?.color,
       };
 
+      // Update the primary cell
       if (existingCell) {
         await updateKahonCell(existingCell.id, cellData);
       } else if (existingRow) {
@@ -351,6 +394,64 @@ export default function KahonAgGrid({
         });
         onRefresh();
         return;
+      }
+
+      // Find and update dependent cells
+      const dependentCells = findDependentCells(changedCellRef, dependencyMap);
+
+      if (dependentCells.length > 0) {
+        console.log(`Updating ${dependentCells.length} dependent cells`);
+
+        // Create updated sheet data for formula calculations
+        let updatedSheetData = updateCellValueInSheetData(
+          sheetData,
+          rowIndex,
+          columnIndex,
+          formula ? "0" : cellValue
+        );
+
+        // Process dependent cells
+        for (const depCellRef of dependentCells) {
+          const depRow = parseInt(depCellRef.match(/\d+$/)?.[0] || "0");
+          const depColumnName = depCellRef.replace(/\d+$/, "");
+          const depColumnIndex = getColumnIndex(depColumnName);
+
+          const depExistingRow = sheetData?.Rows.find(
+            (r) => r.rowIndex === depRow
+          );
+          const depExistingCell = depExistingRow?.Cells.find(
+            (c) => c.columnIndex === depColumnIndex
+          );
+
+          if (depExistingCell?.formula) {
+            // Recalculate the dependent cell's value
+            const newDepValue = getCellDisplayValue(
+              depExistingCell,
+              updatedSheetData,
+              depRow,
+              depColumnIndex,
+              "kahon"
+            );
+
+            // Update the dependent cell
+            await updateKahonCell(depExistingCell.id, {
+              value: newDepValue,
+              formula: depExistingCell.formula,
+              color:
+                depExistingCell.color === null
+                  ? undefined
+                  : depExistingCell.color,
+            });
+
+            // Update our local sheet data for subsequent calculations
+            updatedSheetData = updateCellValueInSheetData(
+              updatedSheetData,
+              depRow,
+              depColumnIndex,
+              newDepValue
+            );
+          }
+        }
       }
 
       onRefresh();
@@ -431,14 +532,14 @@ export default function KahonAgGrid({
         await updateKahonCell(existingCell.id, {
           value: existingCell.value || "",
           formula: existingCell.formula || undefined,
-          color: color || undefined,
+          color: color || undefined, // Convert empty string to undefined
         });
       } else if (existingRow) {
         await addKahonCell({
           rowId: existingRow.id,
           columnIndex: columnIndex,
           value: selectedCellInfo.currentValue || "",
-          color: color || undefined,
+          color: color || undefined, // Convert empty string to undefined
         });
       }
 
@@ -473,7 +574,7 @@ export default function KahonAgGrid({
       const cellData = {
         value: formula.startsWith("=") ? "0" : formula,
         formula: formula.startsWith("=") ? formula : undefined,
-        color: existingCell?.color || undefined,
+        color: existingCell?.color === null ? undefined : existingCell?.color,
       };
 
       if (existingCell) {
@@ -514,7 +615,7 @@ export default function KahonAgGrid({
       for (const row of sortedRows) {
         // Check if we need to verify numeric values for multiplication formulas
         if (baseFormula.includes("*")) {
-          // For multiplication, check if the two left columns have valid numeric data
+          // For multiplication, check if the two left columns have valid data
           if (columnIndex < 2) continue; // Need at least 2 columns to the left
 
           const firstColumnIndex = columnIndex - 2;
@@ -527,13 +628,14 @@ export default function KahonAgGrid({
             (c) => c.columnIndex === secondColumnIndex
           );
 
-          // Only apply formula if both cells exist and have numeric values
-          if (
-            firstCell?.value &&
-            secondCell?.value &&
-            !isNaN(parseFloat(firstCell.value)) &&
-            !isNaN(parseFloat(secondCell.value))
-          ) {
+          // Check if at least one cell has valid numeric data (not both empty/invalid)
+          const firstHasValue =
+            firstCell?.value && !isNaN(parseFloat(firstCell.value));
+          const secondHasValue =
+            secondCell?.value && !isNaN(parseFloat(secondCell.value));
+
+          // Apply formula if at least one cell has a valid value
+          if (firstHasValue || secondHasValue) {
             // Generate formula for this specific row
             let rowFormula = baseFormula.replace(
               /\d+/g,
@@ -546,7 +648,83 @@ export default function KahonAgGrid({
             const cellData = {
               value: "0",
               formula: rowFormula,
-              color: existingCell?.color || undefined,
+              color:
+                existingCell?.color === null ? undefined : existingCell?.color,
+            };
+
+            if (existingCell) {
+              await updateKahonCell(existingCell.id, cellData);
+            } else {
+              await addKahonCell({
+                rowId: row.id,
+                columnIndex: columnIndex,
+                ...cellData,
+              });
+            }
+            formulasApplied++;
+          }
+        } else if (baseFormula.includes("+") && baseFormula.includes("Name")) {
+          // For addition formulas that exclude Quantity column
+          // Check if at least one of the two left cells has valid data
+          if (columnIndex < 2) continue; // Need at least 2 columns to check
+
+          const firstColumnIndex = columnIndex - 2;
+          const secondColumnIndex = columnIndex - 1;
+
+          const firstCell = row.Cells.find(
+            (c) => c.columnIndex === firstColumnIndex
+          );
+          const secondCell = row.Cells.find(
+            (c) => c.columnIndex === secondColumnIndex
+          );
+
+          // Check if at least one of the two left cells has valid data
+          let hasValidData = false;
+
+          // For first cell (could be Quantity, Name, or A, B, C...)
+          if (firstCell?.value && firstCell.value.trim() !== "") {
+            // For Name column (index 1), any non-empty value is valid
+            // For other columns, check if it's numeric or if it's Quantity column
+            if (
+              firstColumnIndex === 1 ||
+              firstColumnIndex === 0 ||
+              !isNaN(parseFloat(firstCell.value))
+            ) {
+              hasValidData = true;
+            }
+          }
+
+          // For second cell (could be Name or A, B, C...)
+          if (
+            !hasValidData &&
+            secondCell?.value &&
+            secondCell.value.trim() !== ""
+          ) {
+            // For Name column (index 1), any non-empty value is valid
+            // For other columns, check if it's numeric or if it's Quantity column
+            if (
+              secondColumnIndex === 1 ||
+              secondColumnIndex === 0 ||
+              !isNaN(parseFloat(secondCell.value))
+            ) {
+              hasValidData = true;
+            }
+          }
+
+          if (hasValidData) {
+            let rowFormula = baseFormula.replace(
+              /\d+/g,
+              row.rowIndex.toString()
+            );
+
+            const existingCell = row.Cells.find(
+              (c) => c.columnIndex === columnIndex
+            );
+            const cellData = {
+              value: "0",
+              formula: rowFormula,
+              color:
+                existingCell?.color === null ? undefined : existingCell?.color,
             };
 
             if (existingCell) {
@@ -561,7 +739,7 @@ export default function KahonAgGrid({
             formulasApplied++;
           }
         } else {
-          // For non-multiplication formulas, apply to all rows
+          // For other formulas, apply to all rows
           let rowFormula = baseFormula.replace(/\d+/g, row.rowIndex.toString());
 
           const existingCell = row.Cells.find(
@@ -570,7 +748,8 @@ export default function KahonAgGrid({
           const cellData = {
             value: "0",
             formula: rowFormula,
-            color: existingCell?.color || undefined,
+            color:
+              existingCell?.color === null ? undefined : existingCell?.color,
           };
 
           if (existingCell) {
@@ -593,7 +772,7 @@ export default function KahonAgGrid({
       if (formulasApplied > 0) {
         alert(`Applied formula to ${formulasApplied} rows`);
       } else {
-        alert("No valid numeric cells found for multiplication formula");
+        alert("No valid data found for formula application");
       }
     } catch (error) {
       console.error("Failed to apply formula to column:", error);

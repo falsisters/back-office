@@ -76,10 +76,21 @@ export const UpdateCellsSchema = z.object({
 });
 
 // Date range query schema
-export const DateRangeQuerySchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-});
+export const DateRangeQuerySchema = z
+  .object({
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+  })
+  .transform((data) => {
+    // Default to current day if no dates provided
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    return {
+      startDate: data.startDate || todayStr,
+      endDate: data.endDate || todayStr,
+    };
+  });
 
 // Color picker schema
 export const ColorPickerSchema = z.object({

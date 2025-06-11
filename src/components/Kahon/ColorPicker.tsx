@@ -115,14 +115,13 @@ const kahonFormulas: QuickFormula[] = [
   },
   {
     name: "Apply addition to all rows",
-    description: "Add all cells to the left for all rows",
+    description: "Add all cells to the left for all rows (excluding Quantity)",
     formula: ({ row, column, columnIndex }) => {
-      if (columnIndex === 0) return "0";
+      if (columnIndex <= 1) return "0"; // Start from Name column
 
-      let formula = "=Quantity" + row;
-      if (columnIndex > 1) formula += " + Name" + row;
+      let formula = "=Name" + row;
 
-      // Add A, B, C... columns up to current column (excluding current)
+      // Add A, B, C... columns up to current column (excluding current and Quantity)
       for (let i = 0; i < columnIndex - 2; i++) {
         formula += ` + ${String.fromCharCode(65 + i)}${row}`;
       }
@@ -211,14 +210,14 @@ const inventoryFormulas: QuickFormula[] = [
   },
   {
     name: "Apply addition to all rows",
-    description: "Add all cells to the left for all rows",
+    description: "Add all cells to the left for all rows (excluding A)",
     formula: ({ row, column, columnIndex }) => {
-      if (columnIndex === 0) return "0";
+      if (columnIndex <= 1) return "0"; // Start from B column
 
-      let formula = "=A" + row;
+      let formula = "=B" + row;
 
-      // Add B, C, D... columns up to current column (excluding current)
-      for (let i = 1; i < columnIndex; i++) {
+      // Add C, D, E... columns up to current column (excluding current and A)
+      for (let i = 2; i < columnIndex; i++) {
         formula += ` + ${String.fromCharCode(65 + i)}${row}`;
       }
 

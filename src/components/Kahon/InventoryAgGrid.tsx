@@ -20,7 +20,17 @@ import {
   addInventoryCell,
   updateInventoryCell,
 } from "@/lib/server/manageCells";
-import { getCellDisplayValue, isValidFormula } from "@/lib/utils/formulaParser";
+import {
+  buildDependencyMap,
+  findDependentCells,
+  resolveAllFormulas,
+  type DependencyMap,
+} from "@/lib/utils/dependencyTracker";
+import {
+  getCellDisplayValue,
+  isValidFormula,
+  updateCellValueInSheetData,
+} from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
 
 interface InventoryAgGridProps {
@@ -57,6 +67,7 @@ export default function InventoryAgGrid({
   const gridRef = useRef<AgGridReact>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [gridData, setGridData] = useState<GridRow[]>([]);
+  const [dependencyMap, setDependencyMap] = useState<DependencyMap>({});
   const [showCellEditor, setShowCellEditor] = useState(false);
   const [selectedCellInfo, setSelectedCellInfo] = useState<{
     cellId: string;
@@ -67,13 +78,44 @@ export default function InventoryAgGrid({
     currentFormula?: string;
   } | null>(null);
 
-  // Prepare grid data from sheet data
+  // Prepare grid data and build dependency map
   useEffect(() => {
     if (sheetData) {
       const data = prepareGridData(sheetData);
       setGridData(data);
+
+      // Build dependency map for formula tracking
+      const depMap = buildDependencyMap(sheetData, "inventory");
+      setDependencyMap(depMap);
+
+      // Resolve all formulas on initialization
+      resolveFormulasOnInit();
     }
   }, [sheetData]);
+
+  const resolveFormulasOnInit = async () => {
+    if (!sheetData) return;
+
+    try {
+      const updates = resolveAllFormulas(sheetData, "inventory");
+
+      if (updates.length > 0) {
+        console.log(`Resolving ${updates.length} formulas on initialization`);
+
+        // Apply updates via API
+        for (const update of updates) {
+          await updateInventoryCell(update.cellId, {
+            value: update.newValue,
+          });
+        }
+
+        // Refresh the grid to show updated values
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Failed to resolve formulas on init:", error);
+    }
+  };
 
   const prepareGridData = (data: InventorySheetWithData): GridRow[] => {
     const rows: GridRow[] = [];
@@ -218,8 +260,11 @@ export default function InventoryAgGrid({
   const handleCellValueChanged = async (event: CellValueChangedEvent) => {
     if (isLoading) return;
 
-    const { data, colDef, newValue } = event;
+    const { data, colDef, newValue, oldValue } = event;
     if (!data || !colDef?.field) return;
+
+    // Skip if value hasn't actually changed
+    if (newValue === oldValue) return;
 
     setIsLoading(true);
 
@@ -227,6 +272,7 @@ export default function InventoryAgGrid({
       const rowIndex = data.rowIndex;
       const field = colDef.field;
       const columnIndex = field.charCodeAt(0) - 65;
+      const changedCellRef = `${field}${rowIndex}`;
 
       const existingRow = sheetData?.Rows.find((r) => r.rowIndex === rowIndex);
       const existingCell = existingRow?.Cells.find(
@@ -237,21 +283,21 @@ export default function InventoryAgGrid({
       let formula = undefined;
 
       if (cellValue && cellValue.startsWith("=")) {
-        // Validate formula before saving
         if (!isValidFormula(cellValue)) {
           alert("Invalid formula syntax");
           return;
         }
         formula = cellValue;
-        cellValue = "0"; // Backend will calculate actual value
+        cellValue = "0";
       }
 
       const cellData = {
         value: cellValue,
         formula: formula,
-        color: existingCell?.color || undefined,
+        color: existingCell?.color === null ? undefined : existingCell?.color,
       };
 
+      // Update the primary cell
       if (existingCell) {
         await updateInventoryCell(existingCell.id, cellData);
       } else if (existingRow) {
@@ -267,6 +313,64 @@ export default function InventoryAgGrid({
         });
         onRefresh();
         return;
+      }
+
+      // Find and update dependent cells
+      const dependentCells = findDependentCells(changedCellRef, dependencyMap);
+
+      if (dependentCells.length > 0) {
+        console.log(`Updating ${dependentCells.length} dependent cells`);
+
+        // Create updated sheet data for formula calculations
+        let updatedSheetData = updateCellValueInSheetData(
+          sheetData,
+          rowIndex,
+          columnIndex,
+          formula ? "0" : cellValue
+        );
+
+        // Process dependent cells
+        for (const depCellRef of dependentCells) {
+          const depRow = parseInt(depCellRef.match(/\d+$/)?.[0] || "0");
+          const depColumnName = depCellRef.replace(/\d+$/, "");
+          const depColumnIndex = depColumnName.charCodeAt(0) - 65;
+
+          const depExistingRow = sheetData?.Rows.find(
+            (r) => r.rowIndex === depRow
+          );
+          const depExistingCell = depExistingRow?.Cells.find(
+            (c) => c.columnIndex === depColumnIndex
+          );
+
+          if (depExistingCell?.formula) {
+            // Recalculate the dependent cell's value
+            const newDepValue = getCellDisplayValue(
+              depExistingCell,
+              updatedSheetData,
+              depRow,
+              depColumnIndex,
+              "inventory"
+            );
+
+            // Update the dependent cell
+            await updateInventoryCell(depExistingCell.id, {
+              value: newDepValue,
+              formula: depExistingCell.formula,
+              color:
+                depExistingCell.color === null
+                  ? undefined
+                  : depExistingCell.color,
+            });
+
+            // Update our local sheet data for subsequent calculations
+            updatedSheetData = updateCellValueInSheetData(
+              updatedSheetData,
+              depRow,
+              depColumnIndex,
+              newDepValue
+            );
+          }
+        }
       }
 
       onRefresh();
@@ -347,14 +451,14 @@ export default function InventoryAgGrid({
         await updateInventoryCell(existingCell.id, {
           value: existingCell.value || "",
           formula: existingCell.formula || undefined,
-          color: color || undefined,
+          color: color || undefined, // Convert empty string to undefined
         });
       } else if (existingRow) {
         await addInventoryCell({
           rowId: existingRow.id,
           columnIndex: columnIndex,
           value: selectedCellInfo.currentValue || "",
-          color: color || undefined,
+          color: color || undefined, // Convert empty string to undefined
         });
       }
 
@@ -389,7 +493,7 @@ export default function InventoryAgGrid({
       const cellData = {
         value: formula.startsWith("=") ? "0" : formula,
         formula: formula.startsWith("=") ? formula : undefined,
-        color: existingCell?.color || undefined,
+        color: existingCell?.color === null ? undefined : existingCell?.color,
       };
 
       if (existingCell) {
@@ -429,7 +533,7 @@ export default function InventoryAgGrid({
       for (const row of sortedRows) {
         // Check if we need to verify numeric values for multiplication formulas
         if (baseFormula.includes("*")) {
-          // For multiplication, check if the two left columns have valid numeric data
+          // For multiplication, check if the two left columns have valid data
           if (columnIndex < 2) continue; // Need at least 2 columns to the left (C column minimum)
 
           const firstColumnIndex = columnIndex - 2;
@@ -442,13 +546,14 @@ export default function InventoryAgGrid({
             (c) => c.columnIndex === secondColumnIndex
           );
 
-          // Only apply formula if both cells exist and have numeric values
-          if (
-            firstCell?.value &&
-            secondCell?.value &&
-            !isNaN(parseFloat(firstCell.value)) &&
-            !isNaN(parseFloat(secondCell.value))
-          ) {
+          // Check if at least one cell has valid numeric data (not both empty/invalid)
+          const firstHasValue =
+            firstCell?.value && !isNaN(parseFloat(firstCell.value));
+          const secondHasValue =
+            secondCell?.value && !isNaN(parseFloat(secondCell.value));
+
+          // Apply formula if at least one cell has a valid value
+          if (firstHasValue || secondHasValue) {
             // Generate formula for this specific row
             let rowFormula = baseFormula.replace(
               /\d+/g,
@@ -461,7 +566,53 @@ export default function InventoryAgGrid({
             const cellData = {
               value: "0",
               formula: rowFormula,
-              color: existingCell?.color || undefined,
+              color:
+                existingCell?.color === null ? undefined : existingCell?.color,
+            };
+
+            if (existingCell) {
+              await updateInventoryCell(existingCell.id, cellData);
+            } else {
+              await addInventoryCell({
+                rowId: row.id,
+                columnIndex: columnIndex,
+                ...cellData,
+              });
+            }
+            formulasApplied++;
+          }
+        } else if (baseFormula.includes("+") && baseFormula.includes("B")) {
+          // For addition formulas that exclude A column
+          // Check if at least one cell from B column onwards has valid data
+          let hasValidData = false;
+
+          // Check B column (index 1) and subsequent columns
+          for (let i = 1; i < columnIndex; i++) {
+            const cell = row.Cells.find((c) => c.columnIndex === i);
+            if (
+              cell?.value &&
+              cell.value.trim() !== "" &&
+              !isNaN(parseFloat(cell.value))
+            ) {
+              hasValidData = true;
+              break;
+            }
+          }
+
+          if (hasValidData) {
+            let rowFormula = baseFormula.replace(
+              /\d+/g,
+              row.rowIndex.toString()
+            );
+
+            const existingCell = row.Cells.find(
+              (c) => c.columnIndex === columnIndex
+            );
+            const cellData = {
+              value: "0",
+              formula: rowFormula,
+              color:
+                existingCell?.color === null ? undefined : existingCell?.color,
             };
 
             if (existingCell) {
@@ -476,7 +627,7 @@ export default function InventoryAgGrid({
             formulasApplied++;
           }
         } else {
-          // For non-multiplication formulas, apply to all rows
+          // For other formulas, apply to all rows
           let rowFormula = baseFormula.replace(/\d+/g, row.rowIndex.toString());
 
           const existingCell = row.Cells.find(
@@ -485,7 +636,8 @@ export default function InventoryAgGrid({
           const cellData = {
             value: "0",
             formula: rowFormula,
-            color: existingCell?.color || undefined,
+            color:
+              existingCell?.color === null ? undefined : existingCell?.color,
           };
 
           if (existingCell) {
@@ -508,7 +660,7 @@ export default function InventoryAgGrid({
       if (formulasApplied > 0) {
         alert(`Applied formula to ${formulasApplied} rows`);
       } else {
-        alert("No valid numeric cells found for multiplication formula");
+        alert("No valid data found for formula application");
       }
     } catch (error) {
       console.error("Failed to apply formula to column:", error);

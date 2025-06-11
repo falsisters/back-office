@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { getAllCashiersByUserId } from "@/lib/server/getAllCashiersByUserId";
 import { getKahonSheetsByDateRange } from "@/lib/server/getKahonSheets";
 import { getInventorySheetsByDateRange } from "@/lib/server/getInventorySheets";
+import DateRangeCalendar from "./DateRangeCalendar";
 import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
 import type {
   CashierSheetResponse,
   CashierInventorySheetResponse,
+  DateRangeQueryType,
 } from "../../../utils/types/kahon.type";
 import KahonAgGrid from "./KahonAgGrid";
 import InventoryAgGrid from "./InventoryAgGrid";
@@ -22,6 +24,11 @@ export default function KahonManagement() {
   const [activeTab, setActiveTab] = useState<"kahon" | "inventory">("kahon");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRangeQueryType>({
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+  });
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // Load cashiers on mount
   useEffect(() => {
@@ -54,7 +61,7 @@ export default function KahonManagement() {
     if (selectedCashier) {
       loadSheets();
     }
-  }, [selectedCashier]);
+  }, [selectedCashier, dateRange]);
 
   const loadSheets = async () => {
     if (!selectedCashier) return;
@@ -62,8 +69,8 @@ export default function KahonManagement() {
     setLoading(true);
     try {
       const [kahonData, inventoryData] = await Promise.all([
-        getKahonSheetsByDateRange(),
-        getInventorySheetsByDateRange(),
+        getKahonSheetsByDateRange(dateRange),
+        getInventorySheetsByDateRange(dateRange),
       ]);
 
       // Ensure data is arrays and filter sheets for selected cashier
@@ -87,6 +94,17 @@ export default function KahonManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateRangeChange = (startDate: string, endDate: string) => {
+    setDateRange({ startDate, endDate });
+  };
+
+  const handleApplyDateFilter = () => {
+    if (selectedCashier) {
+      loadSheets();
+    }
+    setShowCalendar(false);
   };
 
   // Safe array operations with defensive checks
@@ -160,6 +178,42 @@ export default function KahonManagement() {
                 Using AG-Grid Community Edition with formula support and cell
                 coloring
               </p>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-gray-700">
+                    Date Range:
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {dateRange.startDate === dateRange.endDate
+                      ? new Date(dateRange.startDate).toLocaleDateString()
+                      : `${new Date(
+                          dateRange.startDate
+                        ).toLocaleDateString()} - ${new Date(
+                          dateRange.endDate
+                        ).toLocaleDateString()}`}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowCalendar(!showCalendar)}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
+                >
+                  {showCalendar ? "Hide Calendar" : "Select Date Range"}
+                </button>
+              </div>
+
+              {showCalendar && (
+                <DateRangeCalendar
+                  startDate={dateRange.startDate}
+                  endDate={dateRange.endDate}
+                  onDateRangeChange={handleDateRangeChange}
+                  onApply={handleApplyDateFilter}
+                  className="mt-2"
+                />
+              )}
             </div>
 
             {/* Tab Navigation */}

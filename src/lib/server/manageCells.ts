@@ -75,6 +75,12 @@ export const updateKahonCell = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  // Convert null color to undefined to match type expectations
+  const sanitizedData = {
+    ...data,
+    color: data.color === null ? undefined : data.color,
+  };
+
   const response = await fetch(
     `${process.env.API_URL}/sheet/user/cell/${cellId}`,
     {
@@ -83,7 +89,7 @@ export const updateKahonCell = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken.value}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(sanitizedData),
     }
   );
 
@@ -223,6 +229,12 @@ export const updateInventoryCell = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  // Convert null color to undefined to match type expectations
+  const sanitizedData = {
+    ...data,
+    color: data.color === null ? undefined : data.color,
+  };
+
   const response = await fetch(
     `${process.env.API_URL}/inventory/user/cell/${cellId}`,
     {
@@ -231,7 +243,7 @@ export const updateInventoryCell = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken.value}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(sanitizedData),
     }
   );
 

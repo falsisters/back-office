@@ -16,9 +16,19 @@ export const getKahonSheetsByDateRange = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  // Default to current day if no params provided
+  const today = new Date().toISOString().split("T")[0];
+  const defaultParams = {
+    startDate: today,
+    endDate: today,
+  };
+
+  const finalParams = params || defaultParams;
+
   const searchParams = new URLSearchParams();
-  if (params?.startDate) searchParams.append("startDate", params.startDate);
-  if (params?.endDate) searchParams.append("endDate", params.endDate);
+  if (finalParams.startDate)
+    searchParams.append("startDate", finalParams.startDate);
+  if (finalParams.endDate) searchParams.append("endDate", finalParams.endDate);
 
   const response = await fetch(
     `${process.env.API_URL}/sheet/user/date?${searchParams.toString()}`,

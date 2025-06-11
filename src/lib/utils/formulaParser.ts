@@ -555,3 +555,72 @@ export function getCellDisplayValue(
 
   return cell?.value || "";
 }
+
+/**
+ * Enhanced cell display value with dependency resolution
+ */
+export function getCellDisplayValueWithDependencies(
+  cell: any,
+  sheetData: any,
+  rowIndex: number,
+  columnIndex: number,
+  sheetType: "kahon" | "inventory" = "kahon"
+): string {
+  if (cell?.formula && cell.formula.startsWith("=")) {
+    // Evaluate formula with current sheet data state
+    if (sheetType === "inventory") {
+      const result = parseAndEvaluateInventoryFormula(
+        cell.formula,
+        sheetData,
+        rowIndex,
+        columnIndex
+      );
+      return result;
+    } else {
+      const result = parseAndEvaluateFormula(
+        cell.formula,
+        sheetData,
+        rowIndex,
+        columnIndex
+      );
+      return result;
+    }
+  }
+
+  return cell?.value || "";
+}
+
+/**
+ * Checks if a formula references a specific cell
+ */
+export function formulaReferencesCell(
+  formula: string,
+  targetCellRef: string
+): boolean {
+  if (!formula || !formula.startsWith("=")) return false;
+
+  const references = extractCellReferences(formula);
+  return references.includes(targetCellRef);
+}
+
+/**
+ * Updates cell values in sheet data (for dependency calculations)
+ */
+export function updateCellValueInSheetData(
+  sheetData: any,
+  rowIndex: number,
+  columnIndex: number,
+  newValue: string
+): any {
+  const updatedData = JSON.parse(JSON.stringify(sheetData)); // Deep clone
+
+  const row = updatedData.Rows?.find((r: any) => r.rowIndex === rowIndex);
+  if (row) {
+    const cell = row.Cells?.find((c: any) => c.columnIndex === columnIndex);
+    if (cell) {
+      cell.value = newValue;
+    }
+  }
+
+  return updatedData;
+}

@@ -14,6 +14,14 @@ export const addKahonCalculationRow = async (data: AddCalculationRowType) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  // Ensure we have the correct structure for the API
+  const requestData = {
+    sheetId: data.sheetId,
+    inventoryId: data.inventoryId,
+    rowIndex: data.rowIndex,
+    description: data.description || "",
+  };
+
   const response = await fetch(
     `${process.env.API_URL}/sheet/user/calculation-row`,
     {
@@ -22,7 +30,7 @@ export const addKahonCalculationRow = async (data: AddCalculationRowType) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken.value}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(requestData),
     }
   );
 
