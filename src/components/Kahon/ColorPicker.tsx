@@ -115,18 +115,29 @@ const kahonFormulas: QuickFormula[] = [
   },
   {
     name: "Apply addition to all rows",
-    description: "Add all cells to the left for all rows (excluding Quantity)",
+    description: "Add the next 2 cells to the left for all rows",
     formula: ({ row, column, columnIndex }) => {
-      if (columnIndex <= 1) return "0"; // Start from Name column
+      if (columnIndex <= 1) return "0"; // Need at least 2 columns to the left
 
-      let formula = "=Name" + row;
+      // Get the two columns immediately to the left
+      let firstColumn, secondColumn;
 
-      // Add A, B, C... columns up to current column (excluding current and Quantity)
-      for (let i = 0; i < columnIndex - 2; i++) {
-        formula += ` + ${String.fromCharCode(65 + i)}${row}`;
+      // Handle the immediate left column
+      if (columnIndex - 1 === 0) secondColumn = "Quantity";
+      else if (columnIndex - 1 === 1) secondColumn = "Name";
+      else secondColumn = String.fromCharCode(65 + columnIndex - 3);
+
+      // Handle the second left column (if exists)
+      if (columnIndex >= 2) {
+        if (columnIndex - 2 === 0) firstColumn = "Quantity";
+        else if (columnIndex - 2 === 1) firstColumn = "Name";
+        else firstColumn = String.fromCharCode(65 + columnIndex - 4);
+
+        return `=${firstColumn}${row} + ${secondColumn}${row}`;
+      } else {
+        // Only one column to the left
+        return `=${secondColumn}${row}`;
       }
-
-      return formula;
     },
     isColumnFormula: true,
   },
@@ -210,18 +221,21 @@ const inventoryFormulas: QuickFormula[] = [
   },
   {
     name: "Apply addition to all rows",
-    description: "Add all cells to the left for all rows (excluding A)",
+    description: "Add the next 2 cells to the left for all rows",
     formula: ({ row, column, columnIndex }) => {
-      if (columnIndex <= 1) return "0"; // Start from B column
+      if (columnIndex <= 0) return "0"; // Need at least 1 column to the left
 
-      let formula = "=B" + row;
+      // Get the two columns immediately to the left
+      const secondColumn = String.fromCharCode(65 + columnIndex - 1);
 
-      // Add C, D, E... columns up to current column (excluding current and A)
-      for (let i = 2; i < columnIndex; i++) {
-        formula += ` + ${String.fromCharCode(65 + i)}${row}`;
+      if (columnIndex >= 2) {
+        // Two columns to the left available
+        const firstColumn = String.fromCharCode(65 + columnIndex - 2);
+        return `=${firstColumn}${row} + ${secondColumn}${row}`;
+      } else {
+        // Only one column to the left (columnIndex === 1, so we're in column B)
+        return `=${secondColumn}${row}`;
       }
-
-      return formula;
     },
     isColumnFormula: true,
   },
