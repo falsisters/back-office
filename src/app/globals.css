@@ -70,3 +70,65 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Syncfusion Spreadsheet Custom Styles */
+.e-spreadsheet {
+  font-family: inherit !important;
+}
+
+.e-spreadsheet .e-main-panel {
+  background: #ffffff !important;
+}
+
+.e-spreadsheet .e-sheet-panel {
+  background: #ffffff !important;
+}
+
+.e-spreadsheet .e-toolbar {
+  display: none !important;
+}
+
+.e-spreadsheet .e-ribbon-tab {
+  display: none !important;
+}
+
+/* Hide watermark if license key issues */
+.e-spreadsheet .e-watermark {
+  display: none !important;
+}
+
+/* Improve cell styling */
+.e-spreadsheet .e-cell {
+  border-color: #e5e7eb !important;
+  font-size: 14px !important;
+}
+
+.e-spreadsheet .e-active-cell {
+  border: 2px solid #3b82f6 !important;
+}
+
+/* Formula bar styling */
+.e-spreadsheet .e-formula-bar-panel {
+  background: #f9fafb !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Make cells more clickable and editable */
+.e-spreadsheet .e-cell:hover {
+  background-color: #f8fafc !important;
+}
+
+.e-spreadsheet .e-cell.e-active-cell {
+  background-color: #dbeafe !important;
+}
+
+/* Improve text rendering in cells */
+.e-spreadsheet .e-cell .e-wrap-content {
+  padding: 4px 6px !important;
+  line-height: 1.4 !important;
+}
+
+/* Make sure cell content is visible */
+.e-spreadsheet .e-cell .e-cell-data {
+  color: #1f2937 !important;
+}

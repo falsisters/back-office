@@ -1,10 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import type {
-  GetAllCashiersByUserIdPayload,
-} from "../../../utils/types/getAllCashiersByUserId.type";
-import type { NestApiError } from "../../../utils/types/error.type";
+import { NestApiError } from "../../../utils/types/error.type";
+import { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
 
 export const getAllCashiersByUserId =
   async (): Promise<GetAllCashiersByUserIdPayload> => {
@@ -17,7 +15,7 @@ export const getAllCashiersByUserId =
       headers: {
         Authorization: `Bearer ${accessToken.value}`,
       },
-      next: { revalidate: 60 },
+      cache: "no-store", // Disable caching
     });
 
     if (!response.ok) {
@@ -25,9 +23,17 @@ export const getAllCashiersByUserId =
       throw new Error(
         Array.isArray(error.message)
           ? error.message.join(", ")
-          : error.message || "Failed to fetch cashiers"
+          : error.message || "Failed to get cashiers"
       );
     }
 
-    return response.json();
+    const payload: GetAllCashiersByUserIdPayload = await response.json();
+
+    // Ensure we always return an array
+    if (!Array.isArray(payload)) {
+      console.error("API returned non-array payload:", payload);
+      return [];
+    }
+
+    return payload;
   };

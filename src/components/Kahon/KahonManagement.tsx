@@ -1,73 +1,217 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Database, FileSpreadsheet, Archive } from "lucide-react"
-import KahonSheets  from "./KahonSheets"
-import InventorySheets from "./InventorySheets"
-import { KahonProvider } from "@/context/KahonContext"
-import { InventoryProvider } from "@/context/InventoryContext"
+import { useState, useEffect } from "react";
+import { getAllCashiersByUserId } from "@/lib/server/getAllCashiersByUserId";
+import { getKahonSheetsByDateRange } from "@/lib/server/getKahonSheets";
+import { getInventorySheetsByDateRange } from "@/lib/server/getInventorySheets";
+import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
+import type {
+  CashierSheetResponse,
+  CashierInventorySheetResponse,
+} from "../../../utils/types/kahon.type";
+import KahonAgGrid from "./KahonAgGrid";
+import InventoryAgGrid from "./InventoryAgGrid";
 
 export default function KahonManagement() {
-  const [activeTab, setActiveTab] = useState("kahon-sheets")
+  const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
+  const [selectedCashier, setSelectedCashier] = useState<string>("");
+  const [kahonSheets, setKahonSheets] = useState<CashierSheetResponse[]>([]);
+  const [inventorySheets, setInventorySheets] = useState<
+    CashierInventorySheetResponse[]
+  >([]);
+  const [activeTab, setActiveTab] = useState<"kahon" | "inventory">("kahon");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+
+  // Load cashiers on mount
+  useEffect(() => {
+    const loadCashiers = async () => {
+      try {
+        const data = await getAllCashiersByUserId();
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setCashiers(data);
+        } else {
+          console.error("Expected array but got:", data);
+          setCashiers([]);
+          setError("Invalid data format received");
+        }
+      } catch (err) {
+        console.error("Error loading cashiers:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load cashiers"
+        );
+        setCashiers([]); // Ensure cashiers is always an array
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCashiers();
+  }, []);
+
+  // Load sheets when cashier is selected
+  useEffect(() => {
+    if (selectedCashier) {
+      loadSheets();
+    }
+  }, [selectedCashier]);
+
+  const loadSheets = async () => {
+    if (!selectedCashier) return;
+
+    setLoading(true);
+    try {
+      const [kahonData, inventoryData] = await Promise.all([
+        getKahonSheetsByDateRange(),
+        getInventorySheetsByDateRange(),
+      ]);
+
+      // Ensure data is arrays and filter sheets for selected cashier
+      const kahonArray = Array.isArray(kahonData) ? kahonData : [];
+      const inventoryArray = Array.isArray(inventoryData) ? inventoryData : [];
+
+      const cashierKahonSheets = kahonArray.filter(
+        (sheet) => sheet.cashierId === selectedCashier
+      );
+      const cashierInventorySheets = inventoryArray.filter(
+        (sheet) => sheet.cashierId === selectedCashier
+      );
+
+      setKahonSheets(cashierKahonSheets);
+      setInventorySheets(cashierInventorySheets);
+    } catch (err) {
+      console.error("Error loading sheets:", err);
+      setError(err instanceof Error ? err.message : "Failed to load sheets");
+      setKahonSheets([]);
+      setInventorySheets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Safe array operations with defensive checks
+  const selectedCashierData = Array.isArray(cashiers)
+    ? cashiers.find((c) => c.id === selectedCashier)
+    : undefined;
+
+  const currentKahonSheet = Array.isArray(kahonSheets)
+    ? kahonSheets.find((s) => s.cashierId === selectedCashier)?.sheet
+    : undefined;
+
+  const currentInventorySheet = Array.isArray(inventorySheets)
+    ? inventorySheets.find((s) => s.cashierId === selectedCashier)?.sheet
+    : undefined;
+
+  if (loading && !selectedCashier) {
+    return <div className="p-4">Loading cashiers...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="text-red-600 mb-4">Error: {error}</div>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <KahonProvider>
-      <InventoryProvider>
-        <div className="space-y-6">
-          {/* Header Section */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-primary/5 to-transparent p-4 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-2 rounded-full">
-                <Database className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-primary">Kahon Management</h2>
-                <p className="text-sm text-muted-foreground">
-                  Manage your Kahon sheets and inventory data
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h1 className="text-2xl font-bold mb-4">Kahon Management</h1>
 
-          {/* Tabs Section */}
-          <Card className="w-full shadow-md">
-            <CardContent className="p-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="border-b bg-gradient-to-r from-gray-50 to-white">
-                  <TabsList className="grid w-full grid-cols-2 bg-transparent h-auto p-0 rounded-none">
-                    <TabsTrigger 
-                      value="kahon-sheets" 
-                      className="flex items-center gap-2 py-4 px-6 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
-                    >
-                      <FileSpreadsheet className="h-4 w-4" />
-                      Kahon Sheets
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="inventory-sheets"
-                      className="flex items-center gap-2 py-4 px-6 data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
-                    >
-                      <Archive className="h-4 w-4" />
-                      Inventory Sheets
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <div className="p-6">
-                  <TabsContent value="kahon-sheets" className="mt-0">
-                    <KahonSheets />
-                  </TabsContent>
-
-                  <TabsContent value="inventory-sheets" className="mt-0">
-                    <InventorySheets />
-                  </TabsContent>
-                </div>
-              </Tabs>
-            </CardContent>
-          </Card>
+        {/* Cashier Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">
+            Select Cashier:
+          </label>
+          <select
+            value={selectedCashier}
+            onChange={(e) => setSelectedCashier(e.target.value)}
+            className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">-- Select a Cashier --</option>
+            {Array.isArray(cashiers) &&
+              cashiers.map((cashier) => (
+                <option key={cashier.id} value={cashier.id}>
+                  {cashier.name}
+                </option>
+              ))}
+          </select>
+          {!Array.isArray(cashiers) && (
+            <p className="text-sm text-red-600 mt-1">
+              No cashiers available or invalid data format
+            </p>
+          )}
         </div>
-      </InventoryProvider>
-    </KahonProvider>
-  )
+
+        {selectedCashier && selectedCashierData && (
+          <>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">
+                Managing sheets for: {selectedCashierData.name}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Using AG-Grid Community Edition with formula support and cell
+                coloring
+              </p>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200 mb-4">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab("kahon")}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "kahon"
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Kahon Sheet
+                </button>
+                <button
+                  onClick={() => setActiveTab("inventory")}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "inventory"
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Inventory Sheet
+                </button>
+              </nav>
+            </div>
+
+            {/* Sheet Content */}
+            {loading ? (
+              <div className="p-4">Loading sheets...</div>
+            ) : (
+              <>
+                {activeTab === "kahon" && (
+                  <KahonAgGrid
+                    cashierId={selectedCashier}
+                    sheetData={currentKahonSheet}
+                    onRefresh={loadSheets}
+                  />
+                )}
+                {activeTab === "inventory" && (
+                  <InventoryAgGrid
+                    cashierId={selectedCashier}
+                    sheetData={currentInventorySheet}
+                    onRefresh={loadSheets}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

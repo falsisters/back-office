@@ -2,9 +2,8 @@ import type React from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { getUserData } from "@/lib/server/getUserData";
 import { Poppins } from "next/font/google";
+import AgGridProvider from "@/components/providers/AgGridProvider";
 import "./globals.css";
-import { KahonProvider } from "@/context/KahonContext";
-import { InventoryProvider } from "@/context/InventoryContext";
 
 export const metadata = {
   title: "Falsisters",
@@ -37,21 +36,19 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.className} antialiased`}>
-        <KahonProvider>
-          <InventoryProvider>
-            {user ? (
-              <div className="min-h-screen flex flex-col md:flex-row">
-                <Sidebar />
-                <main className="flex-1 overflow-y-auto md:p-8 p-4">
-                  {children}
-                </main>
-              </div>
-            ) : (
-              // When no user, render children without the sidebar
-              <div className="min-h-screen">{children}</div>
-            )}
-          </InventoryProvider>
-        </KahonProvider>
+        <AgGridProvider>
+          {user ? (
+            <div className="min-h-screen flex flex-col md:flex-row">
+              <Sidebar />
+              <main className="flex-1 overflow-y-auto md:p-8 p-4">
+                {children}
+              </main>
+            </div>
+          ) : (
+            // When no user, render children without the sidebar
+            <div className="min-h-screen">{children}</div>
+          )}
+        </AgGridProvider>
       </body>
     </html>
   );

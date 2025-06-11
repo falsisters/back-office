@@ -239,7 +239,7 @@ export const InventorySheetSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   inventoryId: z.string(),
-  columns: z.number().int().positive().default(10),
+  columns: z.number().int().positive().default(15), // A-O = 15 columns
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -273,7 +273,7 @@ export const SheetSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   kahonId: z.string(),
-  columns: z.number().int().positive().default(10),
+  columns: z.number().int().positive().default(15), // Quantity + Name + A-M = 15 columns
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
