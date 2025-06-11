@@ -84,7 +84,7 @@ export function Sidebar() {
 
         {/* Sidebar Title - Desktop */}
         <div className="hidden md:flex flex-col items-center justify-center px-6 py-6 border-b border-white/10">
-          <h1 className="text-2xl font-bold">FalSisters POS</h1>
+          <h1 className="text-2xl font-bold">Falsisters POS</h1>
           <p className="text-sm text-white/80 mt-1">Backoffice</p>
         </div>
 
