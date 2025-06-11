@@ -8,10 +8,10 @@ interface CellEditorProps {
   currentValue?: string;
   currentFormula?: string;
   cellPosition: { row: number; column: string; columnIndex: number };
-  sheetType?: "kahon" | "inventory"; // Add sheet type to distinguish formulas
+  sheetType?: "kahon" | "inventory";
   onColorChange: (color: string) => void;
   onFormulaApply: (formula: string) => void;
-  onFormulaApplyToColumn?: (formula: string, columnIndex: number) => void; // New prop for column-wide application
+  onFormulaApplyToColumn?: (formula: string, columnIndex: number) => void;
   onClose: () => void;
 }
 
@@ -267,12 +267,6 @@ export default function ColorPicker({
   const [activeTab, setActiveTab] = useState<"color" | "formula">("color");
   const [customFormula, setCustomFormula] = useState(currentFormula || "");
 
-  if (!isOpen) return null;
-
-  // Use appropriate formulas based on sheet type
-  const quickFormulas =
-    sheetType === "inventory" ? inventoryFormulas : kahonFormulas;
-
   const handleColorSelect = (color: string) => {
     setSelectedColor(color);
   };
@@ -310,6 +304,12 @@ export default function ColorPicker({
       onFormulaApply(generatedFormula);
     }
   };
+
+  if (!isOpen) return null;
+
+  // Use appropriate formulas based on sheet type
+  const quickFormulas =
+    sheetType === "inventory" ? inventoryFormulas : kahonFormulas;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -75,11 +75,15 @@ export const updateKahonCell = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Convert null color to undefined to match type expectations
+  // Properly handle clearing by sending null values to backend
   const sanitizedData = {
-    ...data,
-    color: data.color === null ? undefined : data.color,
+    value: data.value || "",
+    formula: data.formula || null, // Send null instead of undefined
+    color: data.color || null, // Send null instead of undefined
   };
+
+  console.log("updateKahonCell - cellId:", cellId);
+  console.log("updateKahonCell - sanitizedData:", sanitizedData);
 
   const response = await fetch(
     `${process.env.API_URL}/sheet/user/cell/${cellId}`,
@@ -93,17 +97,30 @@ export const updateKahonCell = async (
     }
   );
 
+  console.log("updateKahonCell - response status:", response.status);
+
   if (!response.ok) {
-    const error: NestApiError = await response.json();
-    throw new Error(
-      Array.isArray(error.message)
-        ? error.message.join(", ")
-        : error.message || "Failed to update cell"
-    );
+    const errorText = await response.text();
+    console.error("updateKahonCell - API error text:", errorText);
+
+    try {
+      const error: NestApiError = JSON.parse(errorText);
+      throw new Error(
+        Array.isArray(error.message)
+          ? error.message.join(", ")
+          : error.message || "Failed to update cell"
+      );
+    } catch (parseError) {
+      throw new Error(
+        `Failed to update cell: ${response.status} ${response.statusText}`
+      );
+    }
   }
 
+  const result = await response.json();
+  console.log("updateKahonCell - success result:", result);
   revalidatePath("/kahon");
-  return await response.json();
+  return result;
 };
 
 export const updateKahonCells = async (data: UpdateCellsType) => {
@@ -229,11 +246,15 @@ export const updateInventoryCell = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Convert null color to undefined to match type expectations
+  // Properly handle clearing by sending null values to backend
   const sanitizedData = {
-    ...data,
-    color: data.color === null ? undefined : data.color,
+    value: data.value || "",
+    formula: data.formula || null, // Send null instead of undefined
+    color: data.color || null, // Send null instead of undefined
   };
+
+  console.log("updateInventoryCell - cellId:", cellId);
+  console.log("updateInventoryCell - sanitizedData:", sanitizedData);
 
   const response = await fetch(
     `${process.env.API_URL}/inventory/user/cell/${cellId}`,
@@ -247,17 +268,30 @@ export const updateInventoryCell = async (
     }
   );
 
+  console.log("updateInventoryCell - response status:", response.status);
+
   if (!response.ok) {
-    const error: NestApiError = await response.json();
-    throw new Error(
-      Array.isArray(error.message)
-        ? error.message.join(", ")
-        : error.message || "Failed to update cell"
-    );
+    const errorText = await response.text();
+    console.error("updateInventoryCell - API error text:", errorText);
+
+    try {
+      const error: NestApiError = JSON.parse(errorText);
+      throw new Error(
+        Array.isArray(error.message)
+          ? error.message.join(", ")
+          : error.message || "Failed to update cell"
+      );
+    } catch (parseError) {
+      throw new Error(
+        `Failed to update cell: ${response.status} ${response.statusText}`
+      );
+    }
   }
 
+  const result = await response.json();
+  console.log("updateInventoryCell - success result:", result);
   revalidatePath("/kahon");
-  return await response.json();
+  return result;
 };
 
 export const updateInventoryCells = async (data: UpdateCellsType) => {

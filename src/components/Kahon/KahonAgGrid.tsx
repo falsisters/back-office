@@ -31,6 +31,7 @@ import {
   updateCellValueInSheetData,
 } from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
+import AddRowsDialog from "./AddRowsDialog";
 
 interface KahonAgGridProps {
   cashierId: string;
@@ -68,6 +69,7 @@ export default function KahonAgGrid({
   const [gridData, setGridData] = useState<GridRow[]>([]);
   const [dependencyMap, setDependencyMap] = useState<DependencyMap>({});
   const [showCellEditor, setShowCellEditor] = useState(false);
+  const [showAddRowsDialog, setShowAddRowsDialog] = useState(false);
   const [selectedCellInfo, setSelectedCellInfo] = useState<{
     cellId: string;
     rowIndex: number;
@@ -515,6 +517,91 @@ export default function KahonAgGrid({
     }
   };
 
+  const addMultipleRows = async (count: number, startIndex?: number) => {
+    if (isLoading || !sheetData) return;
+
+    setIsLoading(true);
+    try {
+      const maxRow = Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0);
+      const actualStartIndex = startIndex || maxRow + 1;
+
+      // Add rows sequentially
+      for (let i = 0; i < count; i++) {
+        await addKahonCalculationRow({
+          sheetId: sheetData.id,
+          rowIndex: actualStartIndex + i,
+        });
+      }
+
+      setShowAddRowsDialog(false);
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to add multiple rows:", error);
+      alert("Failed to add rows");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearCell = async () => {
+    if (!selectedCellInfo) {
+      console.log("No cell selected for clearing");
+      return;
+    }
+
+    console.log("Starting clear cell operation for:", selectedCellInfo);
+    setIsLoading(true);
+
+    try {
+      const existingRow = sheetData?.Rows.find(
+        (r) => r.rowIndex === selectedCellInfo.rowIndex
+      );
+      const columnIndex = getColumnIndex(selectedCellInfo.field);
+      const existingCell = existingRow?.Cells.find(
+        (c) => c.columnIndex === columnIndex
+      );
+
+      console.log("Found existing row:", existingRow);
+      console.log("Found existing cell:", existingCell);
+      console.log("Column index:", columnIndex);
+
+      if (existingCell) {
+        console.log("Clearing cell with ID:", existingCell.id);
+
+        // Clear the cell by setting empty values for value, formula, and color
+        const clearData = {
+          value: "",
+          formula: undefined,
+          color: undefined,
+        };
+
+        console.log("Sending clear data:", clearData);
+
+        const result = await updateKahonCell(existingCell.id, clearData);
+        console.log("Clear cell API result:", result);
+
+        setSelectedCellInfo(null);
+        onRefresh();
+        console.log("Cell cleared successfully");
+      } else {
+        // If no cell exists, nothing to clear
+        console.log("No existing cell found to clear");
+        alert("No cell to clear - cell doesn't exist in database");
+      }
+    } catch (error) {
+      console.error("Failed to clear cell - detailed error:", error);
+      console.error(
+        "Error stack:",
+        error instanceof Error ? error.stack : "No stack trace available"
+      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      alert(`Failed to clear cell: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleColorChange = async (color: string) => {
     if (!selectedCellInfo) return;
 
@@ -801,6 +888,20 @@ export default function KahonAgGrid({
             Add Row
           </button>
           <button
+            onClick={() => setShowAddRowsDialog(true)}
+            disabled={isLoading}
+            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
+          >
+            Add Multiple Rows
+          </button>
+          <button
+            onClick={handleClearCell}
+            disabled={!selectedCellInfo || isLoading}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+          >
+            Clear Cell
+          </button>
+          <button
             onClick={handleEditCell}
             disabled={!selectedCellInfo}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
@@ -886,6 +987,15 @@ export default function KahonAgGrid({
             setShowCellEditor(false);
             // Don't clear selectedCellInfo here so user can see what's selected
           }}
+        />
+      )}
+
+      {showAddRowsDialog && sheetData && (
+        <AddRowsDialog
+          isOpen={showAddRowsDialog}
+          maxRowIndex={Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0)}
+          onAddRows={addMultipleRows}
+          onClose={() => setShowAddRowsDialog(false)}
         />
       )}
 
