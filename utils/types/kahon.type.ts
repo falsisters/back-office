@@ -58,6 +58,7 @@ export const AddCellSchema = z.object({
   value: z.string(),
   color: z.string().optional(),
   formula: z.string().optional(),
+  rowIndex: z.number().int().optional(), // Added rowIndex for row position updates
 });
 
 export const UpdateCellSchema = z.object({
@@ -65,6 +66,7 @@ export const UpdateCellSchema = z.object({
   value: z.string(),
   color: z.string().optional(),
   formula: z.string().optional(),
+  rowIndex: z.number().int().optional(), // Added rowIndex for row position updates
 });
 
 export const AddCellsSchema = z.object({
@@ -112,6 +114,7 @@ export const PendingCellChangeSchema = z.object({
   changeType: z.enum(["add", "update"]),
   timestamp: z.number(),
   isFormulaChange: z.boolean().default(false),
+  newRowIndex: z.number().optional(), // Added for row position changes
 });
 
 export const BatchUpdateRequestSchema = z.object({

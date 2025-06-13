@@ -8,6 +8,7 @@ import type {
   CellValueChangedEvent,
   CellClickedEvent,
   CellStyle,
+  RowDragEndEvent,
 } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -16,7 +17,10 @@ import type {
   AddCellType,
   PendingCellChange,
 } from "../../../utils/types/kahon.type";
-import { addKahonCalculationRow } from "@/lib/server/manageKahonRows";
+import {
+  addKahonCalculationRow,
+  batchUpdateKahonRowPositions,
+} from "@/lib/server/manageKahonRows";
 import {
   addKahonCell,
   updateKahonCell,
@@ -64,6 +68,15 @@ interface GridRow {
   M: string;
 }
 
+// Add new interface for row position changes
+interface PendingRowReorder {
+  id: string;
+  rowId: string;
+  oldRowIndex: number;
+  newRowIndex: number;
+  timestamp: number;
+}
+
 export default function KahonAgGrid({
   cashierId,
   sheetData,
@@ -89,6 +102,12 @@ export default function KahonAgGrid({
     Map<string, PendingCellChange>
   >(new Map());
   const [isSaving, setIsSaving] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+
+  // New state for row reorder tracking
+  const [pendingRowReorders, setPendingRowReorders] = useState<
+    Map<string, PendingRowReorder>
+  >(new Map());
 
   // Prepare grid data and build dependency map
   useEffect(() => {
@@ -344,10 +363,15 @@ export default function KahonAgGrid({
         width: 60,
         pinned: "left",
         editable: false,
+        rowDrag: true, // Enable row dragging from this column
         cellStyle: {
           backgroundColor: "#f8f9fa",
           fontWeight: "bold",
+          cursor: "grab",
         } as CellStyle,
+        cellRenderer: (params: any) => {
+          return `<div style="display: flex; align-items: center; height: 100%;"><span style="margin-right: 8px;">⋮⋮</span>${params.value}</div>`;
+        },
       },
       {
         field: "Quantity",
@@ -448,12 +472,39 @@ export default function KahonAgGrid({
 
   // Save all pending changes
   const handleSaveChanges = async () => {
-    if (pendingChanges.size === 0) return;
+    if (pendingChanges.size === 0 && pendingRowReorders.size === 0) return;
 
     setIsSaving(true);
     try {
-      const changes = Array.from(pendingChanges.values());
-      const { results, errors } = await batchUpdateKahonCells(changes);
+      const results = [];
+      const errors = [];
+
+      // Save cell changes first
+      if (pendingChanges.size > 0) {
+        const cellChanges = Array.from(pendingChanges.values());
+        const cellResults = await batchUpdateKahonCells(cellChanges);
+        results.push(...cellResults.results);
+        errors.push(...cellResults.errors);
+      }
+
+      // Save row reorders
+      if (pendingRowReorders.size > 0) {
+        const rowReorders = Array.from(pendingRowReorders.values());
+        const positionUpdates = rowReorders.map((reorder) => ({
+          rowId: reorder.rowId,
+          newRowIndex: reorder.newRowIndex,
+        }));
+
+        try {
+          const reorderResult = await batchUpdateKahonRowPositions(
+            positionUpdates
+          );
+          results.push(reorderResult);
+        } catch (reorderError) {
+          console.error("Row reorder failed:", reorderError);
+          errors.push(reorderError);
+        }
+      }
 
       if (errors.length > 0) {
         console.error("Some changes failed:", errors);
@@ -463,8 +514,9 @@ export default function KahonAgGrid({
       }
 
       if (results.length > 0) {
-        // Clear pending changes
+        // Clear all pending changes
         setPendingChanges(new Map());
+        setPendingRowReorders(new Map());
         // Refresh to get latest data
         onRefresh();
       }
@@ -479,7 +531,8 @@ export default function KahonAgGrid({
   // Discard all pending changes
   const handleDiscardChanges = () => {
     setPendingChanges(new Map());
-    // Refresh grid data to show original values
+    setPendingRowReorders(new Map());
+    // Refresh grid data to show original values and positions
     if (sheetData) {
       const data = prepareGridData(sheetData);
       setGridData(data);
@@ -800,6 +853,7 @@ export default function KahonAgGrid({
   // Enhanced pending changes summary
   const getPendingChangesSummary = () => {
     const changes = Array.from(pendingChanges.values());
+    const reorders = Array.from(pendingRowReorders.values());
     const colorChanges = changes.filter((c) => c.color && !c.isFormulaChange);
     const formulaChanges = changes.filter((c) => c.isFormulaChange);
     const valueChanges = changes.filter((c) => !c.isFormulaChange && !c.color);
@@ -808,8 +862,112 @@ export default function KahonAgGrid({
       colorChanges,
       formulaChanges,
       valueChanges,
-      total: changes.length,
+      rowReorders: reorders,
+      total: changes.length + reorders.length,
     };
+  };
+
+  // Handle row drag end event
+  const handleRowDragEnd = async (event: RowDragEndEvent) => {
+    console.log("Row drag end event triggered:", event);
+
+    if (!event.overNode || !sheetData || isReordering) {
+      console.log("Early return - conditions not met");
+      return;
+    }
+
+    // Don't set isReordering here anymore - we're tracking changes locally
+    console.log("Processing row reorder as pending change...");
+
+    try {
+      const draggedRowData = event.node.data;
+      const overRowData = event.overNode.data;
+      const overIndex = (event as any).overIndex;
+
+      console.log("Dragged row data:", draggedRowData);
+      console.log("Target row data:", overRowData);
+
+      // Get all current rows and calculate new positions
+      const allRows = [...sheetData.Rows].sort(
+        (a, b) => a.rowIndex - b.rowIndex
+      );
+
+      const draggedRowIndex = allRows.findIndex(
+        (r) => r.id === draggedRowData.id
+      );
+
+      if (draggedRowIndex === -1) {
+        console.error("Could not find dragged row");
+        return;
+      }
+
+      let targetRowIndex = overIndex;
+      if (typeof targetRowIndex !== "number" || targetRowIndex < 0) {
+        targetRowIndex = allRows.findIndex((r) => r.id === overRowData.id);
+      }
+
+      if (targetRowIndex === -1) {
+        console.error("Could not determine target position");
+        return;
+      }
+
+      // Don't proceed if the row would end up in the same position
+      if (draggedRowIndex === targetRowIndex) {
+        console.log("Row would end up in same position, no action needed");
+        return;
+      }
+
+      // Create new order to calculate new row indices
+      const reorderedRows = [...allRows];
+      const [draggedRow] = reorderedRows.splice(draggedRowIndex, 1);
+      reorderedRows.splice(targetRowIndex, 0, draggedRow);
+
+      // Create pending row reorder changes for all affected rows
+      const newPendingReorders = new Map(pendingRowReorders);
+
+      reorderedRows.forEach((row, index) => {
+        const newRowIndex = index + 1; // 1-based indexing
+
+        if (newRowIndex !== row.rowIndex) {
+          const existingPending = newPendingReorders.get(row.id);
+          const originalRowIndex = existingPending?.oldRowIndex || row.rowIndex;
+
+          const pendingReorder: PendingRowReorder = {
+            id: `reorder-${row.id}-${Date.now()}`,
+            rowId: row.id,
+            oldRowIndex: originalRowIndex,
+            newRowIndex: newRowIndex,
+            timestamp: Date.now(),
+          };
+
+          newPendingReorders.set(row.id, pendingReorder);
+        }
+      });
+
+      setPendingRowReorders(newPendingReorders);
+
+      // Update the grid display immediately to show the reordered rows
+      const updatedGridData = gridData
+        .map((row) => {
+          const reorderChange = newPendingReorders.get(row.id);
+          if (reorderChange) {
+            return { ...row, rowIndex: reorderChange.newRowIndex };
+          }
+          return row;
+        })
+        .sort((a, b) => a.rowIndex - b.rowIndex);
+
+      setGridData(updatedGridData);
+
+      console.log("Row reordering tracked as pending changes");
+    } catch (error) {
+      console.error("Failed to track row reorder:", error);
+      alert(
+        `Failed to reorder rows: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
   };
 
   const defaultColDef: ColDef = {
@@ -823,11 +981,20 @@ export default function KahonAgGrid({
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Kahon Sheet</h3>
         <div className="space-x-2 flex items-center">
-          {pendingChanges.size > 0 && (
+          {isReordering && (
+            <span className="text-sm text-blue-600 font-medium">
+              Reordering rows...
+            </span>
+          )}
+          {(pendingChanges.size > 0 || pendingRowReorders.size > 0) && (
             <>
               <span className="text-sm text-orange-600 font-medium">
-                {pendingChanges.size} unsaved change
-                {pendingChanges.size > 1 ? "s" : ""}
+                {pendingChanges.size + pendingRowReorders.size} unsaved change
+                {pendingChanges.size + pendingRowReorders.size > 1 ? "s" : ""}
+                {pendingRowReorders.size > 0 &&
+                  ` (${pendingRowReorders.size} reorder${
+                    pendingRowReorders.size > 1 ? "s" : ""
+                  })`}
               </span>
               <button
                 onClick={handleSaveChanges}
@@ -877,12 +1044,13 @@ export default function KahonAgGrid({
       </div>
 
       {/* Enhanced Pending Changes Summary */}
-      {pendingChanges.size > 0 && (
+      {(pendingChanges.size > 0 || pendingRowReorders.size > 0) && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
           <h4 className="font-medium text-yellow-800 mb-2">
-            Pending Changes ({pendingChanges.size}):
+            Pending Changes ({pendingChanges.size + pendingRowReorders.size}):
           </h4>
           <div className="max-h-32 overflow-y-auto space-y-1">
+            {/* Cell changes */}
             {Array.from(pendingChanges.values()).map((change) => (
               <div
                 key={change.id}
@@ -910,6 +1078,18 @@ export default function KahonAgGrid({
                     "{change.oldValue}" → "{change.newValue}"
                   </span>
                 )}
+              </div>
+            ))}
+            {/* Row reorder changes */}
+            {Array.from(pendingRowReorders.values()).map((reorder) => (
+              <div
+                key={reorder.id}
+                className="text-sm text-purple-700 flex items-center space-x-2"
+              >
+                <span className="font-mono">Row {reorder.oldRowIndex}:</span>
+                <span className="text-purple-600">
+                  Move to position {reorder.newRowIndex}
+                </span>
               </div>
             ))}
           </div>
@@ -960,11 +1140,14 @@ export default function KahonAgGrid({
           defaultColDef={defaultColDef}
           onCellValueChanged={handleCellValueChanged}
           onCellClicked={handleCellClicked}
+          onRowDragEnd={handleRowDragEnd}
           getRowId={(params) => params.data.id}
           enableRangeSelection={false}
           singleClickEdit={true}
           stopEditingWhenCellsLoseFocus={true}
           tooltipShowDelay={500}
+          rowDragManaged={true}
+          animateRows={true}
           getRowStyle={(params) => {
             // Add subtle styling for rows with formulas
             const hasFormulas = Object.keys(params.data).some((key) => {
@@ -1023,6 +1206,7 @@ export default function KahonAgGrid({
           maxRowIndex={Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0)}
           onAddRows={addMultipleRows}
           onClose={() => setShowAddRowsDialog(false)}
+          sheetType="kahon"
         />
       )}
 

@@ -7,6 +7,7 @@ interface AddRowsDialogProps {
   maxRowIndex: number;
   onAddRows: (count: number, startIndex?: number) => void;
   onClose: () => void;
+  sheetType?: "kahon" | "inventory"; // Add sheet type prop
 }
 
 export default function AddRowsDialog({
@@ -14,6 +15,7 @@ export default function AddRowsDialog({
   maxRowIndex,
   onAddRows,
   onClose,
+  sheetType = "kahon", // Default to kahon for backward compatibility
 }: AddRowsDialogProps) {
   const [rowCount, setRowCount] = useState(1);
   const [insertPosition, setInsertPosition] = useState<"end" | "after">("end");
@@ -47,11 +49,17 @@ export default function AddRowsDialog({
     onClose();
   };
 
+  const getSheetTypeLabel = () => {
+    return sheetType === "inventory" ? "Inventory" : "Kahon";
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Add Multiple Rows</h3>
+          <h3 className="text-lg font-semibold">
+            Add Multiple Rows - {getSheetTypeLabel()}
+          </h3>
           <button
             onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 text-xl"

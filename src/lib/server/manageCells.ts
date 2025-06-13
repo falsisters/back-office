@@ -68,7 +68,7 @@ export const addKahonCells = async (data: AddCellsType) => {
 
 export const updateKahonCell = async (
   cellId: string,
-  data: Omit<AddCellType, "rowId" | "columnIndex">
+  data: Omit<AddCellType, "rowId" | "columnIndex"> & { rowIndex?: number }
 ) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -80,6 +80,7 @@ export const updateKahonCell = async (
     value: data.value || "",
     formula: data.formula || null, // Send null instead of undefined
     color: data.color || null, // Send null instead of undefined
+    rowIndex: data.rowIndex, // Include rowIndex for row position updates
   };
 
   console.log("updateKahonCell - cellId:", cellId);
@@ -239,7 +240,7 @@ export const addInventoryCells = async (data: AddCellsType) => {
 
 export const updateInventoryCell = async (
   cellId: string,
-  data: Omit<AddCellType, "rowId" | "columnIndex">
+  data: Omit<AddCellType, "rowId" | "columnIndex"> & { rowIndex?: number }
 ) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -251,6 +252,7 @@ export const updateInventoryCell = async (
     value: data.value || "",
     formula: data.formula || null, // Send null instead of undefined
     color: data.color || null, // Send null instead of undefined
+    rowIndex: data.rowIndex, // Include rowIndex for row position updates
   };
 
   console.log("updateInventoryCell - cellId:", cellId);
@@ -358,42 +360,29 @@ export const batchUpdateKahonCells = async (changes: any[]) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const results = [];
-  const errors = [];
-
-  for (const change of changes) {
-    try {
-      const cellData = {
-        value: change.newValue || "",
-        formula: change.formula || null,
-        color: change.color || null,
-      };
-
-      if (change.changeType === "update" && change.cellId) {
-        // Update existing cell
-        const result = await updateKahonCell(change.cellId, cellData);
-        results.push({ changeId: change.id, result, success: true });
-      } else if (change.changeType === "add" && change.rowId) {
-        // Add new cell
-        const result = await addKahonCell({
-          rowId: change.rowId,
-          columnIndex: change.columnIndex,
-          ...cellData,
-        });
-        results.push({ changeId: change.id, result, success: true });
-      }
-    } catch (error) {
-      console.error(`Failed to apply change ${change.id}:`, error);
-      errors.push({
-        changeId: change.id,
-        error: error instanceof Error ? error.message : "Unknown error",
-        success: false,
-      });
+  const response = await fetch(
+    `${process.env.API_URL}/sheet/user/cells/batch`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken.value}`,
+      },
+      body: JSON.stringify({ changes }),
     }
+  );
+
+  if (!response.ok) {
+    const error: NestApiError = await response.json();
+    throw new Error(
+      Array.isArray(error.message)
+        ? error.message.join(", ")
+        : error.message || "Failed to batch update cells"
+    );
   }
 
   revalidatePath("/kahon");
-  return { results, errors };
+  return await response.json();
 };
 
 // Batch update functions for Inventory
@@ -403,40 +392,27 @@ export const batchUpdateInventoryCells = async (changes: any[]) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const results = [];
-  const errors = [];
-
-  for (const change of changes) {
-    try {
-      const cellData = {
-        value: change.newValue || "",
-        formula: change.formula || null,
-        color: change.color || null,
-      };
-
-      if (change.changeType === "update" && change.cellId) {
-        // Update existing cell
-        const result = await updateInventoryCell(change.cellId, cellData);
-        results.push({ changeId: change.id, result, success: true });
-      } else if (change.changeType === "add" && change.rowId) {
-        // Add new cell
-        const result = await addInventoryCell({
-          rowId: change.rowId,
-          columnIndex: change.columnIndex,
-          ...cellData,
-        });
-        results.push({ changeId: change.id, result, success: true });
-      }
-    } catch (error) {
-      console.error(`Failed to apply change ${change.id}:`, error);
-      errors.push({
-        changeId: change.id,
-        error: error instanceof Error ? error.message : "Unknown error",
-        success: false,
-      });
+  const response = await fetch(
+    `${process.env.API_URL}/inventory/user/cells/batch`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken.value}`,
+      },
+      body: JSON.stringify({ changes }),
     }
+  );
+
+  if (!response.ok) {
+    const error: NestApiError = await response.json();
+    throw new Error(
+      Array.isArray(error.message)
+        ? error.message.join(", ")
+        : error.message || "Failed to batch update cells"
+    );
   }
 
   revalidatePath("/kahon");
-  return { results, errors };
+  return await response.json();
 };
