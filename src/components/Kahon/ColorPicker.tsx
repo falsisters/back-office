@@ -9,6 +9,7 @@ interface CellEditorProps {
   currentFormula?: string;
   cellPosition: { row: number; column: string; columnIndex: number };
   sheetType?: "kahon" | "inventory";
+  mode?: "color" | "formula"; // Add mode prop
   onColorChange: (color: string) => void;
   onFormulaApply: (formula: string) => void;
   onFormulaApplyToColumn?: (formula: string, columnIndex: number) => void;
@@ -272,13 +273,14 @@ export default function ColorPicker({
   currentFormula = "",
   cellPosition,
   sheetType = "kahon",
+  mode = "color", // Default to color mode
   onColorChange,
   onFormulaApply,
   onFormulaApplyToColumn,
   onClose,
 }: CellEditorProps) {
   const [selectedColor, setSelectedColor] = useState(currentColor);
-  const [activeTab, setActiveTab] = useState<"color" | "formula">("color");
+  const [activeTab, setActiveTab] = useState<"color" | "formula">(mode);
   const [customFormula, setCustomFormula] = useState(currentFormula || "");
 
   const handleColorSelect = (color: string) => {
@@ -325,13 +327,22 @@ export default function ColorPicker({
   const quickFormulas =
     sheetType === "inventory" ? inventoryFormulas : kahonFormulas;
 
+  const getTitle = () => {
+    if (mode === "color") return "Color Editor";
+    if (mode === "formula") return "Formula Editor";
+    return "Cell Editor";
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">
-            Cell Editor - {cellPosition.column}
-            {cellPosition.row}
+          <h3 className="text-lg font-semibold flex items-center space-x-2">
+            <span>{mode === "color" ? "🎨" : "🧮"}</span>
+            <span>
+              {getTitle()} - {cellPosition.column}
+              {cellPosition.row}
+            </span>
           </h3>
           <button
             onClick={onClose}
@@ -341,34 +352,36 @@ export default function ColorPicker({
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 mb-4">
-          <nav className="-mb-px flex space-x-4">
-            <button
-              onClick={() => setActiveTab("color")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "color"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Colors
-            </button>
-            <button
-              onClick={() => setActiveTab("formula")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "formula"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Formulas
-            </button>
-          </nav>
-        </div>
+        {/* Show tabs only if mode allows both */}
+        {!mode && (
+          <div className="border-b border-gray-200 mb-4">
+            <nav className="-mb-px flex space-x-4">
+              <button
+                onClick={() => setActiveTab("color")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "color"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Colors
+              </button>
+              <button
+                onClick={() => setActiveTab("formula")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "formula"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Formulas
+              </button>
+            </nav>
+          </div>
+        )}
 
-        {/* Color Tab */}
-        {activeTab === "color" && (
+        {/* Color Tab - show when mode is 'color' or activeTab is 'color' */}
+        {(mode === "color" || activeTab === "color") && (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">Color:</label>
@@ -425,8 +438,8 @@ export default function ColorPicker({
           </div>
         )}
 
-        {/* Formula Tab */}
-        {activeTab === "formula" && (
+        {/* Formula Tab - show when mode is 'formula' or activeTab is 'formula' */}
+        {(mode === "formula" || activeTab === "formula") && (
           <div className="space-y-4">
             {/* Current Value/Formula Display */}
             <div className="bg-gray-50 p-3 rounded border space-y-2">

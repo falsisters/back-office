@@ -24,9 +24,16 @@ export default function KahonManagement() {
   const [activeTab, setActiveTab] = useState<"kahon" | "inventory">("kahon");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [dateRange, setDateRange] = useState<DateRangeQueryType>({
-    startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+  const [dateRange, setDateRange] = useState<DateRangeQueryType>(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+    return {
+      startDate: today,
+      endDate: tomorrowStr,
+    };
   });
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -66,12 +73,16 @@ export default function KahonManagement() {
   const loadSheets = async () => {
     if (!selectedCashier) return;
 
+    console.log("Loading sheets with date range:", dateRange);
     setLoading(true);
     try {
       const [kahonData, inventoryData] = await Promise.all([
         getKahonSheetsByDateRange(dateRange),
         getInventorySheetsByDateRange(dateRange),
       ]);
+
+      console.log("Received kahon data:", kahonData);
+      console.log("Received inventory data:", inventoryData);
 
       // Ensure data is arrays and filter sheets for selected cashier
       const kahonArray = Array.isArray(kahonData) ? kahonData : [];
@@ -83,6 +94,9 @@ export default function KahonManagement() {
       const cashierInventorySheets = inventoryArray.filter(
         (sheet) => sheet.cashierId === selectedCashier
       );
+
+      console.log("Filtered kahon sheets:", cashierKahonSheets);
+      console.log("Filtered inventory sheets:", cashierInventorySheets);
 
       setKahonSheets(cashierKahonSheets);
       setInventorySheets(cashierInventorySheets);
@@ -97,6 +111,10 @@ export default function KahonManagement() {
   };
 
   const handleDateRangeChange = (startDate: string, endDate: string) => {
+    console.log("Date range changed in KahonManagement:", {
+      startDate,
+      endDate,
+    });
     setDateRange({ startDate, endDate });
   };
 
@@ -184,24 +202,24 @@ export default function KahonManagement() {
             <div className="mb-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm font-medium text-gray-700">
-                    Date Range:
+                  <span className="text-sm font-medium text-gray-700 flex items-center space-x-1">
+                    <span>📅</span>
+                    <span>Selected Date:</span>
                   </span>
                   <span className="text-sm text-gray-600">
-                    {dateRange.startDate === dateRange.endDate
-                      ? new Date(dateRange.startDate).toLocaleDateString()
-                      : `${new Date(
-                          dateRange.startDate
-                        ).toLocaleDateString()} - ${new Date(
-                          dateRange.endDate
-                        ).toLocaleDateString()}`}
+                    {new Date(dateRange.startDate).toLocaleDateString()}
+                    <span className="text-xs text-gray-500 ml-2">
+                      (shows data until{" "}
+                      {new Date(dateRange.endDate).toLocaleDateString()})
+                    </span>
                   </span>
                 </div>
                 <button
                   onClick={() => setShowCalendar(!showCalendar)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
+                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm flex items-center space-x-1"
                 >
-                  {showCalendar ? "Hide Calendar" : "Select Date Range"}
+                  <span>🗓️</span>
+                  <span>{showCalendar ? "Hide Calendar" : "Select Date"}</span>
                 </button>
               </div>
 

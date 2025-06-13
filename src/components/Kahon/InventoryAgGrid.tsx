@@ -21,6 +21,7 @@ import {
   addInventoryCalculationRow,
   addInventoryCalculationRowBySheetId,
   batchUpdateInventoryRowPositions,
+  deleteInventoryRow, // Add this import
 } from "@/lib/server/manageInventoryRows";
 import {
   addInventoryCell,
@@ -98,6 +99,10 @@ export default function InventoryAgGrid({
   const [pendingRowReorders, setPendingRowReorders] = useState<
     Map<string, PendingRowReorder>
   >(new Map());
+
+  // New state for color and formula picker visibility
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFormulaPicker, setShowFormulaPicker] = useState(false);
 
   // Prepare grid data and build dependency map
   useEffect(() => {
@@ -559,6 +564,55 @@ export default function InventoryAgGrid({
     setShowCellEditor(true);
   };
 
+  const handleEditColor = () => {
+    if (!selectedCellInfo) {
+      alert("Please select a cell first by clicking on it");
+      return;
+    }
+    setShowColorPicker(true);
+  };
+
+  const handleEditFormula = () => {
+    if (!selectedCellInfo) {
+      alert("Please select a cell first by clicking on it");
+      return;
+    }
+    setShowFormulaPicker(true);
+  };
+
+  const handleDeleteRow = async () => {
+    if (!selectedCellInfo) {
+      alert("Please select a cell in the row you want to delete");
+      return;
+    }
+
+    const confirmDelete = confirm(
+      `Are you sure you want to delete row ${selectedCellInfo.rowIndex}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    setIsLoading(true);
+    try {
+      const existingRow = sheetData?.Rows.find(
+        (r) => r.rowIndex === selectedCellInfo.rowIndex
+      );
+
+      if (existingRow) {
+        await deleteInventoryRow(existingRow.id);
+        setSelectedCellInfo(null);
+        onRefresh();
+      } else {
+        alert("Row not found");
+      }
+    } catch (error) {
+      console.error("Failed to delete row:", error);
+      alert("Failed to delete row");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const addNewRow = async () => {
     if (isLoading || !sheetData) return;
 
@@ -740,7 +794,7 @@ export default function InventoryAgGrid({
 
     // Add to pending changes
     setPendingChanges((prev) => new Map(prev.set(changeKey, updatedChange)));
-    setShowCellEditor(false);
+    setShowColorPicker(false);
   };
 
   // Updated handleFormulaApply to work with pending changes
@@ -777,12 +831,12 @@ export default function InventoryAgGrid({
       color: existingPendingChange?.color || existingCell?.color || undefined,
       changeType: existingCell ? "update" : "add",
       timestamp: Date.now(),
-      isFormulaChange: Boolean(formula.startsWith("=")), // Fix: Explicit boolean conversion
+      isFormulaChange: Boolean(formula.startsWith("=")),
     };
 
     // Add to pending changes
     setPendingChanges((prev) => new Map(prev.set(changeKey, updatedChange)));
-    setShowCellEditor(false);
+    setShowFormulaPicker(false);
     setSelectedCellInfo(null);
   };
 
@@ -890,7 +944,7 @@ export default function InventoryAgGrid({
     }
 
     setPendingChanges(newPendingChanges);
-    setShowCellEditor(false);
+    setShowFormulaPicker(false);
     setSelectedCellInfo(null);
 
     if (formulasApplied > 0) {
@@ -1040,46 +1094,68 @@ export default function InventoryAgGrid({
               <button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 flex items-center space-x-1"
               >
-                {isSaving ? "Saving..." : "Save Changes"}
+                <span>💾</span>
+                <span>{isSaving ? "Saving..." : "Save"}</span>
               </button>
               <button
                 onClick={handleDiscardChanges}
                 disabled={isSaving}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center space-x-1"
               >
-                Discard
+                <span>❌</span>
+                <span>Discard</span>
               </button>
             </>
           )}
           <button
             onClick={addNewRow}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Add Row
+            <span>➕</span>
+            <span>Add Row</span>
           </button>
           <button
             onClick={() => setShowAddRowsDialog(true)}
             disabled={isLoading}
-            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
+            className="px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Add Multiple Rows
+            <span>📝</span>
+            <span>Add Multiple</span>
+          </button>
+          <button
+            onClick={handleDeleteRow}
+            disabled={!selectedCellInfo || isLoading}
+            className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-1"
+          >
+            <span>🗑️</span>
+            <span>Delete Row</span>
           </button>
           <button
             onClick={handleClearCell}
             disabled={!selectedCellInfo || isLoading}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+            className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Clear Cell
+            <span>🧹</span>
+            <span>Clear Cell</span>
           </button>
           <button
-            onClick={handleEditCell}
+            onClick={handleEditColor}
             disabled={!selectedCellInfo}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+            className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Edit Cell
+            <span>🎨</span>
+            <span>Color</span>
+          </button>
+          <button
+            onClick={handleEditFormula}
+            disabled={!selectedCellInfo}
+            className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1"
+          >
+            <span>🧮</span>
+            <span>Formula</span>
           </button>
         </div>
       </div>
@@ -1208,9 +1284,9 @@ export default function InventoryAgGrid({
         />
       </div>
 
-      {showCellEditor && selectedCellInfo && (
+      {showColorPicker && selectedCellInfo && (
         <ColorPicker
-          isOpen={showCellEditor}
+          isOpen={showColorPicker}
           currentColor={(() => {
             const changeKey = `${selectedCellInfo.rowIndex}-${
               selectedCellInfo.field.charCodeAt(0) - 65
@@ -1232,11 +1308,46 @@ export default function InventoryAgGrid({
             columnIndex: selectedCellInfo.field.charCodeAt(0) - 65,
           }}
           sheetType="inventory"
+          mode="color"
           onColorChange={handleColorChange}
           onFormulaApply={handleFormulaApply}
           onFormulaApplyToColumn={handleFormulaApplyToColumn}
           onClose={() => {
-            setShowCellEditor(false);
+            setShowColorPicker(false);
+          }}
+        />
+      )}
+
+      {showFormulaPicker && selectedCellInfo && (
+        <ColorPicker
+          isOpen={showFormulaPicker}
+          currentColor={(() => {
+            const changeKey = `${selectedCellInfo.rowIndex}-${
+              selectedCellInfo.field.charCodeAt(0) - 65
+            }`;
+            const pendingChange = pendingChanges.get(changeKey);
+            return pendingChange?.color || selectedCellInfo.currentColor;
+          })()}
+          currentValue={selectedCellInfo.currentValue}
+          currentFormula={(() => {
+            const changeKey = `${selectedCellInfo.rowIndex}-${
+              selectedCellInfo.field.charCodeAt(0) - 65
+            }`;
+            const pendingChange = pendingChanges.get(changeKey);
+            return pendingChange?.formula || selectedCellInfo.currentFormula;
+          })()}
+          cellPosition={{
+            row: selectedCellInfo.rowIndex,
+            column: selectedCellInfo.field,
+            columnIndex: selectedCellInfo.field.charCodeAt(0) - 65,
+          }}
+          sheetType="inventory"
+          mode="formula"
+          onColorChange={handleColorChange}
+          onFormulaApply={handleFormulaApply}
+          onFormulaApplyToColumn={handleFormulaApplyToColumn}
+          onClose={() => {
+            setShowFormulaPicker(false);
           }}
         />
       )}

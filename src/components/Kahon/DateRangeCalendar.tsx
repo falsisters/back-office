@@ -17,149 +17,141 @@ export default function DateRangeCalendar({
   onApply,
   className = "",
 }: DateRangeCalendarProps) {
-  const [localStartDate, setLocalStartDate] = useState(
-    startDate || new Date().toISOString().split("T")[0]
-  );
-  const [localEndDate, setLocalEndDate] = useState(
-    endDate || new Date().toISOString().split("T")[0]
-  );
-
-  const handleStartDateChange = (date: string) => {
-    setLocalStartDate(date);
-    onDateRangeChange(date, localEndDate);
+  // Ensure we always have a valid date in YYYY-MM-DD format
+  const getCurrentDateString = () => {
+    const now = new Date();
+    return now.toISOString().split("T")[0];
   };
 
-  const handleEndDateChange = (date: string) => {
-    setLocalEndDate(date);
-    onDateRangeChange(localStartDate, date);
+  const [selectedDate, setSelectedDate] = useState(
+    startDate || getCurrentDateString()
+  );
+
+  // Helper function to get next day in YYYY-MM-DD format
+  const getNextDay = (dateStr: string): string => {
+    const date = new Date(dateStr + "T00:00:00.000Z"); // Ensure UTC parsing
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().split("T")[0];
+  };
+
+  const handleDateChange = (date: string) => {
+    // Validate the date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      console.error("Invalid date format:", date);
+      return;
+    }
+
+    setSelectedDate(date);
+    const nextDay = getNextDay(date);
+    console.log("Date range changed:", { start: date, end: nextDay });
+    onDateRangeChange(date, nextDay);
   };
 
   const handleTodayClick = () => {
-    const today = new Date().toISOString().split("T")[0];
-    setLocalStartDate(today);
-    setLocalEndDate(today);
-    onDateRangeChange(today, today);
+    const today = getCurrentDateString();
+    handleDateChange(today);
   };
 
   const handleYesterdayClick = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
-    setLocalStartDate(yesterdayStr);
-    setLocalEndDate(yesterdayStr);
-    onDateRangeChange(yesterdayStr, yesterdayStr);
+    handleDateChange(yesterdayStr);
   };
 
   const handleThisWeekClick = () => {
     const today = new Date();
-    const firstDayOfWeek = new Date(
-      today.setDate(today.getDate() - today.getDay())
-    );
-    const lastDayOfWeek = new Date(
-      today.setDate(today.getDate() - today.getDay() + 6)
-    );
-
+    const firstDayOfWeek = new Date(today);
+    firstDayOfWeek.setDate(today.getDate() - today.getDay());
     const startStr = firstDayOfWeek.toISOString().split("T")[0];
-    const endStr = lastDayOfWeek.toISOString().split("T")[0];
-
-    setLocalStartDate(startStr);
-    setLocalEndDate(endStr);
-    onDateRangeChange(startStr, endStr);
+    handleDateChange(startStr);
   };
 
   const handleThisMonthClick = () => {
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDayOfMonth = new Date(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      0
-    );
-
     const startStr = firstDayOfMonth.toISOString().split("T")[0];
-    const endStr = lastDayOfMonth.toISOString().split("T")[0];
-
-    setLocalStartDate(startStr);
-    setLocalEndDate(endStr);
-    onDateRangeChange(startStr, endStr);
+    handleDateChange(startStr);
   };
+
+  const nextDayDate = getNextDay(selectedDate);
 
   return (
     <div
       className={`bg-white border border-gray-300 rounded-lg p-4 space-y-4 ${className}`}
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Select Date Range</h3>
+        <h3 className="text-lg font-medium text-gray-900 flex items-center space-x-2">
+          <span>📅</span>
+          <span>Select Date</span>
+        </h3>
         <button
           onClick={onApply}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center space-x-1"
         >
-          Apply Filter
+          <span>✅</span>
+          <span>Apply Filter</span>
         </button>
       </div>
 
-      {/* Date Inputs */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Start Date
-          </label>
-          <input
-            type="date"
-            value={localStartDate}
-            onChange={(e) => handleStartDateChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            End Date
-          </label>
-          <input
-            type="date"
-            value={localEndDate}
-            onChange={(e) => handleEndDateChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-        </div>
+      {/* Single Date Input */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Select Date
+        </label>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => handleDateChange(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Format: YYYY-MM-DD. This will show data for the selected day until the
+          next day.
+        </p>
       </div>
 
       {/* Quick Select Buttons */}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleTodayClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
         >
-          Today
+          <span>📍</span>
+          <span>Today</span>
         </button>
         <button
           onClick={handleYesterdayClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
         >
-          Yesterday
+          <span>⏮️</span>
+          <span>Yesterday</span>
         </button>
         <button
           onClick={handleThisWeekClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
         >
-          This Week
+          <span>📊</span>
+          <span>This Week Start</span>
         </button>
         <button
           onClick={handleThisMonthClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
         >
-          This Month
+          <span>📈</span>
+          <span>This Month Start</span>
         </button>
       </div>
 
       {/* Date Range Display */}
       <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-        <strong>Selected Range:</strong>{" "}
-        {localStartDate === localEndDate
-          ? new Date(localStartDate).toLocaleDateString()
-          : `${new Date(localStartDate).toLocaleDateString()} - ${new Date(
-              localEndDate
-            ).toLocaleDateString()}`}
+        <strong>Date Range:</strong>{" "}
+        <span className="font-mono">
+          {selectedDate} to {nextDayDate}
+        </span>
+        <div className="text-xs text-gray-500 mt-1">
+          Backend will receive: startDate={selectedDate}, endDate={nextDayDate}
+        </div>
       </div>
     </div>
   );

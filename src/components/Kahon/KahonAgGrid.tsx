@@ -20,6 +20,7 @@ import type {
 import {
   addKahonCalculationRow,
   batchUpdateKahonRowPositions,
+  deleteKahonRow, // Add this import
 } from "@/lib/server/manageKahonRows";
 import {
   addKahonCell,
@@ -108,6 +109,8 @@ export default function KahonAgGrid({
   const [pendingRowReorders, setPendingRowReorders] = useState<
     Map<string, PendingRowReorder>
   >(new Map());
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFormulaPicker, setShowFormulaPicker] = useState(false);
 
   // Prepare grid data and build dependency map
   useEffect(() => {
@@ -470,6 +473,51 @@ export default function KahonAgGrid({
     setPendingChanges((prev) => new Map(prev.set(changeKey, pendingChange)));
   };
 
+  const addNewRow = async () => {
+    if (isLoading || !sheetData) return;
+
+    setIsLoading(true);
+
+    try {
+      const maxRow = Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0);
+      await addKahonCalculationRow({
+        sheetId: sheetData.id,
+        rowIndex: maxRow + 1,
+      });
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to add row:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addMultipleRows = async (count: number, startIndex?: number) => {
+    if (isLoading || !sheetData) return;
+
+    setIsLoading(true);
+    try {
+      const maxRow = Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0);
+      const actualStartIndex = startIndex || maxRow + 1;
+
+      // Add rows sequentially
+      for (let i = 0; i < count; i++) {
+        await addKahonCalculationRow({
+          sheetId: sheetData.id,
+          rowIndex: actualStartIndex + i,
+        });
+      }
+
+      setShowAddRowsDialog(false);
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to add multiple rows:", error);
+      alert("Failed to add rows");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Save all pending changes
   const handleSaveChanges = async () => {
     if (pendingChanges.size === 0 && pendingRowReorders.size === 0) return;
@@ -572,46 +620,50 @@ export default function KahonAgGrid({
     setShowCellEditor(true);
   };
 
-  const addNewRow = async () => {
-    if (isLoading || !sheetData) return;
-
-    setIsLoading(true);
-
-    try {
-      const maxRow = Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0);
-      await addKahonCalculationRow({
-        sheetId: sheetData.id,
-        rowIndex: maxRow + 1,
-      });
-      onRefresh();
-    } catch (error) {
-      console.error("Failed to add row:", error);
-    } finally {
-      setIsLoading(false);
+  const handleEditColor = () => {
+    if (!selectedCellInfo) {
+      alert("Please select a cell first by clicking on it");
+      return;
     }
+    setShowColorPicker(true);
   };
 
-  const addMultipleRows = async (count: number, startIndex?: number) => {
-    if (isLoading || !sheetData) return;
+  const handleEditFormula = () => {
+    if (!selectedCellInfo) {
+      alert("Please select a cell first by clicking on it");
+      return;
+    }
+    setShowFormulaPicker(true);
+  };
+
+  const handleDeleteRow = async () => {
+    if (!selectedCellInfo) {
+      alert("Please select a cell in the row you want to delete");
+      return;
+    }
+
+    const confirmDelete = confirm(
+      `Are you sure you want to delete row ${selectedCellInfo.rowIndex}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
 
     setIsLoading(true);
     try {
-      const maxRow = Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0);
-      const actualStartIndex = startIndex || maxRow + 1;
+      const existingRow = sheetData?.Rows.find(
+        (r) => r.rowIndex === selectedCellInfo.rowIndex
+      );
 
-      // Add rows sequentially
-      for (let i = 0; i < count; i++) {
-        await addKahonCalculationRow({
-          sheetId: sheetData.id,
-          rowIndex: actualStartIndex + i,
-        });
+      if (existingRow) {
+        await deleteKahonRow(existingRow.id);
+        setSelectedCellInfo(null);
+        onRefresh();
+      } else {
+        alert("Row not found");
       }
-
-      setShowAddRowsDialog(false);
-      onRefresh();
     } catch (error) {
-      console.error("Failed to add multiple rows:", error);
-      alert("Failed to add rows");
+      console.error("Failed to delete row:", error);
+      alert("Failed to delete row");
     } finally {
       setIsLoading(false);
     }
@@ -676,7 +728,7 @@ export default function KahonAgGrid({
     }
   };
 
-  // Updated handleColorChange to work with pending changes
+  // New handlers for color and formula changes
   const handleColorChange = async (color: string) => {
     if (!selectedCellInfo) return;
 
@@ -710,7 +762,7 @@ export default function KahonAgGrid({
 
     // Add to pending changes
     setPendingChanges((prev) => new Map(prev.set(changeKey, updatedChange)));
-    setShowCellEditor(false);
+    setShowColorPicker(false);
   };
 
   // Updated handleFormulaApply to work with pending changes
@@ -999,46 +1051,68 @@ export default function KahonAgGrid({
               <button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 flex items-center space-x-1"
               >
-                {isSaving ? "Saving..." : "Save Changes"}
+                <span>💾</span>
+                <span>{isSaving ? "Saving..." : "Save"}</span>
               </button>
               <button
                 onClick={handleDiscardChanges}
                 disabled={isSaving}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center space-x-1"
               >
-                Discard
+                <span>❌</span>
+                <span>Discard</span>
               </button>
             </>
           )}
           <button
             onClick={addNewRow}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Add Row
+            <span>➕</span>
+            <span>Add Row</span>
           </button>
           <button
             onClick={() => setShowAddRowsDialog(true)}
             disabled={isLoading}
-            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
+            className="px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Add Multiple Rows
+            <span>📝</span>
+            <span>Add Multiple</span>
+          </button>
+          <button
+            onClick={handleDeleteRow}
+            disabled={!selectedCellInfo || isLoading}
+            className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-1"
+          >
+            <span>🗑️</span>
+            <span>Delete Row</span>
           </button>
           <button
             onClick={handleClearCell}
             disabled={!selectedCellInfo || isLoading}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+            className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Clear Cell
+            <span>🧹</span>
+            <span>Clear Cell</span>
           </button>
           <button
-            onClick={handleEditCell}
+            onClick={handleEditColor}
             disabled={!selectedCellInfo}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+            className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 flex items-center space-x-1"
           >
-            Edit Cell
+            <span>🎨</span>
+            <span>Color</span>
+          </button>
+          <button
+            onClick={handleEditFormula}
+            disabled={!selectedCellInfo}
+            className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1"
+          >
+            <span>🧮</span>
+            <span>Formula</span>
           </button>
         </div>
       </div>
@@ -1167,9 +1241,9 @@ export default function KahonAgGrid({
         />
       </div>
 
-      {showCellEditor && selectedCellInfo && (
+      {showColorPicker && selectedCellInfo && (
         <ColorPicker
-          isOpen={showCellEditor}
+          isOpen={showColorPicker}
           currentColor={(() => {
             const changeKey = `${selectedCellInfo.rowIndex}-${getColumnIndex(
               selectedCellInfo.field
@@ -1191,11 +1265,46 @@ export default function KahonAgGrid({
             columnIndex: getColumnIndex(selectedCellInfo.field),
           }}
           sheetType="kahon"
+          mode="color"
           onColorChange={handleColorChange}
           onFormulaApply={handleFormulaApply}
           onFormulaApplyToColumn={handleFormulaApplyToColumn}
           onClose={() => {
-            setShowCellEditor(false);
+            setShowColorPicker(false);
+          }}
+        />
+      )}
+
+      {showFormulaPicker && selectedCellInfo && (
+        <ColorPicker
+          isOpen={showFormulaPicker}
+          currentColor={(() => {
+            const changeKey = `${selectedCellInfo.rowIndex}-${getColumnIndex(
+              selectedCellInfo.field
+            )}`;
+            const pendingChange = pendingChanges.get(changeKey);
+            return pendingChange?.color || selectedCellInfo.currentColor;
+          })()}
+          currentValue={selectedCellInfo.currentValue}
+          currentFormula={(() => {
+            const changeKey = `${selectedCellInfo.rowIndex}-${getColumnIndex(
+              selectedCellInfo.field
+            )}`;
+            const pendingChange = pendingChanges.get(changeKey);
+            return pendingChange?.formula || selectedCellInfo.currentFormula;
+          })()}
+          cellPosition={{
+            row: selectedCellInfo.rowIndex,
+            column: selectedCellInfo.field,
+            columnIndex: getColumnIndex(selectedCellInfo.field),
+          }}
+          sheetType="kahon"
+          mode="formula"
+          onColorChange={handleColorChange}
+          onFormulaApply={handleFormulaApply}
+          onFormulaApplyToColumn={handleFormulaApplyToColumn}
+          onClose={() => {
+            setShowFormulaPicker(false);
           }}
         />
       )}
