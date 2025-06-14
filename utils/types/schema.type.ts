@@ -6,6 +6,7 @@ export const CashierPermissionsEnum = z.enum([
   "STOCKS",
   "EDIT_PRICE",
   "KAHON",
+  "BILLS",
   "PROFITS",
   "ATTACHMENTS",
   "SALES_HISTORY",

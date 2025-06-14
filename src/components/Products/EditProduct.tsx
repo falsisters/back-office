@@ -534,7 +534,8 @@ export default function EditProduct({
                               Special Price (Optional)
                             </Label>
                             {sack.specialPrice &&
-                              sack.specialPrice && (sack.specialPrice.price ?? 0) > 0 && (
+                              sack.specialPrice &&
+                              (sack.specialPrice.price ?? 0) > 0 && (
                                 <Button
                                   type="button"
                                   variant="ghost"

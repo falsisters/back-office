@@ -595,6 +595,7 @@ export default function CreateProduct({
                       })
                     }
                     min="0"
+                    step="0.01"
                     className="focus-visible:ring-primary"
                   />
                 </div>
