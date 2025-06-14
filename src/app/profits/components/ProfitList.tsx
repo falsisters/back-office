@@ -10,15 +10,23 @@ import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfitList() {
   const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
-  const [filteredSales, setFilteredSales] = useState<GetAllSalesByUserIdPayload>([]);
+  const [filteredSales, setFilteredSales] =
+    useState<GetAllSalesByUserIdPayload>([]);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
-  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth() + 1);
-  const [previousDaySales, setPreviousDaySales] = useState<GetAllSalesByUserIdPayload>([]);
-  
-  const formattedSelectedMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+  const [selectedYear, setSelectedYear] = useState<number>(() =>
+    new Date().getFullYear()
+  );
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    () => new Date().getMonth() + 1
+  );
+  const [previousDaySales, setPreviousDaySales] =
+    useState<GetAllSalesByUserIdPayload>([]);
+
+  const formattedSelectedMonth = `${selectedYear}-${String(
+    selectedMonth
+  ).padStart(2, "0")}`;
 
   useEffect(() => {
     const loadSales = async () => {
@@ -26,9 +34,9 @@ export default function ProfitList() {
         setIsLoading(true);
         const data = await getAllSalesByUserId();
         setSales(data);
-        
+
         let filtered;
-        let previousDayFiltered: { id: string; cashierId: string; totalAmount: number; paymentMethod: "CASH" | "BANK_TRANSFER" | "CHECK"; createdAt: Date; updatedAt: Date; cashier: { id: string; createdAt: Date; updatedAt: Date; name: string; accessKey: string; secureCode: string; permissions: ("SALES" | "DELIVERIES" | "STOCKS" | "EDIT_PRICE" | "KAHON" | "PROFITS" | "ATTACHMENTS" | "SALES_HISTORY")[]; userId: string; inventoryId?: string | null | undefined; kahonId?: string | null | undefined; }; SaleItem: { id: string; createdAt: Date; updatedAt: Date; quantity: number; isDiscounted: boolean; productId: string; saleId: string; isGantang: boolean; isSpecialPrice: boolean; product: { id: string; createdAt: Date; updatedAt: Date; name: string; userId: string; picture: string; SackPrice: { type: "FIFTY_KG" | "TWENTY_FIVE_KG" | "FIVE_KG"; price: number; profit: number; specialPrice?: { price: number; profit: number; } | undefined; }[]; perKiloPrice?: { price: number; profit: number; } | undefined; }; discountedPrice?: number | null | undefined; sackPriceId?: string | null | undefined; sackType?: "FIFTY_KG" | "TWENTY_FIVE_KG" | "FIVE_KG" | null | undefined; perKiloPriceId?: string | null | undefined; }[]; }[];
+        let previousDayFiltered: GetAllSalesByUserIdPayload;
 
         if (dateFilterMode === "day") {
           const selectedDate = date || new Date();
@@ -45,14 +53,17 @@ export default function ProfitList() {
             return saleDate.toDateString() === previousDate.toDateString();
           });
         } else {
-          const [year, month] = formattedSelectedMonth.split('-').map(Number);
+          const [year, month] = formattedSelectedMonth.split("-").map(Number);
           filtered = data.filter((sale) => {
             const saleDate = new Date(sale.createdAt);
-            return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
+            return (
+              saleDate.getFullYear() === year &&
+              saleDate.getMonth() === month - 1
+            );
           });
           previousDayFiltered = []; // No previous data needed for monthly view
         }
-        
+
         setFilteredSales(filtered);
         setPreviousDaySales(previousDayFiltered || []);
       } catch (error) {
@@ -73,10 +84,12 @@ export default function ProfitList() {
         return saleDate.toDateString() === date.toDateString();
       });
     } else if (dateFilterMode === "month") {
-      const [year, month] = formattedSelectedMonth.split('-').map(Number);
+      const [year, month] = formattedSelectedMonth.split("-").map(Number);
       filtered = filtered.filter((sale) => {
         const saleDate = new Date(sale.createdAt);
-        return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
+        return (
+          saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
+        );
       });
     }
 
@@ -86,10 +99,12 @@ export default function ProfitList() {
   const mappedSalesData = filteredSales.flatMap((sale) =>
     sale.SaleItem.map((item) => {
       const isSack = !!item.sackPriceId;
-      const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
+      const priceType: "sack" | "per-kilo" = isSack ? "sack" : "per-kilo";
       const sackType = item.sackType as SackType | undefined;
-      const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
-      
+      const sackPrice =
+        item.product.SackPrice.find((sp) => sp.type === sackType) ||
+        item.product.SackPrice[0];
+
       let originalProfit = 0;
 
       if (isSack) {
@@ -102,7 +117,9 @@ export default function ProfitList() {
       const specialProfit = 0;
 
       return {
-        productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
+        productKey: `${item.product.name}-${
+          sackType || "perKilo"
+        }-${priceType}`,
         productName: item.product.name,
         productImage: item.product.picture,
         sackType: sackType,
@@ -119,10 +136,12 @@ export default function ProfitList() {
   const previousDayMappedSalesData = previousDaySales.flatMap((sale) =>
     sale.SaleItem.map((item) => {
       const isSack = !!item.sackPriceId;
-      const priceType: 'sack' | 'per-kilo' = isSack ? "sack" : "per-kilo";
+      const priceType: "sack" | "per-kilo" = isSack ? "sack" : "per-kilo";
       const sackType = item.sackType as SackType | undefined;
-      const sackPrice = item.product.SackPrice.find(sp => sp.type === sackType) || item.product.SackPrice[0];
-      
+      const sackPrice =
+        item.product.SackPrice.find((sp) => sp.type === sackType) ||
+        item.product.SackPrice[0];
+
       let originalProfit = 0;
 
       if (isSack) {
@@ -135,7 +154,9 @@ export default function ProfitList() {
       const specialProfit = 0;
 
       return {
-        productKey: `${item.product.name}-${sackType || "perKilo"}-${priceType}`,
+        productKey: `${item.product.name}-${
+          sackType || "perKilo"
+        }-${priceType}`,
         productName: item.product.name,
         productImage: item.product.picture,
         sackType: sackType,
@@ -152,7 +173,7 @@ export default function ProfitList() {
   return (
     <div className="p-4 space-y-6">
       <h1 className="text-3xl font-bold mb-4">Profit Tracker</h1>
-      
+
       <SalesFilters
         dateFilterMode={dateFilterMode}
         setDateFilterMode={setDateFilterMode}
@@ -177,21 +198,23 @@ export default function ProfitList() {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
-          <Spinner/>
+          <Spinner />
           <p className="text-gray-500 mt-4">Loading profit data...</p>
         </div>
       ) : (
         <>
           {filteredSales.length > 0 || previousDaySales.length > 0 ? (
-            <ProfitTracker 
-              salesData={mappedSalesData} 
+            <ProfitTracker
+              salesData={mappedSalesData}
               previousDaySalesData={previousDayMappedSalesData}
               selectedDate={date || new Date()}
               dateFilterMode={dateFilterMode}
             />
           ) : (
             <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500 text-lg">No profit data available for the selected period.</p>
+              <p className="text-gray-500 text-lg">
+                No profit data available for the selected period.
+              </p>
             </div>
           )}
         </>

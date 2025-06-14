@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type {
   ColDef,
-  GridApi,
   CellValueChangedEvent,
   CellClickedEvent,
   CellStyle,
@@ -14,16 +13,14 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import type {
   SheetWithData,
-  AddCellType,
   PendingCellChange,
 } from "../../../utils/types/kahon.type";
 import {
   addKahonCalculationRow,
   batchUpdateKahonRowPositions,
-  deleteKahonRow, // Add this import
+  deleteKahonRow,
 } from "@/lib/server/manageKahonRows";
 import {
-  addKahonCell,
   updateKahonCell,
   batchUpdateKahonCells,
 } from "@/lib/server/manageCells";
@@ -38,7 +35,6 @@ import {
   getColumnIndex,
   getCellDisplayValue,
   isValidFormula,
-  updateCellValueInSheetData,
 } from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
 import AddRowsDialog from "./AddRowsDialog";
@@ -98,14 +94,12 @@ export default function KahonAgGrid({
     currentFormula?: string;
   } | null>(null);
 
-  // New state for change tracking
   const [pendingChanges, setPendingChanges] = useState<
     Map<string, PendingCellChange>
   >(new Map());
   const [isSaving, setIsSaving] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
 
-  // New state for row reorder tracking
   const [pendingRowReorders, setPendingRowReorders] = useState<
     Map<string, PendingRowReorder>
   >(new Map());
@@ -126,6 +120,82 @@ export default function KahonAgGrid({
       resolveFormulasOnInit();
     }
   }, [sheetData]);
+
+  // Resolve dependent formulas when a cell changes
+  const resolveDependentFormulas = async (changedCellRef: string) => {
+    if (!sheetData) return;
+
+    try {
+      const dependentCells = findDependentCells(changedCellRef, dependencyMap);
+
+      if (dependentCells.length > 0) {
+        console.log(
+          `Resolving ${dependentCells.length} dependent formulas for ${changedCellRef}`
+        );
+
+        // Get updated sheet data with current changes
+        const tempSheetData = JSON.parse(JSON.stringify(sheetData));
+
+        // Apply pending changes to temp data
+        pendingChanges.forEach((change, changeKey) => {
+          const [rowIndex, columnIndex] = changeKey.split("-").map(Number);
+          const row = tempSheetData.Rows?.find(
+            (r: any) => r.rowIndex === rowIndex
+          );
+          if (row) {
+            let cell = row.Cells?.find(
+              (c: any) => c.columnIndex === columnIndex
+            );
+            if (cell) {
+              cell.value = change.newValue;
+              if (change.formula) {
+                cell.formula = change.formula;
+              }
+            }
+          }
+        });
+
+        // Resolve all formulas with updated data
+        const updates = resolveAllFormulas(tempSheetData, "kahon");
+
+        // Apply dependent formula updates as pending changes
+        updates.forEach((update) => {
+          const changeKey = `${update.rowIndex}-${update.columnIndex}`;
+          const existingChange = pendingChanges.get(changeKey);
+
+          if (!existingChange || existingChange.isFormulaChange) {
+            const row = sheetData.Rows.find(
+              (r) => r.rowIndex === update.rowIndex
+            );
+            const cell = row?.Cells.find(
+              (c) => c.columnIndex === update.columnIndex
+            );
+
+            const pendingChange: PendingCellChange = {
+              id: `${changeKey}-${Date.now()}`,
+              rowId: row?.id,
+              rowIndex: update.rowIndex,
+              columnIndex: update.columnIndex,
+              cellId: cell?.id || update.cellId,
+              oldValue: cell?.value || "",
+              newValue: update.newValue,
+              formula: update.formula || cell?.formula, // Use the preserved formula
+              color: cell?.color,
+              changeType: cell ? "update" : "add",
+              timestamp: Date.now(),
+              isFormulaChange: Boolean(update.formula?.startsWith("=")),
+            };
+
+            setPendingChanges(
+              (prev) => new Map(prev.set(changeKey, pendingChange))
+            );
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Failed to resolve dependent formulas:", error);
+    }
+  };
 
   const prepareGridData = (data: SheetWithData): GridRow[] => {
     const rows: GridRow[] = [];
@@ -267,10 +337,11 @@ export default function KahonAgGrid({
       if (updates.length > 0) {
         console.log(`Resolving ${updates.length} formulas on initialization`);
 
-        // Apply updates via API
+        // Apply updates via API - preserve formulas
         for (const update of updates) {
           await updateKahonCell(update.cellId, {
             value: update.newValue,
+            formula: update.formula, // Preserve the formula
           });
         }
 
@@ -466,11 +537,15 @@ export default function KahonAgGrid({
       color: existingCell?.color || undefined,
       changeType: existingCell ? "update" : "add",
       timestamp: Date.now(),
-      isFormulaChange: Boolean(formula), // Fix: Convert to boolean explicitly
+      isFormulaChange: Boolean(formula),
     };
 
     // Add to pending changes
     setPendingChanges((prev) => new Map(prev.set(changeKey, pendingChange)));
+
+    // Resolve dependent formulas
+    const cellRef = getColumnName(columnIndex) + rowIndex;
+    await resolveDependentFormulas(cellRef);
   };
 
   const addNewRow = async () => {
@@ -795,17 +870,25 @@ export default function KahonAgGrid({
       cellId: existingCell?.id,
       oldValue: existingPendingChange?.oldValue || existingCell?.value || "",
       newValue: formula.startsWith("=") ? "0" : formula,
-      formula: formula.startsWith("=") ? formula : undefined,
+      formula: formula.startsWith("=") ? formula : null, // Ensure formula is properly set
       color: existingPendingChange?.color || existingCell?.color || undefined,
       changeType: existingCell ? "update" : "add",
       timestamp: Date.now(),
-      isFormulaChange: Boolean(formula.startsWith("=")), // Fix: Explicit boolean conversion
+      isFormulaChange: Boolean(formula.startsWith("=")),
     };
+
+    console.log("handleFormulaApply - updatedChange:", updatedChange);
 
     // Add to pending changes
     setPendingChanges((prev) => new Map(prev.set(changeKey, updatedChange)));
-    setShowCellEditor(false);
+    setShowFormulaPicker(false);
     setSelectedCellInfo(null);
+
+    // Resolve dependent formulas if this is a formula change
+    if (formula.startsWith("=")) {
+      const cellRef = getColumnName(columnIndex) + rowIndex;
+      await resolveDependentFormulas(cellRef);
+    }
   };
 
   // Updated handleFormulaApplyToColumn to work with pending changes
@@ -831,7 +914,7 @@ export default function KahonAgGrid({
 
     for (const row of sortedRows) {
       // Apply same logic as before for checking valid data
-      let shouldApply = false; // Initialize with default value
+      let shouldApply = false;
 
       if (baseFormula.includes("*")) {
         if (columnIndex >= 2) {
@@ -854,7 +937,6 @@ export default function KahonAgGrid({
         }
       } else if (baseFormula.includes("+") && baseFormula.includes("Name")) {
         if (columnIndex >= 2) {
-          // Check for valid data logic as before
           shouldApply = true; // Simplified for brevity
         }
       } else {
@@ -878,7 +960,7 @@ export default function KahonAgGrid({
           oldValue:
             existingPendingChange?.oldValue || existingCell?.value || "",
           newValue: "0",
-          formula: rowFormula,
+          formula: rowFormula, // Ensure formula is properly set
           color:
             existingPendingChange?.color || existingCell?.color || undefined,
           changeType: existingCell ? "update" : "add",
@@ -886,17 +968,27 @@ export default function KahonAgGrid({
           isFormulaChange: true,
         };
 
+        console.log(`Row ${row.rowIndex} formula change:`, updatedChange);
+
         newPendingChanges.set(changeKey, updatedChange);
         formulasApplied++;
       }
     }
 
+    console.log(
+      "handleFormulaApplyToColumn - total changes:",
+      newPendingChanges.size
+    );
     setPendingChanges(newPendingChanges);
-    setShowCellEditor(false);
+    setShowFormulaPicker(false);
     setSelectedCellInfo(null);
 
     if (formulasApplied > 0) {
       alert(`Applied formula to ${formulasApplied} rows (pending save)`);
+
+      // Resolve dependent formulas for the changed column
+      const cellRef = getColumnName(columnIndex) + selectedCellInfo.rowIndex;
+      await resolveDependentFormulas(cellRef);
     } else {
       alert("No valid data found for formula application");
     }

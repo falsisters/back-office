@@ -75,15 +75,16 @@ export const updateKahonCell = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Properly handle clearing by sending null values to backend
+  // Properly handle the formula field - ensure it's sent as string or null, not undefined
   const sanitizedData = {
     value: data.value || "",
-    formula: data.formula || null, // Send null instead of undefined
-    color: data.color || null, // Send null instead of undefined
-    rowIndex: data.rowIndex, // Include rowIndex for row position updates
+    formula: data.formula === undefined ? null : data.formula, // Convert undefined to null
+    color: data.color === undefined ? null : data.color, // Convert undefined to null
+    rowIndex: data.rowIndex,
   };
 
   console.log("updateKahonCell - cellId:", cellId);
+  console.log("updateKahonCell - original data:", data);
   console.log("updateKahonCell - sanitizedData:", sanitizedData);
 
   const response = await fetch(
@@ -247,15 +248,16 @@ export const updateInventoryCell = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Properly handle clearing by sending null values to backend
+  // Properly handle the formula field - ensure it's sent as string or null, not undefined
   const sanitizedData = {
     value: data.value || "",
-    formula: data.formula || null, // Send null instead of undefined
-    color: data.color || null, // Send null instead of undefined
-    rowIndex: data.rowIndex, // Include rowIndex for row position updates
+    formula: data.formula === undefined ? null : data.formula, // Convert undefined to null
+    color: data.color === undefined ? null : data.color, // Convert undefined to null
+    rowIndex: data.rowIndex,
   };
 
   console.log("updateInventoryCell - cellId:", cellId);
+  console.log("updateInventoryCell - original data:", data);
   console.log("updateInventoryCell - sanitizedData:", sanitizedData);
 
   const response = await fetch(
@@ -360,6 +362,16 @@ export const batchUpdateKahonCells = async (changes: any[]) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  // Sanitize the changes data to ensure proper formula handling
+  const sanitizedChanges = changes.map(change => ({
+    ...change,
+    formula: change.formula === undefined ? null : change.formula,
+    color: change.color === undefined ? null : change.color,
+  }));
+
+  console.log("batchUpdateKahonCells - original changes:", changes);
+  console.log("batchUpdateKahonCells - sanitized changes:", sanitizedChanges);
+
   const response = await fetch(
     `${process.env.API_URL}/sheet/user/cells/batch`,
     {
@@ -368,21 +380,32 @@ export const batchUpdateKahonCells = async (changes: any[]) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken.value}`,
       },
-      body: JSON.stringify({ changes }),
+      body: JSON.stringify({ changes: sanitizedChanges }),
     }
   );
 
   if (!response.ok) {
-    const error: NestApiError = await response.json();
-    throw new Error(
-      Array.isArray(error.message)
-        ? error.message.join(", ")
-        : error.message || "Failed to batch update cells"
-    );
+    const errorText = await response.text();
+    console.error("batchUpdateKahonCells - API error:", errorText);
+    
+    try {
+      const error: NestApiError = JSON.parse(errorText);
+      throw new Error(
+        Array.isArray(error.message)
+          ? error.message.join(", ")
+          : error.message || "Failed to batch update cells"
+      );
+    } catch (parseError) {
+      throw new Error(
+        `Failed to batch update cells: ${response.status} ${response.statusText}`
+      );
+    }
   }
 
+  const result = await response.json();
+  console.log("batchUpdateKahonCells - success result:", result);
   revalidatePath("/kahon");
-  return await response.json();
+  return result;
 };
 
 // Batch update functions for Inventory
@@ -392,6 +415,16 @@ export const batchUpdateInventoryCells = async (changes: any[]) => {
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  // Sanitize the changes data to ensure proper formula handling
+  const sanitizedChanges = changes.map(change => ({
+    ...change,
+    formula: change.formula === undefined ? null : change.formula,
+    color: change.color === undefined ? null : change.color,
+  }));
+
+  console.log("batchUpdateInventoryCells - original changes:", changes);
+  console.log("batchUpdateInventoryCells - sanitized changes:", sanitizedChanges);
+
   const response = await fetch(
     `${process.env.API_URL}/inventory/user/cells/batch`,
     {
@@ -400,19 +433,30 @@ export const batchUpdateInventoryCells = async (changes: any[]) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken.value}`,
       },
-      body: JSON.stringify({ changes }),
+      body: JSON.stringify({ changes: sanitizedChanges }),
     }
   );
 
   if (!response.ok) {
-    const error: NestApiError = await response.json();
-    throw new Error(
-      Array.isArray(error.message)
-        ? error.message.join(", ")
-        : error.message || "Failed to batch update cells"
-    );
+    const errorText = await response.text();
+    console.error("batchUpdateInventoryCells - API error:", errorText);
+    
+    try {
+      const error: NestApiError = JSON.parse(errorText);
+      throw new Error(
+        Array.isArray(error.message)
+          ? error.message.join(", ")
+          : error.message || "Failed to batch update cells"
+      );
+    } catch (parseError) {
+      throw new Error(
+        `Failed to batch update cells: ${response.status} ${response.statusText}`
+      );
+    }
   }
 
+  const result = await response.json();
+  console.log("batchUpdateInventoryCells - success result:", result);
   revalidatePath("/kahon");
-  return await response.json();
+  return result;
 };

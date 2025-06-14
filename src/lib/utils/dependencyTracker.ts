@@ -1,9 +1,9 @@
 import { extractCellReferences } from "./formulaParser";
 
 export interface CellDependency {
-  cellRef: string; // e.g., "A1", "Quantity2"
-  dependsOn: string[]; // cells this formula depends on
-  dependents: string[]; // cells that depend on this cell
+  cellRef: string;
+  dependsOn: string[];
+  dependents: string[];
 }
 
 export interface DependencyMap {
@@ -93,14 +93,14 @@ export function findDependentCells(
   const visited = new Set<string>();
 
   function traverse(cellRef: string) {
-    if (visited.has(cellRef)) return; // Prevent infinite loops
+    if (visited.has(cellRef)) return;
     visited.add(cellRef);
 
     const dependency = dependencyMap[cellRef];
     if (dependency) {
       dependency.dependents.forEach((dependent) => {
         toRecalculate.add(dependent);
-        traverse(dependent); // Recursively find dependents of dependents
+        traverse(dependent);
       });
     }
   }
@@ -165,6 +165,7 @@ export function resolveAllFormulas(
   columnIndex: number;
   cellId: string;
   newValue: string;
+  formula?: string; // Add formula preservation
 }> {
   const dependencyMap = buildDependencyMap(sheetData, sheetType);
   const formulaCells: string[] = [];
@@ -196,6 +197,7 @@ export function resolveAllFormulas(
     columnIndex: number;
     cellId: string;
     newValue: string;
+    formula?: string; // Add formula preservation
   }> = [];
 
   // Resolve formulas in order
@@ -216,10 +218,13 @@ export function resolveAllFormulas(
           columnIndex: cell.columnIndex,
           cellId: cell.id,
           newValue,
+          formula: cell.formula, // Preserve the original formula
         });
 
         // Update the cell value in our local copy for subsequent calculations
+        // BUT KEEP THE FORMULA INTACT
         cell.value = newValue;
+        // Don't modify cell.formula here!
       }
     }
   });
@@ -239,18 +244,15 @@ function evaluateFormulaWithDependencies(
 ): string {
   // Use existing formula evaluation functions
   if (sheetType === "inventory") {
-    return require("./formulaParser").parseAndEvaluateInventoryFormula(
+    const { parseAndEvaluateInventoryFormula } = require("./formulaParser");
+    return parseAndEvaluateInventoryFormula(
       formula,
       sheetData,
       currentRow,
       currentCol
     );
   } else {
-    return require("./formulaParser").parseAndEvaluateFormula(
-      formula,
-      sheetData,
-      currentRow,
-      currentCol
-    );
+    const { parseAndEvaluateFormula } = require("./formulaParser");
+    return parseAndEvaluateFormula(formula, sheetData, currentRow, currentCol);
   }
 }
