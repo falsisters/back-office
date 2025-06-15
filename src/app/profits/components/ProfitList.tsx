@@ -113,9 +113,9 @@ export default function ProfitList() {
       let originalProfit = 0;
 
       if (isSack) {
-        originalProfit = sackPrice?.profit || 0;
+        originalProfit = sackPrice?.profit ?? 0;
       } else {
-        originalProfit = item.product.perKiloPrice?.profit || 0;
+        originalProfit = item.product.perKiloPrice?.profit ?? 0;
       }
 
       const normalProfit = originalProfit;
@@ -150,9 +150,9 @@ export default function ProfitList() {
       let originalProfit = 0;
 
       if (isSack) {
-        originalProfit = sackPrice?.profit || 0;
+        originalProfit = sackPrice?.profit ?? 0;
       } else {
-        originalProfit = item.product.perKiloPrice?.profit || 0;
+        originalProfit = item.product.perKiloPrice?.profit ?? 0;
       }
 
       const normalProfit = originalProfit;

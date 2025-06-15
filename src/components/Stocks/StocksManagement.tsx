@@ -1,68 +1,70 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getAllProducts } from "@/lib/server/getAllProductsByUserId"
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
-import { Toaster } from "@/components/ui/toaster"
-import { Loader2, RefreshCw, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { SearchBar } from "@/components/SearchBar"
-import StocksTable from "./StocksTable"
-import StockSummary from "./StocksSummary"
-import TransferHistory from "./TransferHistory"
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAllProducts } from "@/lib/server/Products/getAllProductsByUserId";
+import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
+import { Toaster } from "@/components/ui/toaster";
+import { Loader2, RefreshCw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/SearchBar";
+import StocksTable from "./StocksTable";
+import StockSummary from "./StocksSummary";
+import TransferHistory from "./TransferHistory";
 
 export default function StocksManagement() {
-  const [products, setProducts] = useState<ProductResponse[]>([])
-  const [filteredProducts, setFilteredProducts] = useState<ProductResponse[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<"stocks" | "transfers">("stocks")
+  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductResponse[]>(
+    []
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"stocks" | "transfers">("stocks");
 
   const fetchProducts = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await getAllProducts()
+      const result = await getAllProducts();
       if (result.data) {
-        setProducts(result.data)
-        setFilteredProducts(result.data)
-        setError(null)
+        setProducts(result.data);
+        setFilteredProducts(result.data);
+        setError(null);
       } else if (result.error) {
-        setError(result.error)
+        setError(result.error);
       }
     } catch (err) {
-      setError("Failed to fetch products")
-      console.error("Error: ", err)
+      setError("Failed to fetch products");
+      console.error("Error: ", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchProducts()
-  }, [fetchProducts])
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredProducts(products)
+      setFilteredProducts(products);
     } else {
       const filtered = products.filter((product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      setFilteredProducts(filtered)
+      );
+      setFilteredProducts(filtered);
     }
-  }, [searchTerm, products])
+  }, [searchTerm, products]);
 
   const handleProductUpdate = useCallback(() => {
-    setIsRefreshing(true)
-    fetchProducts().finally(() => setIsRefreshing(false))
-  }, [fetchProducts])
+    setIsRefreshing(true);
+    fetchProducts().finally(() => setIsRefreshing(false));
+  }, [fetchProducts]);
 
   const handleClearSearch = () => {
-    setSearchTerm("")
-  }
+    setSearchTerm("");
+  };
 
   return (
     <>
@@ -137,7 +139,9 @@ export default function StocksManagement() {
               </div>
             ) : error ? (
               <div className="bg-destructive/10 p-6 rounded-md border border-destructive/20 text-center">
-                <p className="text-base text-destructive font-medium">{error}</p>
+                <p className="text-base text-destructive font-medium">
+                  {error}
+                </p>
                 <Button
                   variant="outline"
                   size="default"
@@ -178,5 +182,5 @@ export default function StocksManagement() {
       )}
       <Toaster />
     </>
-  )
+  );
 }

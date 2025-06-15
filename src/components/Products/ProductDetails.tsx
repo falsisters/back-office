@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../ui/dialog";
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
+import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import { Badge } from "../ui/badge";
 import Image from "next/image";
 import { parseProductType } from "../../../utils/parsers/productType.parser";

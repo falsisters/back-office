@@ -1,7 +1,5 @@
-"use server";
-
 import { cookies } from "next/headers";
-import { NestApiError } from "../../../utils/types/error.type";
+import { NestApiError } from "../../../../utils/types/error.type";
 import { revalidatePath } from "next/cache";
 
 export const editProduct = async (id: string, formData: FormData) => {
@@ -23,7 +21,6 @@ export const editProduct = async (id: string, formData: FormData) => {
 
     if (!response.ok) {
       const data: NestApiError = await response.json();
-      console.error("Backend error:", data);
       throw new Error(
         Array.isArray(data.message)
           ? data.message.join(", ")

@@ -1,23 +1,28 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import Image from "next/image"
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
+import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 
 interface BasicProductInfoProps {
-  product: ProductResponse
-  isLoading?: boolean
+  product: ProductResponse;
+  isLoading?: boolean;
 }
 
-export default function BasicProductInfo({ product, isLoading = false }: BasicProductInfoProps) {
+export default function BasicProductInfo({
+  product,
+  isLoading = false,
+}: BasicProductInfoProps) {
   if (isLoading) {
-    return <ProductSkeleton />
+    return <ProductSkeleton />;
   }
 
   return (
     <Card className="w-full max-w-md hover:shadow-md transition-shadow duration-200 overflow-hidden border-t-2 border-t-primary">
       <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
-        <CardTitle className="text-xl font-bold truncate text-primary">{product.name}</CardTitle>
+        <CardTitle className="text-xl font-bold truncate text-primary">
+          {product.name}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-0">
         <div className="relative w-full h-56 overflow-hidden rounded-md">
@@ -33,7 +38,10 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
           <div>
             <h3 className="font-semibold text-lg mb-2 flex items-center text-primary">
               <span>Sack Prices</span>
-              <Badge variant="outline" className="ml-2 bg-primary/5 text-primary border-primary/20">
+              <Badge
+                variant="outline"
+                className="ml-2 bg-primary/5 text-primary border-primary/20"
+              >
                 {product.SackPrice.length} options
               </Badge>
             </h3>
@@ -43,8 +51,12 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
                   key={sackPrice.id}
                   className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors"
                 >
-                  <span className="font-medium">{formatSackType(sackPrice.type)}</span>
-                  <span className="font-semibold text-secondary">₱{sackPrice.price.toFixed(2)}</span>
+                  <span className="font-medium">
+                    {formatSackType(sackPrice.type)}
+                  </span>
+                  <span className="font-semibold text-secondary">
+                    ₱{sackPrice.price.toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -52,13 +64,15 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
 
           {product.perKiloPrice && (
             <div>
-              <h3 className="font-semibold text-lg mb-2 text-primary">Per Kilo Price</h3>
+              <h3 className="font-semibold text-lg mb-2 text-primary">
+                Per Kilo Price
+              </h3>
               <div className="space-y-2">
-                <div
-                  className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors"
-                >
+                <div className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors">
                   <span className="font-medium">Price per Kilo</span>
-                  <span className="font-semibold text-secondary">₱{product.perKiloPrice.price.toFixed(2)}</span>
+                  <span className="font-semibold text-secondary">
+                    ₱{product.perKiloPrice.price.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -66,7 +80,7 @@ export default function BasicProductInfo({ product, isLoading = false }: BasicPr
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function ProductSkeleton() {
@@ -89,18 +103,18 @@ function ProductSkeleton() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function formatSackType(type: string): string {
   switch (type) {
     case "FIFTY_KG":
-      return "50 KG"
+      return "50 KG";
     case "TWENTY_FIVE_KG":
-      return "25 KG"
+      return "25 KG";
     case "FIVE_KG":
-      return "5 KG"
+      return "5 KG";
     default:
-      return type.replace(/_/g, " ")
+      return type.replace(/_/g, " ");
   }
 }

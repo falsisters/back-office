@@ -22,8 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { editProduct } from "@/lib/server/editProduct";
-import { getProductById } from "@/lib/server/getProductById";
+import { editProduct } from "@/lib/server/Products/editProduct";
+import { getProductById } from "@/lib/server/Products/getProductById";
 import {
   type SackType,
   type SackPrice,
@@ -32,7 +32,7 @@ import {
 } from "../../../utils/types/schema.type";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
+import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
 
 interface EditProductProps {
@@ -60,7 +60,7 @@ export default function EditProduct({
     id?: string;
     price: number;
     stock: number;
-    profit?: number;
+    profit?: number; // Make this optional
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,13 +83,13 @@ export default function EditProduct({
             type: sp?.type || "FIFTY_KG",
             price: sp?.price ?? 0,
             stock: sp?.stock ?? 0,
-            profit: sp?.profit ?? 0,
+            profit: sp?.profit, // Keep as undefined if not set
             specialPrice: sp?.specialPrice
               ? {
                   id: sp.specialPrice?.id,
                   price: sp.specialPrice?.price ?? 0,
                   minimumQty: sp.specialPrice?.minimumQty ?? 0,
-                  profit: sp.specialPrice?.profit ?? 0,
+                  profit: sp.specialPrice?.profit, // Keep as undefined if not set
                 }
               : null,
           }))
@@ -101,7 +101,7 @@ export default function EditProduct({
             id: fetchedProduct.perKiloPrice.id,
             price: fetchedProduct.perKiloPrice.price ?? 0,
             stock: fetchedProduct.perKiloPrice.stock ?? 0,
-            profit: fetchedProduct.perKiloPrice.profit ?? 0,
+            profit: fetchedProduct.perKiloPrice.profit, // Keep as undefined if not set
           });
         } else {
           setPerKiloPrice(null);
@@ -221,13 +221,13 @@ export default function EditProduct({
         price: sp.price,
         stock: sp.stock,
         type: sp.type,
-        profit: sp.profit ?? 0,
+        profit: sp.profit, // Send undefined if not set
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
               price: sp.specialPrice.price,
               minimumQty: sp.specialPrice.minimumQty,
-              profit: sp.specialPrice.profit ?? 0,
+              profit: sp.specialPrice.profit, // Send undefined if not set
             }
           : null,
       }));
@@ -240,7 +240,7 @@ export default function EditProduct({
             id: perKiloPrice.id,
             price: perKiloPrice.price,
             stock: perKiloPrice.stock,
-            profit: perKiloPrice.profit ?? 0,
+            profit: perKiloPrice.profit, // Send undefined if not set
           })
         );
       } else {
@@ -510,13 +510,13 @@ export default function EditProduct({
                             <Label className="text-xs">Profit (₱)</Label>
                             <Input
                               type="number"
-                              placeholder="Profit"
-                              value={sack.profit || ""}
+                              placeholder="Profit (optional)"
+                              value={sack.profit ?? ""}
                               onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
-                                newSackPrices[index].profit = Number(
-                                  e.target.value
-                                );
+                                newSackPrices[index].profit = e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined;
                                 setSackPrices(newSackPrices);
                               }}
                               min="0"
@@ -625,8 +625,8 @@ export default function EditProduct({
                                   <Label className="text-xs">Profit (₱)</Label>
                                   <Input
                                     type="number"
-                                    placeholder="Profit"
-                                    value={sack.specialPrice?.profit || ""}
+                                    placeholder="Profit (optional)"
+                                    value={sack.specialPrice?.profit ?? ""}
                                     onChange={(e) => {
                                       const newSackPrices = [...sackPrices];
                                       if (!newSackPrices[index].specialPrice) {
@@ -638,9 +638,9 @@ export default function EditProduct({
                                       }
                                       newSackPrices[
                                         index
-                                      ].specialPrice!.profit = Number(
-                                        e.target.value
-                                      );
+                                      ].specialPrice!.profit = e.target.value
+                                        ? Number(e.target.value)
+                                        : undefined;
                                       setSackPrices(newSackPrices);
                                     }}
                                     min="0"
@@ -727,16 +727,17 @@ export default function EditProduct({
                     <Label className="text-xs">Profit (₱)</Label>
                     <Input
                       type="number"
-                      placeholder="Profit"
-                      value={perKiloPrice?.profit || ""}
+                      placeholder="Profit (optional)"
+                      value={perKiloPrice?.profit ?? ""}
                       onChange={(e) =>
                         setPerKiloPrice({
                           ...(perKiloPrice || {
                             price: 0,
                             stock: 0,
-                            profit: 0,
                           }),
-                          profit: Number(e.target.value),
+                          profit: e.target.value
+                            ? Number(e.target.value)
+                            : undefined,
                         })
                       }
                       min="0"

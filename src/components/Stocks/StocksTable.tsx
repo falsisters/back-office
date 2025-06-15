@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type";
+import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import Image from "next/image";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
 
@@ -75,9 +75,15 @@ export default function StocksTable({ products }: StocksTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-primary/5">
-            <TableHead className="font-semibold text-base w-[30%]">Product</TableHead>
-            <TableHead className="font-semibold text-base w-[20%]">Type</TableHead>
-            <TableHead className="font-semibold text-base w-[50%]">Stock</TableHead>
+            <TableHead className="font-semibold text-base w-[30%]">
+              Product
+            </TableHead>
+            <TableHead className="font-semibold text-base w-[20%]">
+              Type
+            </TableHead>
+            <TableHead className="font-semibold text-base w-[50%]">
+              Stock
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -85,7 +91,9 @@ export default function StocksTable({ products }: StocksTableProps) {
             <TableRow
               key={`${row.productId}-${row.type}-${index}`}
               className={`hover:bg-muted/30 text-base ${
-                !row.isFirstRow ? "border-t border-black/40" : "border-t-2 border-black/40"
+                !row.isFirstRow
+                  ? "border-t border-black/40"
+                  : "border-t-2 border-black/40"
               } ${row.isFirstRow ? "py-8" : "py-2"}`}
             >
               {row.isFirstRow && (

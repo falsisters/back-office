@@ -72,7 +72,7 @@ export default function CashierProfitList({
       normalQty: item.quantity,
       specialQty: 0,
       isAsin: item.isAsin,
-      normalProfit: item.profitPerUnit,
+      normalProfit: item.profitPerUnit ?? 0,
       specialProfit: 0,
     }));
   };
