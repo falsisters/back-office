@@ -7,7 +7,6 @@ export const CashierPermissionsEnum = z.enum([
   "EDIT_PRICE",
   "KAHON",
   "BILLS",
-  "PROFITS",
   "ATTACHMENTS",
   "SALES_HISTORY",
 ]);
@@ -318,10 +317,8 @@ export type Attachment = z.infer<typeof AttachmentSchema>;
 
 export const BillCountSchema = z.object({
   id: z.string().cuid(),
-  userId: z.string(),
-  startingAmount: z.number().min(0).default(0),
-  expenses: z.number().min(0),
-  showExpenses: z.boolean().default(false),
+  userId: z.string().nullable().optional(),
+  cashierId: z.string().nullable().optional(),
   beginningBalance: z.number().min(0),
   showBeginningBalance: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
@@ -380,7 +377,8 @@ export type OrderItem = z.infer<typeof OrderItemSchema>;
 // New schemas for ExpenseList and ExpenseItems
 export const ExpenseListSchema = z.object({
   id: z.string().cuid(),
-  userId: z.string(),
+  userId: z.string().nullable().optional(),
+  cashierId: z.string().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { editBillCount } from "@/lib/server/editBillCount";
+import { editCashierBillCount } from "@/lib/server/editCashierBillCount";
 import {
   UpdateBillCountSchema,
   type UpdateBillCountType,
@@ -33,6 +33,7 @@ interface ConsolidatedEditBillCountsProps {
   isOpen: boolean;
   onClose: () => void;
   billCount: GetBillCountForDatePayload;
+  cashierId: string;
   onSuccess: () => Promise<void>;
 }
 
@@ -40,6 +41,7 @@ export function EditBillCounts({
   isOpen,
   onClose,
   billCount,
+  cashierId,
   onSuccess,
 }: ConsolidatedEditBillCountsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,9 +49,6 @@ export function EditBillCounts({
   const form = useForm<UpdateBillCountType>({
     resolver: zodResolver(UpdateBillCountSchema),
     defaultValues: {
-      startingAmount: billCount?.startingAmount || 0,
-      expenses: billCount?.expenses || 0,
-      showExpenses: billCount?.showExpenses || false,
       beginningBalance: billCount?.beginningBalance || 0,
       showBeginningBalance: billCount?.showBeginningBalance || false,
       bills:
@@ -65,7 +64,7 @@ export function EditBillCounts({
 
     setIsSubmitting(true);
     try {
-      await editBillCount(billCount.id, data);
+      await editCashierBillCount(cashierId, billCount.id, data);
       await onSuccess();
       onClose();
     } catch (error) {
@@ -104,39 +103,6 @@ export function EditBillCounts({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Starting Amount Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-primary">
-                Starting Amount
-              </h3>
-              <FormField
-                control={form.control}
-                name="startingAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Starting Amount</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2">
-                          ₱
-                        </span>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          className="pl-8"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             {/* Beginning Balance Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-primary">
@@ -229,62 +195,6 @@ export function EditBillCounts({
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Expenses Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-primary">Expenses</h3>
-              <div className="flex items-center justify-between">
-                <FormField
-                  control={form.control}
-                  name="showExpenses"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm w-full">
-                      <div className="space-y-0.5">
-                        <FormLabel>Show Expenses</FormLabel>
-                        <FormDescription>
-                          Include expenses in the final calculation
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("showExpenses") && (
-                <FormField
-                  control={form.control}
-                  name="expenses"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Expenses</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2">
-                            ₱
-                          </span>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            className="pl-8"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
             </div>
 
             <DialogFooter>

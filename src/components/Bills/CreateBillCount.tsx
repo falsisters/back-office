@@ -1,38 +1,67 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { format } from "date-fns"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { CalendarIcon } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
-import { createBillCount } from "@/lib/server/createBillCount"
-import { CreateBillCountSchema, type CreateBillCountType } from "../../../utils/types/createBillCount.type"
+import { useState } from "react";
+import { format } from "date-fns";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { CalendarIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { createCashierBillCount } from "@/lib/server/createCashierBillCount";
+import {
+  CreateBillCountSchema,
+  type CreateBillCountType,
+} from "../../../utils/types/createBillCount.type";
 
 interface CreateBillCountsProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => Promise<void>
-  selectedDate?: Date
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => Promise<void>;
+  selectedDate?: Date;
+  cashierId: string;
+  cashierName: string;
 }
 
-export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: CreateBillCountsProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function CreateBillCounts({
+  isOpen,
+  onClose,
+  onSuccess,
+  selectedDate,
+  cashierId,
+  cashierName,
+}: CreateBillCountsProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CreateBillCountType>({
     resolver: zodResolver(CreateBillCountSchema),
     defaultValues: {
-      date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      startingAmount: 0,
-      expenses: 0,
-      showExpenses: false,
+      date: selectedDate
+        ? format(selectedDate, "yyyy-MM-dd")
+        : format(new Date(), "yyyy-MM-dd"),
       beginningBalance: 0,
       showBeginningBalance: false,
       bills: [
@@ -44,46 +73,48 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
         { amount: 0, type: "COINS" },
       ],
     },
-  })
+  });
 
   const onSubmit = async (data: CreateBillCountType) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      await createBillCount(data)
-      await onSuccess()
-      onClose()
-      form.reset()
+      await createCashierBillCount(cashierId, data);
+      await onSuccess();
+      onClose();
+      form.reset();
     } catch (error) {
-      console.error("Failed to create bill count:", error)
+      console.error("Failed to create bill count:", error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const getBillTypeLabel = (type: string) => {
     switch (type) {
       case "THOUSAND":
-        return "₱1,000"
+        return "₱1,000";
       case "FIVE_HUNDRED":
-        return "₱500"
+        return "₱500";
       case "HUNDRED":
-        return "₱100"
+        return "₱100";
       case "FIFTY":
-        return "₱50"
+        return "₱50";
       case "TWENTY":
-        return "₱20"
+        return "₱20";
       case "COINS":
-        return "Coins"
+        return "Coins";
       default:
-        return type
+        return type;
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-primary">Create Bill Count</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-primary">
+            Create Bill Count for {cashierName}
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -98,9 +129,16 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                       <FormControl>
                         <Button
                           variant={"outline"}
-                          className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
                         >
-                          {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -108,35 +146,16 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                        selected={
+                          field.value ? new Date(field.value) : undefined
+                        }
+                        onSelect={(date) =>
+                          field.onChange(date ? format(date, "yyyy-MM-dd") : "")
+                        }
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="startingAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Starting Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2">₱</span>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        className="pl-8"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </div>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -151,10 +170,15 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                       <div className="space-y-0.5">
                         <FormLabel>Show Beginning Balance</FormLabel>
-                        <FormDescription>Display the starting balance for this count</FormDescription>
+                        <FormDescription>
+                          Display the starting balance for this count
+                        </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -170,13 +194,17 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                       <FormLabel>Beginning Balance</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2">₱</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                            ₱
+                          </span>
                           <Input
                             type="number"
                             placeholder="0.00"
                             className="pl-8"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
                           />
                         </div>
                       </FormControl>
@@ -188,7 +216,9 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-primary">Bill Counts</h3>
+              <h3 className="text-lg font-semibold text-primary">
+                Bill Counts
+              </h3>
               {form.watch("bills")?.map((_, index) => (
                 <div key={index} className="grid grid-cols-2 gap-4">
                   <FormField
@@ -198,7 +228,11 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                       <FormItem>
                         <FormLabel>Bill Type</FormLabel>
                         <FormControl>
-                          <Input value={getBillTypeLabel(field.value)} disabled className="bg-muted/30" />
+                          <Input
+                            value={getBillTypeLabel(field.value)}
+                            disabled
+                            className="bg-muted/30"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -215,7 +249,9 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                             type="number"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -224,51 +260,6 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
                   />
                 </div>
               ))}
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <FormField
-                  control={form.control}
-                  name="showExpenses"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Show Expenses</FormLabel>
-                        <FormDescription>Include expenses in the final calculation</FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("showExpenses") && (
-                <FormField
-                  control={form.control}
-                  name="expenses"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Expenses</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2">₱</span>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            className="pl-8"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
             </div>
 
             <DialogFooter>
@@ -290,5 +281,5 @@ export function CreateBillCounts({ isOpen, onClose, onSuccess, selectedDate }: C
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

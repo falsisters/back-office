@@ -7,6 +7,8 @@ import { type SackType } from "../../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../../utils/types/getAllSalesByUserId.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";
 import { Spinner } from "@/components/ui/spinner";
+import { CashierSelector } from "@/components/Cashier/CashierSelector";
+import CashierProfitList from "@/components/Profits/CashierProfitList";
 
 export default function ProfitList() {
   const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
@@ -23,6 +25,9 @@ export default function ProfitList() {
   );
   const [previousDaySales, setPreviousDaySales] =
     useState<GetAllSalesByUserIdPayload>([]);
+  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
+    null
+  );
 
   const formattedSelectedMonth = `${selectedYear}-${String(
     selectedMonth
@@ -174,51 +179,12 @@ export default function ProfitList() {
     <div className="p-4 space-y-6">
       <h1 className="text-3xl font-bold mb-4">Profit Tracker</h1>
 
-      <SalesFilters
-        dateFilterMode={dateFilterMode}
-        setDateFilterMode={setDateFilterMode}
-        date={date}
-        setDate={setDate}
-        selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear}
-        selectedMonth={selectedMonth}
-        setSelectedMonth={setSelectedMonth}
-        productFilter={""} // Not used in ProfitList
-        setProductFilter={() => {}} // Not used in ProfitList
-        viewMode={"perProduct"} // Not used in ProfitList
-        setViewMode={() => {}} // Not used in ProfitList
-        paymentFilter={"ALL"} // Not used in ProfitList
-        setPaymentFilter={() => {}} // Not used in ProfitList
-        sackKiloFilter={"ALL"} // Not used in ProfitList
-        setSackKiloFilter={() => {}} // Not used in ProfitList
-        asinOtherFilter={"ALL"} // Not used in ProfitList
-        setAsinOtherFilter={() => {}} // Not used in ProfitList
-        hideExtraFilters={true} // Add this prop to SalesFilters to hide unused filters
+      <CashierSelector
+        selectedCashierId={selectedCashierId}
+        onCashierSelect={setSelectedCashierId}
       />
 
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
-          <Spinner />
-          <p className="text-gray-500 mt-4">Loading profit data...</p>
-        </div>
-      ) : (
-        <>
-          {filteredSales.length > 0 || previousDaySales.length > 0 ? (
-            <ProfitTracker
-              salesData={mappedSalesData}
-              previousDaySalesData={previousDayMappedSalesData}
-              selectedDate={date || new Date()}
-              dateFilterMode={dateFilterMode}
-            />
-          ) : (
-            <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500 text-lg">
-                No profit data available for the selected period.
-              </p>
-            </div>
-          )}
-        </>
-      )}
+      {selectedCashierId && <CashierProfitList cashierId={selectedCashierId} />}
     </div>
   );
 }

@@ -8,25 +8,23 @@ const BillSchema = z.object({
   value: z.number().min(0),
 });
 
-const BillsByTypeSchema = z.record(
-  BillTypeEnum,
-  z.number().int().min(0)
-);
+const BillsByTypeSchema = z.record(BillTypeEnum, z.number().int().min(0));
 
 export const GetBillCountByIdPayloadSchema = z.object({
   id: z.string().cuid(),
-  startingAmount: z.number().min(0),
   date: z.date(),
-  expenses: z.number().min(0),
-  showExpenses: z.boolean(),
   beginningBalance: z.number().min(0),
   showBeginningBalance: z.boolean(),
   totalCash: z.number().min(0),
+  totalExpenses: z.number().min(0),
+  netCash: z.number(),
   bills: z.array(BillSchema),
   billsByType: BillsByTypeSchema,
   billsTotal: z.number().min(0),
-  totalWithExpenses: z.number().min(0),
-  finalTotal: z.number(),
+  summaryStep1: z.number(),
+  summaryFinal: z.number(),
 });
 
-export type GetBillCountByIdPayload = z.infer<typeof GetBillCountByIdPayloadSchema>;
+export type GetBillCountByIdPayload = z.infer<
+  typeof GetBillCountByIdPayloadSchema
+>;
