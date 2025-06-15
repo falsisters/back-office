@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AttachmentSchema } from "./schema.type";
+import { AttachmentSchema } from "../schema.type";
 
 export const GetAllAttachmentsPayloadSchema = z.array(AttachmentSchema);
 

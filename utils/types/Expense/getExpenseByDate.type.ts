@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ExpenseListSchema, ExpenseItemsSchema } from "./schema.type";
+import { ExpenseListSchema, ExpenseItemsSchema } from "../schema.type";
 
 export const GetExpenseByDateSchema = z.object({
   date: z.string().optional(),

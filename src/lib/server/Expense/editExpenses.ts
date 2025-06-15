@@ -1,6 +1,6 @@
 "use server";
 
-import { EditExpenseType } from "../../../utils/types/editExpense.type";
+import { EditExpenseType } from "../../../../utils/types/Expense/editExpense.type";
 import { NestApiError } from "../../../../utils/types/error.type";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";

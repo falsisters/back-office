@@ -1,6 +1,6 @@
 "use server";
 
-import { CreateExpenseType } from "../../../utils/types/createExpense.type";
+import { CreateExpenseType } from "../../../../utils/types/Expense/createExpense.type";
 import { NestApiError } from "../../../../utils/types/error.type";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";

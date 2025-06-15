@@ -1,3 +1,4 @@
+"use server";
 import { cookies } from "next/headers";
 import { NestApiError } from "../../../../utils/types/error.type";
 import { GetAllProductsResponse } from "../../../../utils/types/Products/getAllProductsByUserId.type";

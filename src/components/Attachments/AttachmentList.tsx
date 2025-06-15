@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getAllAttachments } from "@/lib/server/Attachment/getAllAttachments";
 import { deleteAttachment } from "@/lib/server/Attachment/deleteAttachment";
-import type { GetAllAttachmentsPayload } from "../../../utils/types/getAllAttachments.type";
+import type { GetAllAttachmentsPayload } from "../../../utils/types/Attachment/getAllAttachments.type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CalendarIcon, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";

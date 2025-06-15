@@ -114,7 +114,10 @@ export function ExpenseList() {
   }
 
   const totalAmount =
-    expense?.ExpenseItems.reduce((sum, item) => sum + item.amount, 0) || 0;
+    expense?.ExpenseItems.reduce(
+      (sum: any, item: any) => sum + item.amount,
+      0
+    ) || 0;
 
   return (
     <div className="space-y-6">
