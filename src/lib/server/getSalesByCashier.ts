@@ -11,7 +11,7 @@ export const getSalesByCashier = async (cashierId: string) => {
   if (!accessToken) throw new Error("Unauthorized");
 
   const response = await fetch(
-    `${process.env.API_URL}/sales-check/cashier?cashierId=${cashierId}`,
+    `${process.env.API_URL}/sale/cashier/${cashierId}`,
     {
       headers: { Authorization: `Bearer ${accessToken.value}` },
       method: "GET",

@@ -96,7 +96,83 @@ export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
     loadSales();
   }, [cashierId, dateFilterMode, formattedSelectedMonth]);
 
-  // ...existing filtering logic...
+  useEffect(() => {
+    let filtered = [...sales];
+
+    if (dateFilterMode === "day" && date) {
+      filtered = filtered.filter((sale) => {
+        const saleDate = new Date(sale.createdAt);
+        return saleDate.toDateString() === date.toDateString();
+      });
+    } else if (dateFilterMode === "month") {
+      const [year, month] = formattedSelectedMonth.split("-").map(Number);
+      filtered = filtered.filter((sale) => {
+        const saleDate = new Date(sale.createdAt);
+        return (
+          saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
+        );
+      });
+    }
+
+    if (paymentFilter !== "ALL") {
+      filtered = filtered.filter(
+        (sale) => sale.paymentMethod === paymentFilter
+      );
+    }
+
+    if (productFilter) {
+      filtered = filtered
+        .map((sale) => ({
+          ...sale,
+          SaleItem: sale.SaleItem.filter((item) =>
+            item.product.name
+              .toLowerCase()
+              .includes(productFilter.toLowerCase())
+          ),
+        }))
+        .filter((sale) => sale.SaleItem.length > 0);
+    }
+
+    filtered = filtered
+      .map((sale) => ({
+        ...sale,
+        SaleItem: sale.SaleItem.filter((item) => {
+          const isSack = !!item.sackPriceId;
+          const isPerKilo = !!item.perKiloPriceId;
+          return (
+            sackKiloFilter === "ALL" ||
+            (sackKiloFilter === "SACKS" && isSack) ||
+            (sackKiloFilter === "PER_KILO" && isPerKilo)
+          );
+        }),
+      }))
+      .filter((sale) => sale.SaleItem.length > 0);
+
+    filtered = filtered
+      .map((sale) => ({
+        ...sale,
+        SaleItem: sale.SaleItem.filter((item) => {
+          const isAsin = item.product.name.toLowerCase().includes("asin");
+          return (
+            asinOtherFilter === "ALL" ||
+            (asinOtherFilter === "ASIN" && isAsin) ||
+            (asinOtherFilter === "OTHER" && !isAsin)
+          );
+        }),
+      }))
+      .filter((sale) => sale.SaleItem.length > 0);
+
+    setFilteredSales(filtered);
+  }, [
+    productFilter,
+    paymentFilter,
+    sackKiloFilter,
+    asinOtherFilter,
+    date,
+    sales,
+    dateFilterMode,
+    formattedSelectedMonth,
+  ]);
 
   const groupSalesByDate = () => {
     const grouped: Record<string, GetAllSalesByUserIdPayload> = {};
