@@ -1,6 +1,6 @@
 "use client";
 
-import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { SaleView } from "./SaleView";
 import { ProductView } from "./ProductView";
 

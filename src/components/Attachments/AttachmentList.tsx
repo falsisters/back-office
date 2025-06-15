@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllAttachments } from "@/lib/server/getAllAttachments";
-import { deleteAttachment } from "@/lib/server/deleteAttachment";
+import { getAllAttachments } from "@/lib/server/Attachment/getAllAttachments";
+import { deleteAttachment } from "@/lib/server/Attachment/deleteAttachment";
 import type { GetAllAttachmentsPayload } from "../../../utils/types/getAllAttachments.type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CalendarIcon, FileIcon } from "lucide-react";
@@ -58,16 +58,16 @@ export function AttachmentList() {
     }
   }, [attachments, date]);
 
-    useEffect(() => {
-      if (!searchTerm.trim()) {
-        setFilteredAttachments(attachments);
-      } else {
-        const filtered = attachments.filter(attachment => 
-          attachment.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        setFilteredAttachments(filtered)
-      }
-    }, [searchTerm, attachments])
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredAttachments(attachments);
+    } else {
+      const filtered = attachments.filter((attachment) =>
+        attachment.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredAttachments(filtered);
+    }
+  }, [searchTerm, attachments]);
 
   const fetchAttachments = async () => {
     try {
@@ -157,23 +157,23 @@ export function AttachmentList() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <CreateAttachment onAttachmentCreated={handleAttachmentCreated} />
         {/* Search bar implementation */}
-          <div className="relative flex-1">
-            <SearchBar
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              placeholder="Search attachments by name..."
-            />
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                onClick={handleClearSearch}
-              >
-                <span className="sr-only">Clear search</span>×
-              </Button>
-            )}
-          </div>
+        <div className="relative flex-1">
+          <SearchBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            placeholder="Search attachments by name..."
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+              onClick={handleClearSearch}
+            >
+              <span className="sr-only">Clear search</span>×
+            </Button>
+          )}
+        </div>
 
         <Popover>
           <PopoverTrigger asChild>

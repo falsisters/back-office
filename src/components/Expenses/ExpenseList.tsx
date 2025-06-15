@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCashierExpenseByDate } from "@/lib/server/getCashierExpensesByDate";
-import { deleteExpense } from "@/lib/server/deleteExpense";
-import type { GetAllExpensesPayload } from "../../../utils/types/getAllExpenses.type";
+import { getCashierExpenseByDate } from "@/lib/server/Expense/getCashierExpensesByDate";
+import { deleteExpense } from "@/lib/server/Expense/deleteExpense";
+import type { GetAllExpensesPayload } from "../../../utils/types/Expense/getAllExpenses.type";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ExpenseItem } from "./ExpenseItem";

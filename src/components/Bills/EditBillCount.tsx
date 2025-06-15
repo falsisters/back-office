@@ -22,12 +22,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { editCashierBillCount } from "@/lib/server/editCashierBillCount";
+import { editCashierBillCount } from "@/lib/server/BillCount/editCashierBillCount";
 import {
   UpdateBillCountSchema,
   type UpdateBillCountType,
-} from "../../../utils/types/editBillCount.type";
-import type { GetBillCountForDatePayload } from "../../../utils/types/getBillCountByDate.type";
+} from "../../../utils/types/BillCount/editBillCount.type";
+import type { GetBillCountForDatePayload } from "../../../utils/types/BillCount/getBillCountByDate.type";
 
 interface ConsolidatedEditBillCountsProps {
   isOpen: boolean;

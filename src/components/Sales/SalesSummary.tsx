@@ -1,6 +1,6 @@
 "use client";
 
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { ShoppingBag, CreditCard, Banknote, DollarSign } from "lucide-react";

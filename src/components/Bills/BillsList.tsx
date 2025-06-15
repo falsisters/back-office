@@ -19,11 +19,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { getCashierBillCountForDate } from "@/lib/server/getCashierBillCountByDate";
+import { getCashierBillCountForDate } from "@/lib/server/BillCount/getCashierBillCountByDate";
 import { BillCountTableRow } from "./BillCountTableRow";
 import { CreateBillCounts } from "./CreateBillCount";
 import { CashierSelector } from "../CashierSelector";
-import type { GetBillCountForDatePayload } from "../../../utils/types/getBillCountByDate.type";
+import type { GetBillCountForDatePayload } from "../../../utils/types/BillCount/getBillCountByDate.type";
 
 export function BillCountList() {
   const [date, setDate] = useState<Date | undefined>(new Date());

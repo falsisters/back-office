@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllCashiersByUserId } from "@/lib/server/getAllCashiersByUserId";
-import { deleteCashier } from "@/lib/server/deleteCashier";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
+import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
+import { deleteCashier } from "@/lib/server/Cashier/deleteCashier";
+import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 import {
   Card,
   CardContent,

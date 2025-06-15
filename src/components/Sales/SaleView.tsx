@@ -1,6 +1,6 @@
 "use client";
 
-import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -134,7 +134,10 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-primary">Total Sales:</span>
                 <span className="font-mono font-bold text-lg text-primary">
-                  ₱{Math.floor(calculateTotalSales(asinSackItems)).toLocaleString()}
+                  ₱
+                  {Math.floor(
+                    calculateTotalSales(asinSackItems)
+                  ).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -218,7 +221,10 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-primary">Total Sales:</span>
                 <span className="font-mono font-bold text-lg text-primary">
-                  ₱{Math.floor(calculateTotalSales(otherSackItems)).toLocaleString()}
+                  ₱
+                  {Math.floor(
+                    calculateTotalSales(otherSackItems)
+                  ).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -290,7 +296,10 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-primary">Total Sales:</span>
                 <span className="font-mono font-bold text-lg text-primary">
-                  ₱{Math.floor(calculateTotalSales(perKiloPriceItems)).toLocaleString()}
+                  ₱
+                  {Math.floor(
+                    calculateTotalSales(perKiloPriceItems)
+                  ).toLocaleString()}
                 </span>
               </div>
             </div>

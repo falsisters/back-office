@@ -1,9 +1,9 @@
 // components/SalesDateGroup.tsx
 "use client";
 
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { SalesItemList } from "./SalesItemList";
 
 interface SalesDateGroupProps {
@@ -24,11 +24,7 @@ export function SalesDateGroup({
       <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
         <CardTitle className="text-lg text-primary flex items-center gap-2">
           <CalendarIcon className="h-5 w-5" />
-          {dateFilterMode === "month" ? (
-            <span>{dateString}</span>
-          ) : (
-            dateString
-          )}
+          {dateFilterMode === "month" ? <span>{dateString}</span> : dateString}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">

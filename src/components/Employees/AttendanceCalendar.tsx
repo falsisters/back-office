@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { EmployeeWithShiftsResponse } from "../../../utils/types/getEmployee.type";
-import { EmployeeAttendanceResponse } from "../../../utils/types/getEmployeeAttendance.type";
+import { EmployeeWithShiftsResponse } from "../../../utils/types/Employee/getEmployee.type";
+import { EmployeeAttendanceResponse } from "../../../utils/types/Employee/getEmployeeAttendance.type";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

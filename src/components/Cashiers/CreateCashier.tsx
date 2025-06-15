@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { createCashier } from "@/lib/server/createCashier";
+import { createCashier } from "@/lib/server/Cashier/createCashier";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import type { CashierPermissions } from "../../../utils/types/schema.type";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
+import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 
 const permissionTypes: CashierPermissions[] = [
   "SALES",

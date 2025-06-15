@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { EditBillCounts } from "./EditBillCount";
-import type { GetBillCountForDatePayload } from "../../../utils/types/getBillCountByDate.type";
+import type { GetBillCountForDatePayload } from "../../../utils/types/BillCount/getBillCountByDate.type";
 import { cn } from "@/lib/utils";
 
 interface BillCountTableRowProps {

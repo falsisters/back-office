@@ -20,11 +20,11 @@ import {
   addInventoryCalculationRowBySheetId,
   batchUpdateInventoryRowPositions,
   deleteInventoryRow,
-} from "@/lib/server/manageInventoryRows";
+} from "@/lib/server/Kahon/manageInventoryRows";
 import {
   updateInventoryCell,
   batchUpdateInventoryCells,
-} from "@/lib/server/manageCells";
+} from "@/lib/server/Kahon/manageCells";
 import {
   buildDependencyMap,
   findDependentCells,

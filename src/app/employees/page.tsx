@@ -1,5 +1,5 @@
 import React from "react";
-import { getAllEmployees } from "@/lib/server/getEmployee";
+import { getAllEmployees } from "@/lib/server/Employee/getEmployee";
 import EmployeesList from "@/components/Employees/EmployeesList";
 import AddEmployeeDialog from "@/components/Employees/AddEmployeeDialog";
 

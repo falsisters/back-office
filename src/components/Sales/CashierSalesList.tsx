@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSalesByCashier } from "@/lib/server/getSalesByCashier";
+import { getSalesByCashier } from "@/lib/server/Sales/getSalesByCashier";
 import SalesSummary from "./SalesSummary";
 import type { PaymentMethodEnum } from "../../../utils/types/schema.type";
-import type { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { SalesFilters } from "./SalesFilter";
 import { SalesDateGroup } from "./SalesDateGroup";
 import { NoSalesFound } from "./NoSalesFound";

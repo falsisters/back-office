@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { EmployeeWithShiftsResponse } from "../../../utils/types/getEmployee.type";
+import { EmployeeWithShiftsResponse } from "../../../utils/types/Employee/getEmployee.type";
 import {
   Card,
   CardContent,
@@ -42,7 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { deleteEmployee } from "@/lib/server/deleteEmployee";
+import { deleteEmployee } from "@/lib/server/Employee/deleteEmployee";
 import { toast } from "sonner";
 import CreateNewEmployee from "./CreateNewEmployee";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getCashiers } from "@/lib/server/getCashiers";
+import { getCashiers } from "@/lib/server/Cashier/getCashiers";
 import {
   Select,
   SelectContent,

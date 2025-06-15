@@ -6,10 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CreateEmployeeSchema,
   CreateEmployeeType,
-} from "../../../utils/types/addEmployee.type";
-import { EmployeeWithShiftsResponse } from "../../../utils/types/getEmployee.type";
-import { createEmployee } from "@/lib/server/addEmployee";
-import { editEmployee } from "@/lib/server/editEmployee";
+} from "../../../utils/types/Employee/addEmployee.type";
+import { EmployeeWithShiftsResponse } from "../../../utils/types/Employee/getEmployee.type";
+import { createEmployee } from "@/lib/server/Employee/addEmployee";
+import { editEmployee } from "@/lib/server/Employee/editEmployee";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

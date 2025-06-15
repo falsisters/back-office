@@ -5,8 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { createCashierExpense } from "@/lib/server/createCashierExpenses";
-import { getCashierExpenseByDate } from "@/lib/server/getCashierExpensesByDate";
+import { createCashierExpense } from "@/lib/server/Expense/createCashierExpenses";
+import { getCashierExpenseByDate } from "@/lib/server/Expense/getCashierExpensesByDate";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -18,8 +18,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import type { CreateExpenseItemType } from "../../../utils/types/createExpense.type";
-import type { GetAllExpensesPayload } from "../../../utils/types/getAllExpenses.type";
+import type { CreateExpenseItemType } from "../../../utils/types/Expense/createExpense.type";
+import type { GetAllExpensesPayload } from "../../../utils/types/Expense/getAllExpenses.type";
 import { format } from "date-fns";
 
 export function CreateExpense({

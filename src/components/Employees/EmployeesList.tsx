@@ -1,5 +1,5 @@
 import React from "react";
-import { GetAllEmployeesResponse } from "../../../utils/types/getEmployee.type";
+import { GetAllEmployeesResponse } from "../../../utils/types/Employee/getEmployee.type";
 import EmployeeCard from "./EmployeeCard";
 
 interface EmployeesListProps {

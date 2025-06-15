@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllSalesByUserId } from "@/lib/server/getAllSalesByUserId";
+import { getAllSalesByUserId } from "@/lib/server/Sales/getAllSalesByUserId";
 import ProfitTracker from "@/components/Sales/ProfitTracker";
 import { type SackType } from "../../../../utils/types/schema.type";
-import type { GetAllSalesByUserIdPayload } from "../../../../utils/types/getAllSalesByUserId.type";
+import type { GetAllSalesByUserIdPayload } from "../../../../utils/types/Sales/getAllSalesByUserId.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";
 import { Spinner } from "@/components/ui/spinner";
 import { CashierSelector } from "@/components/Cashier/CashierSelector";

@@ -19,11 +19,11 @@ import {
   addKahonCalculationRow,
   batchUpdateKahonRowPositions,
   deleteKahonRow,
-} from "@/lib/server/manageKahonRows";
+} from "@/lib/server/Kahon/manageKahonRows";
 import {
   updateKahonCell,
   batchUpdateKahonCells,
-} from "@/lib/server/manageCells";
+} from "@/lib/server/Kahon/manageCells";
 import {
   buildDependencyMap,
   findDependentCells,

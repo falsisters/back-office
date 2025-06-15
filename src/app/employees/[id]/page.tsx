@@ -1,6 +1,6 @@
 import React from "react";
-import { getEmployeeById } from "@/lib/server/getEmployee";
-import { getEmployeeAttendance } from "@/lib/server/getEmployeeAttendance";
+import { getEmployeeById } from "@/lib/server/Employee/getEmployee";
+import { getEmployeeAttendance } from "@/lib/server/Employee/getEmployeeAttendance";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

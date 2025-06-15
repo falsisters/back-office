@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProfitsByCashier } from "@/lib/server/getProfitsByCashier";
+import { getProfitsByCashier } from "@/lib/server/Profits/getProfitsByCashier";
 import ProfitTracker from "@/components/Sales/ProfitTracker";
 import { type SackType } from "../../../utils/types/schema.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";

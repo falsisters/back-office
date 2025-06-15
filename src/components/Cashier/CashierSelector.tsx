@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllCashiersByUserId } from "@/lib/server/getAllCashiersByUserId";
+import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/getAllCashiersByUserId.type";
+import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 
 interface CashierSelectorProps {
   selectedCashierId: string | null;

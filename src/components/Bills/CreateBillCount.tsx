@@ -31,11 +31,11 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { createCashierBillCount } from "@/lib/server/createCashierBillCount";
+import { createCashierBillCount } from "@/lib/server/BillCount/createCashierBillCount";
 import {
   CreateBillCountSchema,
   type CreateBillCountType,
-} from "../../../utils/types/createBillCount.type";
+} from "../../../utils/types/BillCount/createBillCount.type";
 
 interface CreateBillCountsProps {
   isOpen: boolean;
