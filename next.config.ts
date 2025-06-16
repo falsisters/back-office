@@ -13,9 +13,14 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "edwjpaczxvmnrjjrtzjq.supabase.co",
-      }
+      },
     ],
   },
-}
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "9mb",
+    },
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
