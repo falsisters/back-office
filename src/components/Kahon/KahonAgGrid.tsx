@@ -11,6 +11,7 @@ import type {
 } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
+import { Button } from "@/components/ui/button";
 import type {
   SheetWithData,
   PendingCellChange,
@@ -35,6 +36,7 @@ import {
   getColumnIndex,
   getCellDisplayValue,
   isValidFormula,
+  parseAndEvaluateFormula,
 } from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
 import AddRowsDialog from "./AddRowsDialog";
@@ -272,7 +274,9 @@ export default function KahonAgGrid({
     currentCol: number
   ): string => {
     if (!formula || !formula.startsWith("=")) {
-      return formula;
+      // Apply Kahon rounding even to direct values
+      const value = parseFloat(formula) || 0;
+      return Math.floor(value).toString();
     }
 
     try {
@@ -306,13 +310,12 @@ export default function KahonAgGrid({
         }
       });
 
-      // Evaluate formula with temp data
-      return getCellDisplayValue(
-        { formula, value: "0" },
+      // Use the Kahon-specific evaluation function
+      return parseAndEvaluateFormula(
+        formula,
         tempSheetData,
         currentRow,
-        currentCol,
-        "kahon"
+        currentCol
       );
     } catch (error) {
       console.error("Error evaluating formula with pending changes:", error);
@@ -921,6 +924,7 @@ export default function KahonAgGrid({
           const firstColumnIndex = columnIndex - 2;
           const secondColumnIndex = columnIndex - 1;
 
+          // Check both existing cells AND pending changes
           const firstCell = row.Cells.find(
             (c) => c.columnIndex === firstColumnIndex
           );
@@ -928,16 +932,43 @@ export default function KahonAgGrid({
             (c) => c.columnIndex === secondColumnIndex
           );
 
-          const firstHasValue =
-            firstCell?.value && !isNaN(parseFloat(firstCell.value));
-          const secondHasValue =
-            secondCell?.value && !isNaN(parseFloat(secondCell.value));
+          // Check pending changes for these cells
+          const firstPendingKey = `${row.rowIndex}-${firstColumnIndex}`;
+          const secondPendingKey = `${row.rowIndex}-${secondColumnIndex}`;
+          const firstPending = newPendingChanges.get(firstPendingKey);
+          const secondPending = newPendingChanges.get(secondPendingKey);
+
+          // Get effective values (pending or existing)
+          const firstValue = firstPending?.newValue || firstCell?.value || "";
+          const secondValue =
+            secondPending?.newValue || secondCell?.value || "";
+
+          const firstHasValue = firstValue && !isNaN(parseFloat(firstValue));
+          const secondHasValue = secondValue && !isNaN(parseFloat(secondValue));
 
           shouldApply = Boolean(firstHasValue || secondHasValue);
         }
-      } else if (baseFormula.includes("+") && baseFormula.includes("Name")) {
+      } else if (baseFormula.includes("+")) {
         if (columnIndex >= 2) {
-          shouldApply = true; // Simplified for brevity
+          // For addition, check if there's any data in preceding columns
+          let hasValidData = false;
+
+          // Check from column 0 up to current column - 1
+          for (let i = 0; i < columnIndex; i++) {
+            const cell = row.Cells.find((c) => c.columnIndex === i);
+            const pendingKey = `${row.rowIndex}-${i}`;
+            const pending = newPendingChanges.get(pendingKey);
+
+            // Get effective value (pending or existing)
+            const value = pending?.newValue || cell?.value || "";
+
+            if (value && value.trim() !== "" && !isNaN(parseFloat(value))) {
+              hasValidData = true;
+              break;
+            }
+          }
+
+          shouldApply = hasValidData;
         }
       } else {
         shouldApply = true;
@@ -1126,13 +1157,13 @@ export default function KahonAgGrid({
         <h3 className="text-lg font-semibold">Kahon Sheet</h3>
         <div className="space-x-2 flex items-center">
           {isReordering && (
-            <span className="text-sm text-blue-600 font-medium">
+            <span className="text-sm text-gray-600 font-medium">
               Reordering rows...
             </span>
           )}
           {(pendingChanges.size > 0 || pendingRowReorders.size > 0) && (
             <>
-              <span className="text-sm text-orange-600 font-medium">
+              <span className="text-sm text-gray-600 font-medium">
                 {pendingChanges.size + pendingRowReorders.size} unsaved change
                 {pendingChanges.size + pendingRowReorders.size > 1 ? "s" : ""}
                 {pendingRowReorders.size > 0 &&
@@ -1140,72 +1171,84 @@ export default function KahonAgGrid({
                     pendingRowReorders.size > 1 ? "s" : ""
                   })`}
               </span>
-              <button
+              <Button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 flex items-center space-x-1"
+                className="bg-black text-white hover:bg-gray-800"
+                size="sm"
               >
-                <span>💾</span>
-                <span>{isSaving ? "Saving..." : "Save"}</span>
-              </button>
-              <button
+                <span className="mr-1">💾</span>
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+              <Button
                 onClick={handleDiscardChanges}
                 disabled={isSaving}
-                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center space-x-1"
+                variant="outline"
+                className="border-black text-black hover:bg-gray-100"
+                size="sm"
               >
-                <span>❌</span>
-                <span>Discard</span>
-              </button>
+                <span className="mr-1">❌</span>
+                Discard
+              </Button>
             </>
           )}
-          <button
+          <Button
             onClick={addNewRow}
             disabled={isLoading}
-            className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center space-x-1"
+            className="bg-black text-white hover:bg-gray-800"
+            size="sm"
           >
-            <span>➕</span>
-            <span>Add Row</span>
-          </button>
-          <button
+            <span className="mr-1">➕</span>
+            Add Row
+          </Button>
+          <Button
             onClick={() => setShowAddRowsDialog(true)}
             disabled={isLoading}
-            className="px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50 flex items-center space-x-1"
+            variant="outline"
+            className="border-black text-black hover:bg-gray-100"
+            size="sm"
           >
-            <span>📝</span>
-            <span>Add Multiple</span>
-          </button>
-          <button
+            <span className="mr-1">📝</span>
+            Add Multiple
+          </Button>
+          <Button
             onClick={handleDeleteRow}
             disabled={!selectedCellInfo || isLoading}
-            className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-1"
+            className="bg-black text-white hover:bg-gray-800"
+            size="sm"
           >
-            <span>🗑️</span>
-            <span>Delete Row</span>
-          </button>
-          <button
+            <span className="mr-1">🗑️</span>
+            Delete Row
+          </Button>
+          <Button
             onClick={handleClearCell}
             disabled={!selectedCellInfo || isLoading}
-            className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 flex items-center space-x-1"
+            variant="outline"
+            className="border-black text-black hover:bg-gray-100"
+            size="sm"
           >
-            <span>🧹</span>
-            <span>Clear Cell</span>
-          </button>
-          <button
+            <span className="mr-1">🧹</span>
+            Clear Cell
+          </Button>
+          <Button
             onClick={handleEditColor}
             disabled={!selectedCellInfo}
-            className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 flex items-center space-x-1"
+            className="bg-black text-white hover:bg-gray-800"
+            size="sm"
           >
-            <span>🎨</span>
-            <span>Color</span>
-          </button>
-          <button
+            <span className="mr-1">🎨</span>
+            Color
+          </Button>
+          <Button
             onClick={handleEditFormula}
             disabled={!selectedCellInfo}
-            className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center space-x-1"
+            variant="outline"
+            className="border-black text-black hover:bg-gray-100"
+            size="sm"
           >
-            <span>🧮</span>
-            <span>Formula</span>
-          </button>
+            <span className="mr-1">🧮</span>
+            Formula
+          </Button>
         </div>
       </div>
 

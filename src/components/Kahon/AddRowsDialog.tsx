@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface AddRowsDialogProps {
   isOpen: boolean;
@@ -60,12 +61,14 @@ export default function AddRowsDialog({
           <h3 className="text-lg font-semibold">
             Add Multiple Rows - {getSheetTypeLabel()}
           </h3>
-          <button
+          <Button
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
+            variant="outline"
+            className="border-black text-black hover:bg-gray-100"
+            size="sm"
           >
             ✕
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -145,19 +148,20 @@ export default function AddRowsDialog({
 
           {/* Buttons */}
           <div className="flex space-x-2 pt-4">
-            <button
+            <Button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="flex-1 bg-black text-white hover:bg-gray-800"
             >
               Add Rows
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              variant="outline"
+              className="border-black text-black hover:bg-gray-100"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>

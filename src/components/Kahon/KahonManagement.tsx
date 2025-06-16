@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
 import { getKahonSheetsByDateRange } from "@/lib/server/Kahon/getKahonSheets";
 import { getInventorySheetsByDateRange } from "@/lib/server/Kahon/getInventorySheets";
@@ -146,12 +147,12 @@ export default function KahonManagement() {
     return (
       <div className="p-4">
         <div className="text-red-600 mb-4">Error: {error}</div>
-        <button
+        <Button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="bg-black text-white hover:bg-gray-800"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -214,13 +215,15 @@ export default function KahonManagement() {
                     </span>
                   </span>
                 </div>
-                <button
+                <Button
                   onClick={() => setShowCalendar(!showCalendar)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm flex items-center space-x-1"
+                  variant="outline"
+                  className="border-black text-black hover:bg-gray-100"
+                  size="sm"
                 >
-                  <span>🗓️</span>
-                  <span>{showCalendar ? "Hide Calendar" : "Select Date"}</span>
-                </button>
+                  <span className="mr-1">🗓️</span>
+                  {showCalendar ? "Hide Calendar" : "Select Date"}
+                </Button>
               </div>
 
               {showCalendar && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface DateRangeCalendarProps {
   startDate?: string;
@@ -85,13 +86,14 @@ export default function DateRangeCalendar({
           <span>📅</span>
           <span>Select Date</span>
         </h3>
-        <button
+        <Button
           onClick={onApply}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center space-x-1"
+          className="bg-black text-white hover:bg-gray-800"
+          size="sm"
         >
-          <span>✅</span>
-          <span>Apply Filter</span>
-        </button>
+          <span className="mr-1">✅</span>
+          Apply Filter
+        </Button>
       </div>
 
       {/* Single Date Input */}
@@ -113,34 +115,40 @@ export default function DateRangeCalendar({
 
       {/* Quick Select Buttons */}
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
           onClick={handleTodayClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
+          variant="outline"
+          className="border-black text-black hover:bg-gray-100"
+          size="sm"
         >
-          <span>📍</span>
-          <span>Today</span>
-        </button>
-        <button
+          <span className="mr-1">📍</span>
+          Today
+        </Button>
+        <Button
           onClick={handleYesterdayClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
+          className="bg-black text-white hover:bg-gray-800"
+          size="sm"
         >
-          <span>⏮️</span>
-          <span>Yesterday</span>
-        </button>
-        <button
+          <span className="mr-1">⏮️</span>
+          Yesterday
+        </Button>
+        <Button
           onClick={handleThisWeekClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
+          variant="outline"
+          className="border-black text-black hover:bg-gray-100"
+          size="sm"
         >
-          <span>📊</span>
-          <span>This Week Start</span>
-        </button>
-        <button
+          <span className="mr-1">📊</span>
+          This Week Start
+        </Button>
+        <Button
           onClick={handleThisMonthClick}
-          className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 flex items-center space-x-1"
+          className="bg-black text-white hover:bg-gray-800"
+          size="sm"
         >
-          <span>📈</span>
-          <span>This Month Start</span>
-        </button>
+          <span className="mr-1">📈</span>
+          This Month Start
+        </Button>
       </div>
 
       {/* Date Range Display */}

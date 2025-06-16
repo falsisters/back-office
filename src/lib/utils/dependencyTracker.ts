@@ -242,7 +242,7 @@ function evaluateFormulaWithDependencies(
   currentCol: number,
   sheetType: "kahon" | "inventory"
 ): string {
-  // Use existing formula evaluation functions
+  // Use existing formula evaluation functions with proper rounding
   if (sheetType === "inventory") {
     const { parseAndEvaluateInventoryFormula } = require("./formulaParser");
     return parseAndEvaluateInventoryFormula(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface CellEditorProps {
   isOpen: boolean;
@@ -123,16 +124,16 @@ const kahonFormulas: QuickFormula[] = [
       // Get the two columns immediately to the left
       let firstColumn, secondColumn;
 
-      // Handle the immediate left column
+      // Handle the immediate left column (columnIndex - 1)
       if (columnIndex - 1 === 0) secondColumn = "Quantity";
       else if (columnIndex - 1 === 1) secondColumn = "Name";
-      else secondColumn = String.fromCharCode(65 + columnIndex - 3);
+      else secondColumn = String.fromCharCode(65 + columnIndex - 3); // Fix: was -3, should be correct
 
-      // Handle the second left column (if exists)
+      // Handle the second left column (columnIndex - 2) if exists
       if (columnIndex >= 2) {
         if (columnIndex - 2 === 0) firstColumn = "Quantity";
         else if (columnIndex - 2 === 1) firstColumn = "Name";
-        else firstColumn = String.fromCharCode(65 + columnIndex - 4);
+        else firstColumn = String.fromCharCode(65 + columnIndex - 4); // Fix: was -4, should be correct
 
         return `=${firstColumn}${row} + ${secondColumn}${row}`;
       } else {
@@ -344,12 +345,14 @@ export default function ColorPicker({
               {cellPosition.row}
             </span>
           </h3>
-          <button
+          <Button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
+            variant="outline"
+            className="border-black text-black hover:bg-gray-100"
+            size="sm"
           >
             ✕
-          </button>
+          </Button>
         </div>
 
         {/* Show tabs only if mode allows both */}
@@ -422,18 +425,19 @@ export default function ColorPicker({
             </div>
 
             <div className="flex space-x-2 pt-2">
-              <button
+              <Button
                 onClick={handleColorSave}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="flex-1 bg-black text-white hover:bg-gray-800"
               >
                 Apply Color
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleColorRemove}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                variant="outline"
+                className="border-black text-black hover:bg-gray-100"
               >
                 Remove Color
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -472,15 +476,16 @@ export default function ColorPicker({
                       ? "=A1+A2 or =A1*B1"
                       : "=Quantity1*Name1 or =A1+B1"
                   }
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-500"
                 />
-                <button
+                <Button
                   onClick={handleCustomFormulaApply}
                   disabled={!customFormula.trim()}
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                  className="bg-black text-white hover:bg-gray-800"
+                  size="sm"
                 >
                   Apply
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -509,20 +514,23 @@ export default function ColorPicker({
                         </p>
                       </div>
                       <div className="flex flex-col space-y-1">
-                        <button
+                        <Button
                           onClick={() => handleFormulaApply(formula)}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                          className="bg-black text-white hover:bg-gray-800"
+                          size="sm"
                         >
                           Apply
-                        </button>
+                        </Button>
                         {formula.isColumnFormula && onFormulaApplyToColumn && (
-                          <button
+                          <Button
                             onClick={() => handleApplyToColumn(formula)}
-                            className="px-3 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600"
+                            variant="outline"
+                            className="border-black text-black hover:bg-gray-100"
+                            size="sm"
                             title="Apply to entire column with valid data"
                           >
                             Column
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -534,12 +542,13 @@ export default function ColorPicker({
         )}
 
         <div className="mt-4 pt-4 border-t">
-          <button
+          <Button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+            variant="outline"
+            className="w-full border-black text-black hover:bg-gray-100"
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>

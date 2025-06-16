@@ -253,7 +253,9 @@ export function parseAndEvaluateFormula(
       return "#ERROR";
     }
 
-    return Number(result).toString();
+    // For Kahon sheets: Round down to no decimals using Math.floor
+    const roundedResult = Math.floor(Number(result));
+    return roundedResult.toString();
   } catch (error) {
     console.error("Formula evaluation error:", error);
     return "#ERROR";
@@ -393,7 +395,9 @@ export function parseAndEvaluateInventoryFormula(
       return "#ERROR";
     }
 
-    return Number(result).toString();
+    // For Inventory sheets: Round to maximum 2 decimal places
+    const roundedResult = Math.round(Number(result) * 100) / 100;
+    return roundedResult.toString();
   } catch (error) {
     console.error("Inventory formula evaluation error:", error);
     return "#ERROR";
@@ -404,14 +408,22 @@ export function parseAndEvaluateInventoryFormula(
  * Evaluates a simple mathematical formula
  * @param formula Mathematical formula string
  * @param cellValues Map of cell references to their values
+ * @param sheetType Type of sheet for rounding rules
  * @returns Calculated result
  */
 export function evaluateFormula(
   formula: string,
-  cellValues: Record<string, number> = {}
+  cellValues: Record<string, number> = {},
+  sheetType: "kahon" | "inventory" = "kahon"
 ): number {
   if (!formula.startsWith("=")) {
-    return parseFloat(formula) || 0;
+    const value = parseFloat(formula) || 0;
+    // Apply rounding even to direct values based on sheet type
+    if (sheetType === "kahon") {
+      return Math.floor(value);
+    } else {
+      return Math.round(value * 100) / 100;
+    }
   }
 
   let expression = formula.substring(1); // Remove the = sign
@@ -469,7 +481,16 @@ export function evaluateFormula(
   try {
     // Simple evaluation - in production, use a proper formula evaluator
     // eslint-disable-next-line no-eval
-    return eval(expression) || 0;
+    const result = eval(expression) || 0;
+
+    // Apply rounding based on sheet type
+    if (sheetType === "kahon") {
+      // Kahon: Round down to no decimals
+      return Math.floor(result);
+    } else {
+      // Inventory: Round to maximum 2 decimal places
+      return Math.round(result * 100) / 100;
+    }
   } catch (error) {
     console.error("Formula evaluation error:", error);
     return 0;
@@ -623,4 +644,43 @@ export function updateCellValueInSheetData(
   }
 
   return updatedData;
+}
+
+/**
+ * Enhanced formula evaluation that ensures proper rounding for both sheet types
+ * @param formula Formula string
+ * @param sheetData Sheet data
+ * @param currentRow Current row index
+ * @param currentCol Current column index
+ * @param sheetType Sheet type for proper rounding
+ * @returns Evaluated result with correct rounding
+ */
+export function evaluateFormulaWithProperRounding(
+  formula: string,
+  sheetData: any,
+  currentRow: number,
+  currentCol: number,
+  sheetType: "kahon" | "inventory" = "kahon"
+): string {
+  if (!formula || !formula.startsWith("=")) {
+    const value = parseFloat(formula) || 0;
+    // Apply rounding even to direct values
+    if (sheetType === "kahon") {
+      return Math.floor(value).toString();
+    } else {
+      return (Math.round(value * 100) / 100).toString();
+    }
+  }
+
+  // Use the appropriate evaluation function based on sheet type
+  if (sheetType === "inventory") {
+    return parseAndEvaluateInventoryFormula(
+      formula,
+      sheetData,
+      currentRow,
+      currentCol
+    );
+  } else {
+    return parseAndEvaluateFormula(formula, sheetData, currentRow, currentCol);
+  }
 }
