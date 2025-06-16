@@ -71,8 +71,36 @@ export function CreateAttachment({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+    const file = e.target.files?.[0] || null;
+
+    if (file) {
+      // Check file type - allow JPG, PNG, and PDF for attachments
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/pdf",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError("Please upload only JPG, PNG, or PDF files");
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (3MB = 3 * 1024 * 1024 bytes)
+      const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+      if (file.size > maxSize) {
+        setError("File size must be smaller than 3MB");
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      setFile(file);
+      setError(null); // Clear any previous errors
+    } else {
+      setFile(null);
     }
   };
 
@@ -146,12 +174,13 @@ export function CreateAttachment({
                     {file ? file.name : "Click to upload or drag and drop"}
                   </p>
                   <p className="text-xs text-gray-500">
-                    PDF, DOCX, JPG, PNG (MAX. 10MB)
+                    JPG, PNG, PDF (MAX. 3MB)
                   </p>
                 </div>
                 <input
                   id="file"
                   type="file"
+                  accept="image/jpeg,image/jpg,image/png,application/pdf"
                   className="hidden"
                   onChange={handleFileChange}
                   required

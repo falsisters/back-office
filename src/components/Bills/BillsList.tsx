@@ -264,7 +264,7 @@ export function BillCountList() {
                       </div>
                     )}
 
-                    {/* Subtotal after subtracting beginning balance */}
+                    {/* Step 1 Result */}
                     <div className="flex justify-between items-center py-1 text-sm border-t border-gray-200 mt-2 pt-2">
                       <span className="text-gray-700 font-medium">
                         Step 1 Result
@@ -274,7 +274,28 @@ export function BillCountList() {
                       </span>
                     </div>
 
-                    {/* Step 3: Add Expenses */}
+                    {/* Total Cash (from Sales) */}
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-gray-600">
+                        Total Cash (from Sales)
+                      </span>
+                      <span className="font-medium text-primary">
+                        ₱{billCount.totalCash.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-300 my-3"></div>
+
+                    {/* Second calculation section */}
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-gray-600">Step 1 Result</span>
+                      <span className="font-medium">
+                        ₱{billCount.summaryStep1.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Add Expenses */}
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">+ Expenses</span>
                       <span className="font-medium text-green-600">
