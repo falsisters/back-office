@@ -78,7 +78,7 @@ export default function EditProduct({
 
         // Handle SackPrice array
         setSackPrices(
-          fetchedProduct.SackPrice.map((sp) => ({
+          fetchedProduct.SackPrice.map((sp: any) => ({
             id: sp?.id,
             type: sp?.type || "FIFTY_KG",
             price: sp?.price ?? 0,
@@ -142,8 +142,16 @@ export default function EditProduct({
     const newErrors: Record<string, string> = {};
 
     if (!name.trim()) newErrors.name = "Product name is required";
-    if (sackPrices.length === 0)
-      newErrors.sackPrices = "At least one sack price is required";
+
+    // Check that at least one pricing option is provided
+    const hasSackPrices = sackPrices.length > 0;
+    const hasPerKiloPrice =
+      perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock > 0;
+
+    if (!hasSackPrices && !hasPerKiloPrice) {
+      newErrors.pricing =
+        "At least one pricing option (sack prices or per kilo price) is required";
+    }
 
     sackPrices.forEach((sack, index) => {
       if (!sack.price)
@@ -371,6 +379,10 @@ export default function EditProduct({
                     Add
                   </Button>
                 </div>
+
+                {errors.pricing && (
+                  <p className="text-xs text-destructive">{errors.pricing}</p>
+                )}
 
                 {errors.sackPrices && (
                   <p className="text-xs text-destructive">

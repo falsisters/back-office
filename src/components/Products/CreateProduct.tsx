@@ -76,8 +76,16 @@ export default function CreateProduct({
 
     if (!name.trim()) newErrors.name = "Product name is required";
     if (!picture) newErrors.picture = "Product image is required";
-    if (sackPrices.length === 0)
-      newErrors.sackPrices = "At least one sack price is required";
+
+    // Check that at least one pricing option is provided
+    const hasSackPrices = sackPrices.length > 0;
+    const hasPerKiloPrice =
+      perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock > 0;
+
+    if (!hasSackPrices && !hasPerKiloPrice) {
+      newErrors.pricing =
+        "At least one pricing option (sack prices or per kilo price) is required";
+    }
 
     sackPrices.forEach((sack, index) => {
       if (!sack.price)
@@ -296,6 +304,10 @@ export default function CreateProduct({
                   Add
                 </Button>
               </div>
+
+              {errors.pricing && (
+                <p className="text-xs text-destructive">{errors.pricing}</p>
+              )}
 
               {errors.sackPrices && (
                 <p className="text-xs text-destructive">{errors.sackPrices}</p>

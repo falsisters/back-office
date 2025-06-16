@@ -14,7 +14,7 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
       // Safe calculation for sack prices
       const sackPriceValue = Array.isArray(product.SackPrice)
         ? product.SackPrice.reduce(
-            (sackTotal, sackPrice) =>
+            (sackTotal: any, sackPrice: any) =>
               sackTotal + sackPrice.price * sackPrice.stock,
             0
           )
@@ -34,7 +34,7 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
       // Safe calculation for sack stock
       const sackStock = Array.isArray(product.SackPrice)
         ? product.SackPrice.reduce(
-            (sackTotal, sackPrice) => sackTotal + sackPrice.stock,
+            (sackTotal: any, sackPrice: any) => sackTotal + sackPrice.stock,
             0
           )
         : 0;

@@ -29,6 +29,25 @@ export const EditProductFormDataSchema = ProductSchema.extend({
   })
     .partial()
     .optional(),
-}).partial();
+})
+  .partial()
+  .refine(
+    (data) => {
+      // Skip validation if this is a partial update without pricing data
+      if (!data.sackPrices && !data.perKiloPrice) return true;
+
+      const hasSackPrices = data.sackPrices && data.sackPrices.length > 0;
+      const hasPerKiloPrice =
+        data.perKiloPrice &&
+        data.perKiloPrice.price &&
+        data.perKiloPrice.price > 0;
+      return hasSackPrices || hasPerKiloPrice;
+    },
+    {
+      message:
+        "At least one pricing option (sack prices or per kilo price) is required",
+      path: ["sackPrices"],
+    }
+  );
 
 export type EditProductFormData = z.infer<typeof EditProductFormDataSchema>;

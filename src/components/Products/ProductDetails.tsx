@@ -108,29 +108,14 @@ export default function ProductDetails({
                             </span>
                           </p>
                         </div>
-
-                        {/* Commented out special price display */}
-                        {/* {sackPrice.specialPrice && (
-                          <div className="flex-1 flex items-center gap-2 bg-primary/5 px-4 py-2 rounded-md border border-primary/10">
-                            <p className="font-medium">
-                              Special:{" "}
-                              <span className="text-lg font-bold text-primary">
-                                ₱{sackPrice.specialPrice.price.toFixed(2)}
-                              </span>
-                            </p>
-                            <span className="text-xs px-2 py-0.5 bg-primary/20 rounded-full">
-                              Min: {sackPrice.specialPrice.minimumQty}
-                            </span>
-                          </div>
-                        )} */}
                       </div>
                     </div>
                   ))}
               </div>
             ) : (
               <div className="bg-muted/30 rounded-lg border p-4 text-center">
-                <p className="text-muted-foreground">
-                  No sack prices available
+                <p className="text-muted-foreground italic">
+                  No sack pricing available - This product is sold per kilo only
                 </p>
               </div>
             )}

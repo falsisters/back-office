@@ -16,6 +16,7 @@ import ProductDetails from "./ProductDetails";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
+import { SackPrice } from "../../../utils/types/schema.type";
 
 interface ItemTableProps {
   products: ProductResponse[];
@@ -94,7 +95,7 @@ export default function ItemTable({
                 <TableCell onClick={() => handleRowClick(product)}>
                   {product.SackPrice && product.SackPrice.length > 0 ? (
                     <div className="space-y-1.5">
-                      {product.SackPrice.map((sackPrice) => (
+                      {product.SackPrice.map((sackPrice: any) => (
                         <div
                           key={sackPrice.id}
                           className="flex items-center gap-2 text-sm"
@@ -111,22 +112,12 @@ export default function ItemTable({
                           <span className="text-muted-foreground text-xs">
                             (Stock: {sackPrice.stock})
                           </span>
-                          {/* Commented out special price badge */}
-                          {/* {sackPrice.specialPrice && sackPrice.specialPrice.price > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-secondary/10 text-secondary border-secondary/20"
-                            >
-                              Special: ₱{sackPrice.specialPrice.price.toFixed(2)}
-                              (Min: {sackPrice.specialPrice.minimumQty})
-                            </Badge>
-                          )} */}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">
-                      No sack prices
+                    <span className="text-sm text-muted-foreground italic">
+                      No sack pricing
                     </span>
                   )}
                 </TableCell>
