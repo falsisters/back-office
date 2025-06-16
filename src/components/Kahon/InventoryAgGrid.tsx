@@ -447,6 +447,7 @@ export default function InventoryAgGrid({
         pinned: "left",
         editable: false,
         rowDrag: true, // Enable row dragging from this column
+        resizable: true,
         cellStyle: {
           backgroundColor: "#f8f9fa",
           fontWeight: "bold",
@@ -475,12 +476,13 @@ export default function InventoryAgGrid({
       ].map((col) => ({
         field: col,
         headerName: col,
-        width: 80,
+        width: 200, // Increased from 80 to 120 (50% larger)
         editable: true,
+        resizable: true,
         cellStyle: getCellStyleFunction(col),
       })),
     ];
-  }, [sheetData, pendingChanges]);
+  }, [sheetData, pendingChanges]); // Only depend on data changes, not other state
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -803,7 +805,6 @@ export default function InventoryAgGrid({
     }
 
     console.log("Starting clear cell operation for:", selectedCellInfo);
-    setIsLoading(true);
 
     try {
       const existingRow = sheetData?.Rows.find(
@@ -819,39 +820,46 @@ export default function InventoryAgGrid({
       console.log("Column index:", columnIndex);
 
       if (existingCell) {
-        console.log("Clearing cell with ID:", existingCell.id);
+        console.log(
+          "Adding clear operation to pending changes for cell:",
+          existingCell.id
+        );
 
-        // Clear the cell by setting empty values for value, formula, and color
-        const clearData = {
-          value: "",
-          formula: undefined,
-          color: undefined,
+        const changeKey = `${selectedCellInfo.rowIndex}-${columnIndex}`;
+
+        // Create a pending change that clears the cell
+        const clearChange: PendingCellChange = {
+          id: `${changeKey}-${Date.now()}`,
+          rowId: existingRow?.id,
+          rowIndex: selectedCellInfo.rowIndex,
+          columnIndex,
+          cellId: existingCell.id,
+          oldValue: existingCell.value || "",
+          newValue: "",
+          formula: null, // Clear formula
+          color: null, // Clear color
+          changeType: "update",
+          timestamp: Date.now(),
+          isFormulaChange: false,
         };
 
-        console.log("Sending clear data:", clearData);
+        // Add to pending changes
+        setPendingChanges((prev) => new Map(prev.set(changeKey, clearChange)));
 
-        const result = await updateInventoryCell(existingCell.id, clearData);
-        console.log("Clear cell API result:", result);
-
+        // Clear the selected cell info since we've processed it
         setSelectedCellInfo(null);
-        onRefresh();
-        console.log("Cell cleared successfully");
+
+        console.log("Cell clear added to pending changes successfully");
       } else {
         // If no cell exists, nothing to clear
         console.log("No existing cell found to clear");
         alert("No cell to clear - cell doesn't exist in database");
       }
     } catch (error) {
-      console.error("Failed to clear cell - detailed error:", error);
-      console.error(
-        "Error stack:",
-        error instanceof Error ? error.stack : "No stack trace available"
-      );
+      console.error("Failed to add clear operation to pending changes:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       alert(`Failed to clear cell: ${errorMessage}`);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -1194,6 +1202,8 @@ export default function InventoryAgGrid({
     resizable: true,
     sortable: false,
     filter: false,
+    suppressSizeToFit: true, // Prevent auto-resizing
+    suppressAutoSize: true, // Prevent auto-sizing
   };
 
   return (
@@ -1402,6 +1412,8 @@ export default function InventoryAgGrid({
           tooltipShowDelay={500}
           rowDragManaged={true}
           animateRows={true}
+          suppressColumnVirtualisation={true} // Prevent column virtualization issues
+          maintainColumnOrder={true} // Maintain column order
           getRowStyle={(params) => {
             // Add subtle styling for rows with formulas
             const hasFormulas = Object.keys(params.data).some((key) => {
