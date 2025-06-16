@@ -127,14 +127,43 @@ export default function EditProduct({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setPicture(file);
 
     if (file) {
+      // Check file type
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file format",
+          description: "Please upload only JPG or PNG images",
+          variant: "destructive",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (3MB = 3 * 1024 * 1024 bytes)
+      const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 3MB",
+          variant: "destructive",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      setPicture(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setPicturePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      setPicture(null);
+      // Keep the existing preview when no new file is selected
     }
   };
 
@@ -357,10 +386,13 @@ export default function EditProduct({
                 <Input
                   id="edit-picture"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png"
                   onChange={handleFileChange}
                   className="focus-visible:ring-primary"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: JPG, PNG. Maximum size: 3MB
+                </p>
               </div>
 
               <Separator />

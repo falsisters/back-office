@@ -170,15 +170,42 @@ export default function CreateProduct({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setPicture(file);
 
     if (file) {
+      // Check file type
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file format",
+          description: "Please upload only JPG or PNG images",
+          variant: "destructive",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (3MB = 3 * 1024 * 1024 bytes)
+      const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 3MB",
+          variant: "destructive",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      setPicture(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setPicturePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     } else {
+      setPicture(null);
       setPicturePreview(null);
     }
   };
@@ -261,7 +288,7 @@ export default function CreateProduct({
               <Input
                 id="picture"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png"
                 onChange={handleFileChange}
                 className={
                   errors.picture
@@ -269,6 +296,9 @@ export default function CreateProduct({
                     : "focus-visible:ring-primary"
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Supported formats: JPG, PNG. Maximum size: 3MB
+              </p>
               {errors.picture && (
                 <p className="text-xs text-destructive mt-1">
                   {errors.picture}
