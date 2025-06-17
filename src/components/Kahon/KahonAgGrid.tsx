@@ -40,6 +40,10 @@ import {
 } from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
 import AddRowsDialog from "./AddRowsDialog";
+import {
+  updateAllFormulasForRowReorder,
+  createRowMappingsFromReorders,
+} from "@/lib/utils/formulaUpdater";
 
 interface KahonAgGridProps {
   cashierId: string;
@@ -1058,7 +1062,6 @@ export default function KahonAgGrid({
       return;
     }
 
-    // Don't set isReordering here anymore - we're tracking changes locally
     console.log("Processing row reorder as pending change...");
 
     try {
@@ -1126,7 +1129,51 @@ export default function KahonAgGrid({
         }
       });
 
+      // Create row mappings for formula updates
+      const rowMappings = createRowMappingsFromReorders(newPendingReorders);
+      
+      // Find all formulas that need to be updated
+      const formulaUpdates = updateAllFormulasForRowReorder(
+        sheetData,
+        rowMappings,
+        "kahon"
+      );
+
+      console.log("Formula updates needed:", formulaUpdates);
+
+      // Apply formula updates to pending changes
+      const newPendingChanges = new Map(pendingChanges);
+
+      formulaUpdates.forEach((update) => {
+        const changeKey = `${update.rowIndex}-${update.columnIndex}`;
+        const existingRow = sheetData.Rows.find(
+          (r) => r.rowIndex === update.rowIndex
+        );
+        const existingCell = existingRow?.Cells.find(
+          (c) => c.columnIndex === update.columnIndex
+        );
+        const existingPendingChange = newPendingChanges.get(changeKey);
+
+        const updatedChange: PendingCellChange = {
+          id: existingPendingChange?.id || `${changeKey}-formula-${Date.now()}`,
+          rowId: existingRow?.id,
+          rowIndex: update.rowIndex,
+          columnIndex: update.columnIndex,
+          cellId: update.cellId,
+          oldValue: existingPendingChange?.oldValue || existingCell?.value || "",
+          newValue: existingPendingChange?.newValue || existingCell?.value || "",
+          formula: update.newFormula,
+          color: existingPendingChange?.color || existingCell?.color || undefined,
+          changeType: "update",
+          timestamp: Date.now(),
+          isFormulaChange: true,
+        };
+
+        newPendingChanges.set(changeKey, updatedChange);
+      });
+
       setPendingRowReorders(newPendingReorders);
+      setPendingChanges(newPendingChanges);
 
       // Update the grid display immediately to show the reordered rows
       const updatedGridData = gridData
@@ -1141,7 +1188,7 @@ export default function KahonAgGrid({
 
       setGridData(updatedGridData);
 
-      console.log("Row reordering tracked as pending changes");
+      console.log("Row reordering and formula updates tracked as pending changes");
     } catch (error) {
       console.error("Failed to track row reorder:", error);
       alert(

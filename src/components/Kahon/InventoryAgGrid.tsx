@@ -39,6 +39,10 @@ import {
 } from "@/lib/utils/formulaParser";
 import ColorPicker from "./ColorPicker";
 import AddRowsDialog from "./AddRowsDialog";
+import {
+  updateAllFormulasForRowReorder,
+  createRowMappingsFromReorders,
+} from "@/lib/utils/formulaUpdater";
 
 interface InventoryAgGridProps {
   cashierId: string;
@@ -1172,7 +1176,54 @@ export default function InventoryAgGrid({
         }
       });
 
+      // Create row mappings for formula updates
+      const rowMappings = createRowMappingsFromReorders(newPendingReorders);
+
+      // Find all formulas that need to be updated
+      const formulaUpdates = updateAllFormulasForRowReorder(
+        sheetData,
+        rowMappings,
+        "inventory"
+      );
+
+      console.log("Inventory formula updates needed:", formulaUpdates);
+
+      // Apply formula updates to pending changes
+      const newPendingChanges = new Map(pendingChanges);
+
+      formulaUpdates.forEach((update) => {
+        const changeKey = `${update.rowIndex}-${update.columnIndex}`;
+        const existingRow = sheetData.Rows.find(
+          (r) => r.rowIndex === update.rowIndex
+        );
+        const existingCell = existingRow?.Cells.find(
+          (c) => c.columnIndex === update.columnIndex
+        );
+        const existingPendingChange = newPendingChanges.get(changeKey);
+
+        const updatedChange: PendingCellChange = {
+          id: existingPendingChange?.id || `${changeKey}-formula-${Date.now()}`,
+          rowId: existingRow?.id,
+          rowIndex: update.rowIndex,
+          columnIndex: update.columnIndex,
+          cellId: update.cellId,
+          oldValue:
+            existingPendingChange?.oldValue || existingCell?.value || "",
+          newValue:
+            existingPendingChange?.newValue || existingCell?.value || "",
+          formula: update.newFormula,
+          color:
+            existingPendingChange?.color || existingCell?.color || undefined,
+          changeType: "update",
+          timestamp: Date.now(),
+          isFormulaChange: true,
+        };
+
+        newPendingChanges.set(changeKey, updatedChange);
+      });
+
       setPendingRowReorders(newPendingReorders);
+      setPendingChanges(newPendingChanges);
 
       // Update the grid display immediately to show the reordered rows
       const updatedGridData = gridData
@@ -1187,7 +1238,9 @@ export default function InventoryAgGrid({
 
       setGridData(updatedGridData);
 
-      console.log("Inventory row reordering tracked as pending changes");
+      console.log(
+        "Inventory row reordering and formula updates tracked as pending changes"
+      );
     } catch (error) {
       console.error("Failed to track inventory row reorder:", error);
       alert(
