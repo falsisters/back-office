@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -13,10 +13,16 @@ import {
 import CreateNewEmployee from "./CreateNewEmployee";
 
 const AddEmployeeDialog = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSuccess = () => {
+    setIsOpen(false);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button onClick={() => setIsOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Employee
         </Button>
@@ -25,7 +31,7 @@ const AddEmployeeDialog = () => {
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
         </DialogHeader>
-        <CreateNewEmployee />
+        <CreateNewEmployee onSuccess={handleSuccess} />
       </DialogContent>
     </Dialog>
   );

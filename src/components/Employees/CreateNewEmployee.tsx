@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -32,16 +32,29 @@ const CreateNewEmployee = ({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
     reset,
+    setValue,
   } = useForm<CreateEmployeeType>({
     resolver: zodResolver(CreateEmployeeSchema),
     defaultValues: {
       name: initialData?.name || "",
     },
+    mode: "onChange",
   });
 
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setValue("name", initialData.name);
+    } else {
+      reset();
+    }
+  }, [initialData, setValue, reset]);
+
   const onSubmit = async (data: CreateEmployeeType) => {
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     try {
       if (isEditing && initialData) {
@@ -56,6 +69,7 @@ const CreateNewEmployee = ({
       router.refresh();
       onSuccess?.();
     } catch (error) {
+      console.error("Employee operation error:", error);
       toast.error(
         error instanceof Error
           ? error.message
@@ -75,6 +89,7 @@ const CreateNewEmployee = ({
           placeholder="Enter employee name"
           {...register("name")}
           className={errors.name ? "border-destructive" : ""}
+          disabled={isSubmitting}
         />
         {errors.name && (
           <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -82,7 +97,11 @@ const CreateNewEmployee = ({
       </div>
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={isSubmitting} className="w-full">
+        <Button
+          type="submit"
+          disabled={isSubmitting || !isValid}
+          className="w-full"
+        >
           {isSubmitting
             ? isEditing
               ? "Updating..."

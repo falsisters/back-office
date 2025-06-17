@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { EmployeeWithShiftsResponse } from "../../../utils/types/Employee/getEmployee.type";
 import {
   Card,
@@ -54,6 +54,7 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
 
   const activeShifts = employee.ShiftEmployee.filter(
@@ -62,11 +63,31 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
 
   const totalShifts = employee.ShiftEmployee.length;
 
+  const handleViewDetails = useCallback(() => {
+    setDropdownOpen(false);
+    router.push(`/employees/${employee.id}`);
+  }, [employee.id, router]);
+
+  const handleEdit = useCallback(() => {
+    setDropdownOpen(false);
+    setIsEditOpen(true);
+  }, []);
+
+  const handleDeleteClick = useCallback(() => {
+    setDropdownOpen(false);
+    setIsDeleteOpen(true);
+  }, []);
+
+  const handleEditSuccess = useCallback(() => {
+    setIsEditOpen(false);
+  }, []);
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       await deleteEmployee(employee.id);
       toast.success("Employee deleted successfully");
+      setIsDeleteOpen(false);
       router.refresh();
     } catch (error) {
       toast.error(
@@ -74,9 +95,14 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
       );
     } finally {
       setIsDeleting(false);
-      setIsDeleteOpen(false);
     }
   };
+
+  const handleDeleteCancel = useCallback(() => {
+    if (!isDeleting) {
+      setIsDeleteOpen(false);
+    }
+  }, [isDeleting]);
 
   return (
     <>
@@ -93,25 +119,23 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
               </p>
             </div>
           </div>
-          <DropdownMenu>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => router.push(`/employees/${employee.id}`)}
-              >
+              <DropdownMenuItem onClick={handleViewDetails}>
                 <Eye className="mr-2 h-4 w-4" />
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+              <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setIsDeleteOpen(true)}
+                onClick={handleDeleteClick}
                 className="text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -141,7 +165,7 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => router.push(`/employees/${employee.id}`)}
+            onClick={handleViewDetails}
           >
             View Attendance
           </Button>
@@ -155,12 +179,12 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
           </DialogHeader>
           <CreateNewEmployee
             initialData={employee}
-            onSuccess={() => setIsEditOpen(false)}
+            onSuccess={handleEditSuccess}
           />
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <AlertDialog open={isDeleteOpen} onOpenChange={handleDeleteCancel}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -170,7 +194,7 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
