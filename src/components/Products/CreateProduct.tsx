@@ -124,10 +124,17 @@ export default function CreateProduct({
         JSON.stringify(
           sackPrices.map((sack) => ({
             ...sack,
+            profit:
+              sack.profit !== undefined
+                ? Number(sack.profit.toFixed(2))
+                : undefined,
             specialPrice: sack.specialPrice
               ? {
                   ...sack.specialPrice,
-                  profit: sack.specialPrice.profit || 0,
+                  profit:
+                    sack.specialPrice.profit !== undefined
+                      ? Number(sack.specialPrice.profit.toFixed(2))
+                      : undefined,
                 }
               : undefined,
           }))
@@ -138,6 +145,10 @@ export default function CreateProduct({
           "perKiloPrice",
           JSON.stringify({
             ...perKiloPrice,
+            profit:
+              perKiloPrice.profit !== undefined
+                ? Number(perKiloPrice.profit.toFixed(2))
+                : undefined,
           })
         );
       }
@@ -473,12 +484,22 @@ export default function CreateProduct({
                           <Input
                             type="number"
                             placeholder="Profit (optional)"
-                            value={sack.profit ?? ""}
+                            value={
+                              sack.profit !== undefined
+                                ? sack.profit.toString()
+                                : ""
+                            }
                             onChange={(e) => {
                               const newSackPrices = [...sackPrices];
-                              newSackPrices[index].profit = e.target.value
-                                ? Number(e.target.value)
-                                : undefined;
+                              const value = e.target.value;
+                              if (value === "") {
+                                newSackPrices[index].profit = undefined;
+                              } else {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                  newSackPrices[index].profit = numValue;
+                                }
+                              }
                               setSackPrices(newSackPrices);
                             }}
                             min="0"
@@ -571,7 +592,11 @@ export default function CreateProduct({
                               <Input
                                 type="number"
                                 placeholder="Profit (optional)"
-                                value={sack.specialPrice?.profit ?? ""}
+                                value={
+                                  sack.specialPrice?.profit !== undefined
+                                    ? sack.specialPrice.profit.toString()
+                                    : ""
+                                }
                                 onChange={(e) => {
                                   const newSackPrices = [...sackPrices];
                                   if (!newSackPrices[index].specialPrice) {
@@ -581,10 +606,18 @@ export default function CreateProduct({
                                       profit: 0,
                                     };
                                   }
-                                  newSackPrices[index].specialPrice!.profit = e
-                                    .target.value
-                                    ? Number(e.target.value)
-                                    : undefined;
+                                  const value = e.target.value;
+                                  if (value === "") {
+                                    newSackPrices[index].specialPrice!.profit =
+                                      undefined;
+                                  } else {
+                                    const numValue = parseFloat(value);
+                                    if (!isNaN(numValue)) {
+                                      newSackPrices[
+                                        index
+                                      ].specialPrice!.profit = numValue;
+                                    }
+                                  }
                                   setSackPrices(newSackPrices);
                                 }}
                                 min="0"
@@ -649,15 +682,28 @@ export default function CreateProduct({
                   <Input
                     type="number"
                     placeholder="Profit (optional)"
-                    value={perKiloPrice?.profit ?? ""}
-                    onChange={(e) =>
-                      setPerKiloPrice({
-                        ...(perKiloPrice || { price: 0, stock: 0 }),
-                        profit: e.target.value
-                          ? Number(e.target.value)
-                          : undefined,
-                      })
+                    value={
+                      perKiloPrice?.profit !== undefined
+                        ? perKiloPrice.profit.toString()
+                        : ""
                     }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "") {
+                        setPerKiloPrice({
+                          ...(perKiloPrice || { price: 0, stock: 0 }),
+                          profit: undefined,
+                        });
+                      } else {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                          setPerKiloPrice({
+                            ...(perKiloPrice || { price: 0, stock: 0 }),
+                            profit: numValue,
+                          });
+                        }
+                      }
+                    }}
                     min="0"
                     step="0.01"
                     className="focus-visible:ring-primary"
