@@ -27,6 +27,7 @@ import { SackTypeEnum, type SackType } from "../../../utils/types/schema.type";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface CreateProductProps {
   onProductCreated: (newProduct: unknown) => void;
@@ -120,20 +121,19 @@ export default function CreateProduct({
       if (picture) formData.append("picture", picture);
       formData.append("name", name);
       formData.append(
-        "sackPrice",
-        JSON.stringify(
+        "sackPrice",        JSON.stringify(
           sackPrices.map((sack) => ({
             ...sack,
             profit:
               sack.profit !== undefined
-                ? Number(sack.profit.toFixed(2))
+                ? CurrencyCalculator.round(sack.profit)
                 : undefined,
             specialPrice: sack.specialPrice
               ? {
                   ...sack.specialPrice,
                   profit:
                     sack.specialPrice.profit !== undefined
-                      ? Number(sack.specialPrice.profit.toFixed(2))
+                      ? CurrencyCalculator.round(sack.specialPrice.profit)
                       : undefined,
                 }
               : undefined,
@@ -142,12 +142,11 @@ export default function CreateProduct({
       );
       if (perKiloPrice) {
         formData.append(
-          "perKiloPrice",
-          JSON.stringify({
+          "perKiloPrice",          JSON.stringify({
             ...perKiloPrice,
             profit:
               perKiloPrice.profit !== undefined
-                ? Number(perKiloPrice.profit.toFixed(2))
+                ? CurrencyCalculator.round(perKiloPrice.profit)
                 : undefined,
           })
         );
@@ -488,8 +487,7 @@ export default function CreateProduct({
                               sack.profit !== undefined
                                 ? sack.profit.toString()
                                 : ""
-                            }
-                            onChange={(e) => {
+                            }                            onChange={(e) => {
                               const newSackPrices = [...sackPrices];
                               const value = e.target.value;
                               if (value === "") {
@@ -497,13 +495,13 @@ export default function CreateProduct({
                               } else {
                                 const numValue = parseFloat(value);
                                 if (!isNaN(numValue)) {
-                                  newSackPrices[index].profit = numValue;
+                                  newSackPrices[index].profit = CurrencyCalculator.round(numValue);
                                 }
                               }
                               setSackPrices(newSackPrices);
                             }}
                             min="0"
-                            step="0.01"
+                            step="1"
                             className="focus-visible:ring-primary"
                           />
                         </div>
@@ -609,19 +607,18 @@ export default function CreateProduct({
                                   const value = e.target.value;
                                   if (value === "") {
                                     newSackPrices[index].specialPrice!.profit =
-                                      undefined;
-                                  } else {
+                                      undefined;                                  } else {
                                     const numValue = parseFloat(value);
                                     if (!isNaN(numValue)) {
                                       newSackPrices[
                                         index
-                                      ].specialPrice!.profit = numValue;
+                                      ].specialPrice!.profit = CurrencyCalculator.round(numValue);
                                     }
                                   }
                                   setSackPrices(newSackPrices);
                                 }}
                                 min="0"
-                                step="0.01"
+                                step="1"
                                 className="focus-visible:ring-secondary"
                               />
                             </div>
@@ -693,19 +690,18 @@ export default function CreateProduct({
                         setPerKiloPrice({
                           ...(perKiloPrice || { price: 0, stock: 0 }),
                           profit: undefined,
-                        });
-                      } else {
+                        });                      } else {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
                           setPerKiloPrice({
                             ...(perKiloPrice || { price: 0, stock: 0 }),
-                            profit: numValue,
+                            profit: CurrencyCalculator.round(numValue),
                           });
                         }
                       }
                     }}
                     min="0"
-                    step="0.01"
+                    step="1"
                     className="focus-visible:ring-primary"
                   />
                 </div>

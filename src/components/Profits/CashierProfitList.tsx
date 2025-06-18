@@ -51,30 +51,48 @@ export default function CashierProfitList({
 
     loadProfits();
   }, [cashierId, dateFilterMode, date, selectedYear, selectedMonth]);
-
   // Transform profit data to match ProfitTracker expected format
   const transformProfitData = (data: any) => {
     if (!data?.rawItems) return [];
 
-    return data.rawItems.map((item: any) => ({
-      productKey: `${item.productName}-${item.priceType || "perKilo"}-sack`,
-      productName: item.productName,
-      productImage: "https://placehold.co/800x800?text=Product",
-      sackType:
-        item.priceType === "50KG"
-          ? "FIFTY_KG"
-          : item.priceType === "25KG"
-          ? "TWENTY_FIVE_KG"
-          : item.priceType === "5KG"
-          ? "FIVE_KG"
-          : undefined,
-      priceType: "sack" as const,
-      normalQty: item.quantity,
-      specialQty: 0,
-      isAsin: item.isAsin,
-      normalProfit: item.profitPerUnit ?? 0,
-      specialProfit: 0,
-    }));
+    return data.rawItems.map((item: any) => {
+      // Proper sack type mapping based on the actual data structure
+      let sackType: SackType | undefined;
+      
+      if (item.sackType) {
+        // Direct mapping from the database sackType field
+        sackType = item.sackType as SackType;
+      } else if (item.priceType) {
+        // Fallback mapping from priceType field
+        switch (item.priceType) {
+          case "50KG":
+          case "FIFTY_KG":
+            sackType = "FIFTY_KG";
+            break;
+          case "25KG":
+          case "TWENTY_FIVE_KG":
+            sackType = "TWENTY_FIVE_KG";
+            break;
+          case "5KG":
+          case "FIVE_KG":
+            sackType = "FIVE_KG";
+            break;
+          default:
+            sackType = undefined;
+        }
+      }      return {
+        productKey: `${item.productName}-${sackType || "perKilo"}-${sackType ? "sack" : "per-kilo"}`,
+        productName: item.productName,
+        productImage: item.productImage || "https://placehold.co/800x800?text=Product",
+        sackType: sackType,
+        priceType: sackType ? ("sack" as const) : ("per-kilo" as const),
+        normalQty: item.quantity || 0,
+        specialQty: 0,
+        isAsin: item.isAsin || false,
+        normalProfit: item.profitPerUnit ?? 0,
+        specialProfit: 0,
+      };
+    }).filter((item: any) => item.priceType === "sack"); // Only return sack items
   };
 
   return (
@@ -107,9 +125,8 @@ export default function CashierProfitList({
           <Spinner />
           <p className="text-gray-500 mt-4">Loading profit data...</p>
         </div>
-      ) : (
-        <>
-          {profitData ? (
+      ) : (        <>
+          {profitData && transformProfitData(profitData).length > 0 ? (
             <ProfitTracker
               salesData={transformProfitData(profitData)}
               previousDaySalesData={[]}
@@ -117,10 +134,22 @@ export default function CashierProfitList({
               dateFilterMode={dateFilterMode}
             />
           ) : (
-            <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500 text-lg">
-                No profit data available for the selected period.
-              </p>
+            <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="text-center p-8">
+                <div className="text-6xl text-gray-400 mb-4">💰</div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Cashier Profit Data
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {dateFilterMode === "day" 
+                    ? `No profit data found for this cashier on ${date?.toLocaleDateString() || "the selected date"}`
+                    : `No profit data found for this cashier in ${new Date(dateFilterMode === "month" ? `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01` : Date.now()).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`
+                  }
+                </p>
+                <p className="text-sm text-gray-400">
+                  Profit data will appear here once this cashier records sales transactions.
+                </p>
+              </div>
             </div>
           )}
         </>

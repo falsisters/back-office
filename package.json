@@ -37,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "decimal.js": "^10.5.0",
     "file-saver": "^2.0.5",
     "jspreadsheet-ce": "^4.15.0",
     "jszip": "^3.10.1",

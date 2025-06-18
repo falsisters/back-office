@@ -14,14 +14,12 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { editCashierBillCount } from "@/lib/server/BillCount/editCashierBillCount";
 import {
   UpdateBillCountSchema,
@@ -50,7 +48,7 @@ export function EditBillCounts({
     resolver: zodResolver(UpdateBillCountSchema),
     defaultValues: {
       beginningBalance: billCount?.beginningBalance || 0,
-      showBeginningBalance: billCount?.showBeginningBalance || false,
+      showBeginningBalance: true, // Always true now
       bills:
         billCount?.bills.map((bill) => ({
           amount: bill.amount,
@@ -108,57 +106,32 @@ export function EditBillCounts({
               <h3 className="text-lg font-semibold text-primary">
                 Beginning Balance
               </h3>
-              <div className="flex items-center justify-between">
-                <FormField
-                  control={form.control}
-                  name="showBeginningBalance"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm w-full">
-                      <div className="space-y-0.5">
-                        <FormLabel>Show Beginning Balance</FormLabel>
-                        <FormDescription>
-                          Display the starting balance for this count
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+              <FormField
+                control={form.control}
+                name="beginningBalance"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Beginning Balance</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                          ₱
+                        </span>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          className="pl-8"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
                         />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("showBeginningBalance") && (
-                <FormField
-                  control={form.control}
-                  name="beginningBalance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Beginning Balance</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2">
-                            ₱
-                          </span>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            className="pl-8"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* Bill Counts Section */}
