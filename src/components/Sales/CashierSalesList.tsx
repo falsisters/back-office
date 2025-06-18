@@ -27,9 +27,13 @@ const months = [
 
 interface CashierSalesListProps {
   cashierId: string;
+  refreshTrigger?: number;
 }
 
-export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
+export default function CashierSalesList({
+  cashierId,
+  refreshTrigger,
+}: CashierSalesListProps) {
   const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
   const [filteredSales, setFilteredSales] =
     useState<GetAllSalesByUserIdPayload>([]);
@@ -58,13 +62,46 @@ export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
     selectedMonth
   ).padStart(2, "0")}`;
 
+  // Separate function to refresh data without loading state
+  const refreshSalesData = async () => {
+    if (!cashierId) return;
+
+    try {
+      // Bypass cache for real-time updates
+      const data = await getSalesByCashier(cashierId, true);
+      setSales(data);
+
+      let filtered;
+      if (dateFilterMode === "day") {
+        const currentDate = date || new Date();
+        filtered = data.filter((sale) => {
+          const saleDate = new Date(sale.createdAt);
+          return saleDate.toDateString() === currentDate.toDateString();
+        });
+      } else {
+        const [year, month] = formattedSelectedMonth.split("-").map(Number);
+        filtered = data.filter((sale) => {
+          const saleDate = new Date(sale.createdAt);
+          return (
+            saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
+          );
+        });
+      }
+
+      setFilteredSales(filtered);
+    } catch (error) {
+      console.error("Error refreshing cashier sales:", error);
+    }
+  };
+
   useEffect(() => {
     const loadSales = async () => {
       if (!cashierId) return;
 
       try {
         setIsLoading(true);
-        const data = await getSalesByCashier(cashierId);
+        // Use cached version for initial load
+        const data = await getSalesByCashier(cashierId, false);
         setSales(data);
 
         let filtered;
@@ -95,6 +132,13 @@ export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
 
     loadSales();
   }, [cashierId, dateFilterMode, formattedSelectedMonth]);
+
+  // Effect to handle refresh trigger from parent
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      refreshSalesData();
+    }
+  }, [refreshTrigger]);
 
   useEffect(() => {
     let filtered = [...sales];
@@ -134,7 +178,7 @@ export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
     }
 
     filtered = filtered
-      .map((sale) => ({
+      .map((sale: (typeof sales)[number]) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
           const isSack = !!item.sackPriceId;
@@ -146,10 +190,10 @@ export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
           );
         }),
       }))
-      .filter((sale) => sale.SaleItem.length > 0);
+      .filter((sale: (typeof sales)[number]) => sale.SaleItem.length > 0);
 
     filtered = filtered
-      .map((sale) => ({
+      .map((sale: (typeof sales)[number]) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
           const isAsin = item.product.name.toLowerCase().includes("asin");
@@ -160,7 +204,7 @@ export default function CashierSalesList({ cashierId }: CashierSalesListProps) {
           );
         }),
       }))
-      .filter((sale) => sale.SaleItem.length > 0);
+      .filter((sale: (typeof sales)[number]) => sale.SaleItem.length > 0);
 
     setFilteredSales(filtered);
   }, [
