@@ -421,8 +421,7 @@ export default function CreateProduct({
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-xs">Price (₱)</Label>
-                          <Input
+                          <Label className="text-xs">Price (₱)</Label>                          <Input
                             type="number"
                             placeholder="Price"
                             value={sack.price || ""}
@@ -433,6 +432,7 @@ export default function CreateProduct({
                               );
                               setSackPrices(newSackPrices);
                             }}
+                            onWheel={(e) => e.currentTarget.blur()}
                             min="0"
                             step="0.01"
                             className={
@@ -462,6 +462,7 @@ export default function CreateProduct({
                               );
                               setSackPrices(newSackPrices);
                             }}
+                            onWheel={(e) => e.currentTarget.blur()}
                             min="0"
                             className={
                               errors[`sackPrice_${index}_stock`]
@@ -476,8 +477,7 @@ export default function CreateProduct({
                           )}
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Profit (₱)</Label>
-                          <Input
+                          <Label className="text-xs">Profit (₱)</Label>                          <Input
                             type="number"
                             placeholder="Profit (optional)"
                             value={
@@ -497,6 +497,7 @@ export default function CreateProduct({
                               }
                               setSackPrices(newSackPrices);
                             }}
+                            onWheel={(e) => e.currentTarget.blur()}
                             min="0"
                             step="1"
                             className="focus-visible:ring-primary"
@@ -516,8 +517,7 @@ export default function CreateProduct({
                             <Input
                               type="number"
                               placeholder="Special Price"
-                              value={sack.specialPrice?.price || ""}
-                              onChange={(e) => {
+                              value={sack.specialPrice?.price || ""}                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 if (!newSackPrices[index].specialPrice) {
                                   newSackPrices[index].specialPrice = {
@@ -530,6 +530,7 @@ export default function CreateProduct({
                                   Number(e.target.value);
                                 setSackPrices(newSackPrices);
                               }}
+                              onWheel={(e) => e.currentTarget.blur()}
                               min="0"
                               step="0.01"
                               className="focus-visible:ring-secondary"
@@ -544,8 +545,7 @@ export default function CreateProduct({
                               <Input
                                 type="number"
                                 placeholder="Min Qty"
-                                value={sack.specialPrice?.minimumQty || ""}
-                                onChange={(e) => {
+                                value={sack.specialPrice?.minimumQty || ""}                                onChange={(e) => {
                                   const newSackPrices = [...sackPrices];
                                   if (!newSackPrices[index].specialPrice) {
                                     newSackPrices[index].specialPrice = {
@@ -561,6 +561,7 @@ export default function CreateProduct({
                                   );
                                   setSackPrices(newSackPrices);
                                 }}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 min="0"
                                 className={
                                   errors[
@@ -591,8 +592,7 @@ export default function CreateProduct({
                                   sack.specialPrice?.profit !== undefined
                                     ? sack.specialPrice.profit.toString()
                                     : ""
-                                }
-                                onChange={(e) => {
+                                }                                onChange={(e) => {
                                   const newSackPrices = [...sackPrices];
                                   if (!newSackPrices[index].specialPrice) {
                                     newSackPrices[index].specialPrice = {
@@ -614,6 +614,7 @@ export default function CreateProduct({
                                   }
                                   setSackPrices(newSackPrices);
                                 }}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 min="0"
                                 step="1"
                                 className="focus-visible:ring-secondary"
@@ -640,13 +641,13 @@ export default function CreateProduct({
                   <Input
                     type="number"
                     placeholder="Price per Kilo"
-                    value={perKiloPrice?.price || ""}
-                    onChange={(e) =>
+                    value={perKiloPrice?.price || ""}                    onChange={(e) =>
                       setPerKiloPrice({
                         ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
                         price: Number(e.target.value),
                       })
                     }
+                    onWheel={(e) => e.currentTarget.blur()}
                     min="0"
                     step="0.01"
                     className="focus-visible:ring-primary"
@@ -657,13 +658,13 @@ export default function CreateProduct({
                   <Label className="text-xs">Stock (KG)</Label>
                   <Input
                     type="number"                    placeholder="Stock"
-                    value={perKiloPrice?.stock !== undefined && perKiloPrice?.stock !== null ? perKiloPrice.stock.toString() : ""}
-                    onChange={(e) =>
+                    value={perKiloPrice?.stock !== undefined && perKiloPrice?.stock !== null ? perKiloPrice.stock.toString() : ""}                    onChange={(e) =>
                       setPerKiloPrice({
                         ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
                         stock: Number(e.target.value),
                       })
                     }
+                    onWheel={(e) => e.currentTarget.blur()}
                     min="0"
                     step="0.01"
                     className="focus-visible:ring-primary"
@@ -679,8 +680,7 @@ export default function CreateProduct({
                       perKiloPrice?.profit !== undefined
                         ? perKiloPrice.profit.toString()
                         : ""
-                    }
-                    onChange={(e) => {
+                    }                    onChange={(e) => {
                       const value = e.target.value;
                       if (value === "") {
                         setPerKiloPrice({
@@ -696,6 +696,7 @@ export default function CreateProduct({
                         }
                       }
                     }}
+                    onWheel={(e) => e.currentTarget.blur()}
                     min="0"
                     step="1"
                     className="focus-visible:ring-primary"

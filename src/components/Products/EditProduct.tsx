@@ -503,14 +503,14 @@ export default function EditProduct({
                             <Input
                               type="number"
                               placeholder="Price"
-                              value={sack.price || ""}
-                              onChange={(e) => {
+                              value={sack.price || ""}                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 newSackPrices[index].price = Number(
                                   e.target.value
                                 );
                                 setSackPrices(newSackPrices);
                               }}
+                              onWheel={(e) => e.currentTarget.blur()}
                               min="0"
                               step="0.01"
                               className={
@@ -532,14 +532,14 @@ export default function EditProduct({
                             <Label className="text-xs">Stock</Label>                            <Input
                               type="number"
                               placeholder="Stock"
-                              value={sack.stock !== undefined && sack.stock !== null ? sack.stock.toString() : ""}
-                              onChange={(e) => {
+                              value={sack.stock !== undefined && sack.stock !== null ? sack.stock.toString() : ""}                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 newSackPrices[index].stock = Number(
                                   e.target.value
                                 );
                                 setSackPrices(newSackPrices);
                               }}
+                              onWheel={(e) => e.currentTarget.blur()}
                               min="0"
                               className={
                                 errors[`sackPrice_${index}_stock`]
@@ -562,8 +562,7 @@ export default function EditProduct({
                                 sack.profit !== undefined
                                   ? sack.profit.toString()
                                   : ""
-                              }
-                              onChange={(e) => {
+                              }                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 const value = e.target.value;
                                 if (value === "") {
@@ -575,6 +574,7 @@ export default function EditProduct({
                                 }
                                 setSackPrices(newSackPrices);
                               }}
+                              onWheel={(e) => e.currentTarget.blur()}
                               min="0"
                               step="1"
                               className="focus-visible:ring-primary"
@@ -612,8 +612,7 @@ export default function EditProduct({
                                 <Input
                                   type="number"
                                   placeholder="Special Price"
-                                  value={sack.specialPrice?.price || ""}
-                                  onChange={(e) => {
+                                  value={sack.specialPrice?.price || ""}                                  onChange={(e) => {
                                     const newSackPrices = [...sackPrices];
                                     if (!newSackPrices[index].specialPrice) {
                                       newSackPrices[index].specialPrice = {
@@ -625,6 +624,7 @@ export default function EditProduct({
                                       Number(e.target.value);
                                     setSackPrices(newSackPrices);
                                   }}
+                                  onWheel={(e) => e.currentTarget.blur()}
                                   min="0"
                                   step="0.01"
                                   className="focus-visible:ring-secondary"
@@ -639,8 +639,7 @@ export default function EditProduct({
                                   <Input
                                     type="number"
                                     placeholder="Min Qty"
-                                    value={sack.specialPrice?.minimumQty || ""}
-                                    onChange={(e) => {
+                                    value={sack.specialPrice?.minimumQty || ""}                                    onChange={(e) => {
                                       const newSackPrices = [...sackPrices];
                                       if (!newSackPrices[index].specialPrice) {
                                         newSackPrices[index].specialPrice = {
@@ -656,6 +655,7 @@ export default function EditProduct({
                                       );
                                       setSackPrices(newSackPrices);
                                     }}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     min="0"
                                     className={
                                       errors[
@@ -707,9 +707,9 @@ export default function EditProduct({
                                             index
                                           ].specialPrice!.profit = CurrencyCalculator.round(numValue);
                                         }
-                                      }
-                                      setSackPrices(newSackPrices);
+                                      }                                      setSackPrices(newSackPrices);
                                     }}
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     min="0"
                                     step="1"
                                     className="focus-visible:ring-secondary"
@@ -755,13 +755,13 @@ export default function EditProduct({
                     <Input
                       type="number"
                       placeholder="Price per Kilo"
-                      value={perKiloPrice?.price || ""}
-                      onChange={(e) =>
+                      value={perKiloPrice?.price || ""}                      onChange={(e) =>
                         setPerKiloPrice({
                           ...(perKiloPrice || { price: 0, stock: 0 }),
                           price: Number(e.target.value),
                         })
                       }
+                      onWheel={(e) => e.currentTarget.blur()}
                       min="0"
                       step="0.01"
                       className="focus-visible:ring-primary"
@@ -780,9 +780,9 @@ export default function EditProduct({
                             stock: 0,
                             profit: 0,
                           }),
-                          stock: Number(e.target.value),
-                        })
+                          stock: Number(e.target.value),                        })
                       }
+                      onWheel={(e) => e.currentTarget.blur()}
                       min="0"
                       step="0.01"
                       className="focus-visible:ring-primary"
@@ -798,8 +798,7 @@ export default function EditProduct({
                         perKiloPrice?.profit !== undefined
                           ? perKiloPrice.profit.toString()
                           : ""
-                      }
-                      onChange={(e) => {
+                      }                      onChange={(e) => {
                         const value = e.target.value;
                         if (value === "") {
                           setPerKiloPrice({
@@ -815,6 +814,7 @@ export default function EditProduct({
                           }
                         }
                       }}
+                      onWheel={(e) => e.currentTarget.blur()}
                       min="0"
                       step="1"
                       className="focus-visible:ring-primary"
