@@ -171,7 +171,7 @@ export default function EditProduct({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) newErrors.name = "Product name is required";    // Check that at least one pricing option is provided
+    if (!name.trim()) newErrors.name = "Product name is required"; // Check that at least one pricing option is provided
     const hasSackPrices = sackPrices.length > 0;
     const hasPerKiloPrice =
       perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
@@ -256,8 +256,11 @@ export default function EditProduct({
         id: sp.id,
         price: sp.price,
         stock: sp.stock,
-        type: sp.type,        profit:
-          sp.profit !== undefined ? CurrencyCalculator.round(sp.profit) : undefined,
+        type: sp.type,
+        profit:
+          sp.profit !== undefined
+            ? CurrencyCalculator.round(sp.profit)
+            : undefined,
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
@@ -278,7 +281,8 @@ export default function EditProduct({
           JSON.stringify({
             id: perKiloPrice.id,
             price: perKiloPrice.price,
-            stock: perKiloPrice.stock,            profit:
+            stock: perKiloPrice.stock,
+            profit:
               perKiloPrice.profit !== undefined
                 ? CurrencyCalculator.round(perKiloPrice.profit)
                 : undefined,
@@ -307,6 +311,11 @@ export default function EditProduct({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Utility function to prevent wheel events on number inputs
+  const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
   };
 
   return (
@@ -503,14 +512,15 @@ export default function EditProduct({
                             <Input
                               type="number"
                               placeholder="Price"
-                              value={sack.price || ""}                              onChange={(e) => {
+                              value={sack.price || ""}
+                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 newSackPrices[index].price = Number(
                                   e.target.value
                                 );
                                 setSackPrices(newSackPrices);
                               }}
-                              onWheel={(e) => e.currentTarget.blur()}
+                              onWheel={preventWheelChange}
                               min="0"
                               step="0.01"
                               className={
@@ -529,17 +539,23 @@ export default function EditProduct({
 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-xs">Stock</Label>                            <Input
+                            <Label className="text-xs">Stock</Label>{" "}
+                            <Input
                               type="number"
                               placeholder="Stock"
-                              value={sack.stock !== undefined && sack.stock !== null ? sack.stock.toString() : ""}                              onChange={(e) => {
+                              value={
+                                sack.stock !== undefined && sack.stock !== null
+                                  ? sack.stock.toString()
+                                  : ""
+                              }
+                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 newSackPrices[index].stock = Number(
                                   e.target.value
                                 );
                                 setSackPrices(newSackPrices);
                               }}
-                              onWheel={(e) => e.currentTarget.blur()}
+                              onWheel={preventWheelChange}
                               min="0"
                               className={
                                 errors[`sackPrice_${index}_stock`]
@@ -562,19 +578,22 @@ export default function EditProduct({
                                 sack.profit !== undefined
                                   ? sack.profit.toString()
                                   : ""
-                              }                              onChange={(e) => {
+                              }
+                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 const value = e.target.value;
                                 if (value === "") {
-                                  newSackPrices[index].profit = undefined;                                } else {
+                                  newSackPrices[index].profit = undefined;
+                                } else {
                                   const numValue = parseFloat(value);
                                   if (!isNaN(numValue)) {
-                                    newSackPrices[index].profit = CurrencyCalculator.round(numValue);
+                                    newSackPrices[index].profit =
+                                      CurrencyCalculator.round(numValue);
                                   }
                                 }
                                 setSackPrices(newSackPrices);
                               }}
-                              onWheel={(e) => e.currentTarget.blur()}
+                              onWheel={preventWheelChange}
                               min="0"
                               step="1"
                               className="focus-visible:ring-primary"
@@ -612,7 +631,8 @@ export default function EditProduct({
                                 <Input
                                   type="number"
                                   placeholder="Special Price"
-                                  value={sack.specialPrice?.price || ""}                                  onChange={(e) => {
+                                  value={sack.specialPrice?.price || ""}
+                                  onChange={(e) => {
                                     const newSackPrices = [...sackPrices];
                                     if (!newSackPrices[index].specialPrice) {
                                       newSackPrices[index].specialPrice = {
@@ -624,7 +644,7 @@ export default function EditProduct({
                                       Number(e.target.value);
                                     setSackPrices(newSackPrices);
                                   }}
-                                  onWheel={(e) => e.currentTarget.blur()}
+                                  onWheel={preventWheelChange}
                                   min="0"
                                   step="0.01"
                                   className="focus-visible:ring-secondary"
@@ -639,7 +659,8 @@ export default function EditProduct({
                                   <Input
                                     type="number"
                                     placeholder="Min Qty"
-                                    value={sack.specialPrice?.minimumQty || ""}                                    onChange={(e) => {
+                                    value={sack.specialPrice?.minimumQty || ""}
+                                    onChange={(e) => {
                                       const newSackPrices = [...sackPrices];
                                       if (!newSackPrices[index].specialPrice) {
                                         newSackPrices[index].specialPrice = {
@@ -655,7 +676,7 @@ export default function EditProduct({
                                       );
                                       setSackPrices(newSackPrices);
                                     }}
-                                    onWheel={(e) => e.currentTarget.blur()}
+                                    onWheel={preventWheelChange}
                                     min="0"
                                     className={
                                       errors[
@@ -700,16 +721,19 @@ export default function EditProduct({
                                       if (value === "") {
                                         newSackPrices[
                                           index
-                                        ].specialPrice!.profit = undefined;                                      } else {
+                                        ].specialPrice!.profit = undefined;
+                                      } else {
                                         const numValue = parseFloat(value);
                                         if (!isNaN(numValue)) {
                                           newSackPrices[
                                             index
-                                          ].specialPrice!.profit = CurrencyCalculator.round(numValue);
+                                          ].specialPrice!.profit =
+                                            CurrencyCalculator.round(numValue);
                                         }
-                                      }                                      setSackPrices(newSackPrices);
+                                      }
+                                      setSackPrices(newSackPrices);
                                     }}
-                                    onWheel={(e) => e.currentTarget.blur()}
+                                    onWheel={preventWheelChange}
                                     min="0"
                                     step="1"
                                     className="focus-visible:ring-secondary"
@@ -755,13 +779,14 @@ export default function EditProduct({
                     <Input
                       type="number"
                       placeholder="Price per Kilo"
-                      value={perKiloPrice?.price || ""}                      onChange={(e) =>
+                      value={perKiloPrice?.price || ""}
+                      onChange={(e) =>
                         setPerKiloPrice({
                           ...(perKiloPrice || { price: 0, stock: 0 }),
                           price: Number(e.target.value),
                         })
                       }
-                      onWheel={(e) => e.currentTarget.blur()}
+                      onWheel={preventWheelChange}
                       min="0"
                       step="0.01"
                       className="focus-visible:ring-primary"
@@ -769,10 +794,16 @@ export default function EditProduct({
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Stock (KG)</Label>                    <Input
+                    <Label className="text-xs">Stock (KG)</Label>
+                    <Input
                       type="number"
                       placeholder="Stock"
-                      value={perKiloPrice?.stock !== undefined && perKiloPrice?.stock !== null ? perKiloPrice.stock.toString() : ""}
+                      value={
+                        perKiloPrice?.stock !== undefined &&
+                        perKiloPrice?.stock !== null
+                          ? perKiloPrice.stock.toString()
+                          : ""
+                      }
                       onChange={(e) =>
                         setPerKiloPrice({
                           ...(perKiloPrice || {
@@ -780,9 +811,10 @@ export default function EditProduct({
                             stock: 0,
                             profit: 0,
                           }),
-                          stock: Number(e.target.value),                        })
+                          stock: Number(e.target.value),
+                        })
                       }
-                      onWheel={(e) => e.currentTarget.blur()}
+                      onWheel={preventWheelChange}
                       min="0"
                       step="0.01"
                       className="focus-visible:ring-primary"
@@ -798,13 +830,15 @@ export default function EditProduct({
                         perKiloPrice?.profit !== undefined
                           ? perKiloPrice.profit.toString()
                           : ""
-                      }                      onChange={(e) => {
+                      }
+                      onChange={(e) => {
                         const value = e.target.value;
                         if (value === "") {
                           setPerKiloPrice({
                             ...(perKiloPrice || { price: 0, stock: 0 }),
                             profit: undefined,
-                          });                        } else {
+                          });
+                        } else {
                           const numValue = parseFloat(value);
                           if (!isNaN(numValue)) {
                             setPerKiloPrice({
@@ -814,7 +848,7 @@ export default function EditProduct({
                           }
                         }
                       }}
-                      onWheel={(e) => e.currentTarget.blur()}
+                      onWheel={preventWheelChange}
                       min="0"
                       step="1"
                       className="focus-visible:ring-primary"

@@ -132,3 +132,45 @@ body {
 .e-spreadsheet .e-cell .e-cell-data {
   color: #1f2937 !important;
 }
+
+/* Disable scroll wheel on number inputs */
+input[type="number"] {
+  -moz-appearance: textfield;
+  -webkit-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Prevent wheel events from changing number input values */
+input[type="number"]:focus {
+  outline: none;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Disable wheel scroll on number inputs */
+input[type="number"] {
+  -webkit-appearance: textfield;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Global prevention of wheel events on number inputs */
+input[type="number"] {
+  pointer-events: auto;
+}
+
+input[type="number"]:focus {
+  -moz-appearance: textfield;
+  -webkit-appearance: textfield;
+  appearance: textfield;
+}

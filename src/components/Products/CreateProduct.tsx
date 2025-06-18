@@ -76,7 +76,7 @@ export default function CreateProduct({
     const usedTypes = new Set<string>();
 
     if (!name.trim()) newErrors.name = "Product name is required";
-    if (!picture) newErrors.picture = "Product image is required";    // Check that at least one pricing option is provided
+    if (!picture) newErrors.picture = "Product image is required"; // Check that at least one pricing option is provided
     const hasSackPrices = sackPrices.length > 0;
     const hasPerKiloPrice =
       perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
@@ -119,7 +119,8 @@ export default function CreateProduct({
       if (picture) formData.append("picture", picture);
       formData.append("name", name);
       formData.append(
-        "sackPrice",        JSON.stringify(
+        "sackPrice",
+        JSON.stringify(
           sackPrices.map((sack) => ({
             ...sack,
             profit:
@@ -140,7 +141,8 @@ export default function CreateProduct({
       );
       if (perKiloPrice) {
         formData.append(
-          "perKiloPrice",          JSON.stringify({
+          "perKiloPrice",
+          JSON.stringify({
             ...perKiloPrice,
             profit:
               perKiloPrice.profit !== undefined
@@ -243,6 +245,11 @@ export default function CreateProduct({
     const newSackPrices = [...sackPrices];
     newSackPrices.splice(index, 1);
     setSackPrices(newSackPrices);
+  };
+
+  // Utility function to prevent wheel events on number inputs
+  const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
   };
 
   return (
@@ -421,7 +428,8 @@ export default function CreateProduct({
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-xs">Price (₱)</Label>                          <Input
+                          <Label className="text-xs">Price (₱)</Label>
+                          <Input
                             type="number"
                             placeholder="Price"
                             value={sack.price || ""}
@@ -432,7 +440,7 @@ export default function CreateProduct({
                               );
                               setSackPrices(newSackPrices);
                             }}
-                            onWheel={(e) => e.currentTarget.blur()}
+                            onWheel={preventWheelChange}
                             min="0"
                             step="0.01"
                             className={
@@ -451,10 +459,15 @@ export default function CreateProduct({
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-xs">Stock</Label>                          <Input
+                          <Label className="text-xs">Stock</Label>
+                          <Input
                             type="number"
                             placeholder="Stock"
-                            value={sack.stock !== undefined && sack.stock !== null ? sack.stock.toString() : ""}
+                            value={
+                              sack.stock !== undefined && sack.stock !== null
+                                ? sack.stock.toString()
+                                : ""
+                            }
                             onChange={(e) => {
                               const newSackPrices = [...sackPrices];
                               newSackPrices[index].stock = Number(
@@ -462,7 +475,7 @@ export default function CreateProduct({
                               );
                               setSackPrices(newSackPrices);
                             }}
-                            onWheel={(e) => e.currentTarget.blur()}
+                            onWheel={preventWheelChange}
                             min="0"
                             className={
                               errors[`sackPrice_${index}_stock`]
@@ -477,14 +490,16 @@ export default function CreateProduct({
                           )}
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Profit (₱)</Label>                          <Input
+                          <Label className="text-xs">Profit (₱)</Label>
+                          <Input
                             type="number"
                             placeholder="Profit (optional)"
                             value={
                               sack.profit !== undefined
                                 ? sack.profit.toString()
                                 : ""
-                            }                            onChange={(e) => {
+                            }
+                            onChange={(e) => {
                               const newSackPrices = [...sackPrices];
                               const value = e.target.value;
                               if (value === "") {
@@ -492,12 +507,13 @@ export default function CreateProduct({
                               } else {
                                 const numValue = parseFloat(value);
                                 if (!isNaN(numValue)) {
-                                  newSackPrices[index].profit = CurrencyCalculator.round(numValue);
+                                  newSackPrices[index].profit =
+                                    CurrencyCalculator.round(numValue);
                                 }
                               }
                               setSackPrices(newSackPrices);
                             }}
-                            onWheel={(e) => e.currentTarget.blur()}
+                            onWheel={preventWheelChange}
                             min="0"
                             step="1"
                             className="focus-visible:ring-primary"
@@ -517,7 +533,8 @@ export default function CreateProduct({
                             <Input
                               type="number"
                               placeholder="Special Price"
-                              value={sack.specialPrice?.price || ""}                              onChange={(e) => {
+                              value={sack.specialPrice?.price || ""}
+                              onChange={(e) => {
                                 const newSackPrices = [...sackPrices];
                                 if (!newSackPrices[index].specialPrice) {
                                   newSackPrices[index].specialPrice = {
@@ -530,7 +547,7 @@ export default function CreateProduct({
                                   Number(e.target.value);
                                 setSackPrices(newSackPrices);
                               }}
-                              onWheel={(e) => e.currentTarget.blur()}
+                              onWheel={preventWheelChange}
                               min="0"
                               step="0.01"
                               className="focus-visible:ring-secondary"
@@ -545,7 +562,8 @@ export default function CreateProduct({
                               <Input
                                 type="number"
                                 placeholder="Min Qty"
-                                value={sack.specialPrice?.minimumQty || ""}                                onChange={(e) => {
+                                value={sack.specialPrice?.minimumQty || ""}
+                                onChange={(e) => {
                                   const newSackPrices = [...sackPrices];
                                   if (!newSackPrices[index].specialPrice) {
                                     newSackPrices[index].specialPrice = {
@@ -561,7 +579,7 @@ export default function CreateProduct({
                                   );
                                   setSackPrices(newSackPrices);
                                 }}
-                                onWheel={(e) => e.currentTarget.blur()}
+                                onWheel={preventWheelChange}
                                 min="0"
                                 className={
                                   errors[
@@ -592,7 +610,8 @@ export default function CreateProduct({
                                   sack.specialPrice?.profit !== undefined
                                     ? sack.specialPrice.profit.toString()
                                     : ""
-                                }                                onChange={(e) => {
+                                }
+                                onChange={(e) => {
                                   const newSackPrices = [...sackPrices];
                                   if (!newSackPrices[index].specialPrice) {
                                     newSackPrices[index].specialPrice = {
@@ -604,17 +623,19 @@ export default function CreateProduct({
                                   const value = e.target.value;
                                   if (value === "") {
                                     newSackPrices[index].specialPrice!.profit =
-                                      undefined;                                  } else {
+                                      undefined;
+                                  } else {
                                     const numValue = parseFloat(value);
                                     if (!isNaN(numValue)) {
                                       newSackPrices[
                                         index
-                                      ].specialPrice!.profit = CurrencyCalculator.round(numValue);
+                                      ].specialPrice!.profit =
+                                        CurrencyCalculator.round(numValue);
                                     }
                                   }
                                   setSackPrices(newSackPrices);
                                 }}
-                                onWheel={(e) => e.currentTarget.blur()}
+                                onWheel={preventWheelChange}
                                 min="0"
                                 step="1"
                                 className="focus-visible:ring-secondary"
@@ -641,13 +662,14 @@ export default function CreateProduct({
                   <Input
                     type="number"
                     placeholder="Price per Kilo"
-                    value={perKiloPrice?.price || ""}                    onChange={(e) =>
+                    value={perKiloPrice?.price || ""}
+                    onChange={(e) =>
                       setPerKiloPrice({
                         ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
                         price: Number(e.target.value),
                       })
                     }
-                    onWheel={(e) => e.currentTarget.blur()}
+                    onWheel={preventWheelChange}
                     min="0"
                     step="0.01"
                     className="focus-visible:ring-primary"
@@ -657,14 +679,21 @@ export default function CreateProduct({
                 <div className="space-y-1">
                   <Label className="text-xs">Stock (KG)</Label>
                   <Input
-                    type="number"                    placeholder="Stock"
-                    value={perKiloPrice?.stock !== undefined && perKiloPrice?.stock !== null ? perKiloPrice.stock.toString() : ""}                    onChange={(e) =>
+                    type="number"
+                    placeholder="Stock"
+                    value={
+                      perKiloPrice?.stock !== undefined &&
+                      perKiloPrice?.stock !== null
+                        ? perKiloPrice.stock.toString()
+                        : ""
+                    }
+                    onChange={(e) =>
                       setPerKiloPrice({
                         ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
                         stock: Number(e.target.value),
                       })
                     }
-                    onWheel={(e) => e.currentTarget.blur()}
+                    onWheel={preventWheelChange}
                     min="0"
                     step="0.01"
                     className="focus-visible:ring-primary"
@@ -680,13 +709,15 @@ export default function CreateProduct({
                       perKiloPrice?.profit !== undefined
                         ? perKiloPrice.profit.toString()
                         : ""
-                    }                    onChange={(e) => {
+                    }
+                    onChange={(e) => {
                       const value = e.target.value;
                       if (value === "") {
                         setPerKiloPrice({
                           ...(perKiloPrice || { price: 0, stock: 0 }),
                           profit: undefined,
-                        });                      } else {
+                        });
+                      } else {
                         const numValue = parseFloat(value);
                         if (!isNaN(numValue)) {
                           setPerKiloPrice({
@@ -696,7 +727,7 @@ export default function CreateProduct({
                         }
                       }
                     }}
-                    onWheel={(e) => e.currentTarget.blur()}
+                    onWheel={preventWheelChange}
                     min="0"
                     step="1"
                     className="focus-visible:ring-primary"

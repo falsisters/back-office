@@ -164,7 +164,9 @@ const AttendanceCalendar = ({
                               }
                               className="text-xs px-1 py-0"
                             >
-                              {shiftEmployee.shift.endTime ? "Done" : "Active"}
+                              {shiftEmployee.shift.endTime
+                                ? "Clocked Out"
+                                : "Clocked In"}
                             </Badge>
                           </div>
                         ))}

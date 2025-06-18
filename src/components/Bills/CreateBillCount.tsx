@@ -54,6 +54,11 @@ export function CreateBillCounts({
 }: CreateBillCountsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Utility function to prevent wheel events on number inputs
+  const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
+  };
+
   const form = useForm<CreateBillCountType>({
     resolver: zodResolver(CreateBillCountSchema),
     defaultValues: {
@@ -182,6 +187,7 @@ export function CreateBillCounts({
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
                           }
+                          onWheel={preventWheelChange}
                         />
                       </div>
                     </FormControl>
@@ -228,6 +234,7 @@ export function CreateBillCounts({
                             onChange={(e) =>
                               field.onChange(Number(e.target.value))
                             }
+                            onWheel={preventWheelChange}
                           />
                         </FormControl>
                         <FormMessage />
