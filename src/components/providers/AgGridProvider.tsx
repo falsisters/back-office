@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ModuleRegistry } from "ag-grid-community";
-import { ClientSideRowModelModule } from "ag-grid-community";
+import { ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
 
 interface AgGridProviderProps {
   children: React.ReactNode;

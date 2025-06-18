@@ -42,6 +42,7 @@ import AddRowsDialog from "./AddRowsDialog";
 import {
   updateAllFormulasForRowReorder,
   createRowMappingsFromReorders,
+  calculateRowReorderMappings,
 } from "@/lib/utils/formulaUpdater";
 
 interface InventoryAgGridProps {
@@ -300,7 +301,17 @@ export default function InventoryAgGrid({
       rows.push(gridRow);
     });
 
-    return rows;
+    // Apply pending row reorders to the grid data
+    const finalRows = rows.map((row) => {
+      const reorderChange = pendingRowReorders.get(row.id);
+      if (reorderChange) {
+        return { ...row, rowIndex: reorderChange.newRowIndex };
+      }
+      return row;
+    });
+
+    // Sort by the (possibly updated) row index to show correct order
+    return finalRows.sort((a, b) => a.rowIndex - b.rowIndex);
   };
 
   // Helper function to evaluate formulas with pending changes
@@ -443,22 +454,62 @@ export default function InventoryAgGrid({
         return style;
       };
 
+    // Create a React component for the row index cell
+    const RowIndexCellRenderer = (params: any) => {
+      return (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: "100%",
+            width: "100%",
+            padding: "0 4px",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "12px",
+              color: "#6c757d",
+              lineHeight: 1,
+            }}
+          >
+            ⋮⋮
+          </span>
+          <span
+            style={{
+              fontWeight: "bold",
+              fontSize: "14px",
+              color: "#495057",
+            }}
+          >
+            {params.value}
+          </span>
+        </div>
+      );
+    };
+
     return [
       {
         field: "rowIndex",
         headerName: "#",
-        width: 60,
+        width: 80,
         pinned: "left",
         editable: false,
-        rowDrag: true, // Enable row dragging from this column
-        resizable: true,
+        rowDrag: true,
+        resizable: false,
         cellStyle: {
           backgroundColor: "#f8f9fa",
           fontWeight: "bold",
           cursor: "grab",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px solid #dee2e6",
         } as CellStyle,
-        cellRenderer: (params: any) => {
-          return `<div style="display: flex; align-items: center; height: 100%;"><span style="margin-right: 8px;">⋮⋮</span>${params.value}</div>`;
+        cellRenderer: RowIndexCellRenderer,
+        cellClassRules: {
+          "row-index-cell": () => true,
         },
       },
       ...[
@@ -1109,6 +1160,7 @@ export default function InventoryAgGrid({
       return;
     }
 
+    setIsReordering(true);
     console.log("Processing inventory row reorder as pending change...");
 
     try {
@@ -1118,66 +1170,87 @@ export default function InventoryAgGrid({
 
       console.log("Dragged row data:", draggedRowData);
       console.log("Target row data:", overRowData);
+      console.log("Over index:", overIndex);
 
-      // Get all current rows and calculate new positions
+      // Get all current rows sorted by row index
       const allRows = [...sheetData.Rows].sort(
         (a, b) => a.rowIndex - b.rowIndex
       );
 
+      // Find the actual positions in the sorted array
       const draggedRowIndex = allRows.findIndex(
         (r) => r.id === draggedRowData.id
       );
-
-      if (draggedRowIndex === -1) {
-        console.error("Could not find dragged row");
-        return;
-      }
-
       let targetRowIndex = overIndex;
+
+      // If overIndex is not reliable, find by row data
       if (typeof targetRowIndex !== "number" || targetRowIndex < 0) {
         targetRowIndex = allRows.findIndex((r) => r.id === overRowData.id);
       }
 
-      if (targetRowIndex === -1) {
-        console.error("Could not determine target position");
+      console.log("Calculated indices:", { draggedRowIndex, targetRowIndex });
+
+      if (draggedRowIndex === -1 || targetRowIndex === -1) {
+        console.error("Could not determine row positions");
         return;
       }
 
-      // Don't proceed if the row would end up in the same position
-      if (draggedRowIndex === targetRowIndex) {
-        console.log("Row would end up in same position, no action needed");
+      // Use the enhanced calculation function with validation
+      const newPendingReorders = calculateRowReorderMappings(
+        draggedRowData.id,
+        draggedRowIndex,
+        targetRowIndex,
+        allRows
+      );
+
+      if (newPendingReorders.size === 0) {
+        console.log("No row position changes needed");
         return;
       }
 
-      // Create new order to calculate new row indices
-      const reorderedRows = [...allRows];
-      const [draggedRow] = reorderedRows.splice(draggedRowIndex, 1);
-      reorderedRows.splice(targetRowIndex, 0, draggedRow);
+      // Validate the new mappings before applying
+      const { validateRowMappings } = await import(
+        "@/lib/utils/formulaUpdater"
+      );
+      const validation = validateRowMappings(newPendingReorders, allRows);
 
-      // Create pending row reorder changes for all affected rows
-      const newPendingReorders = new Map(pendingRowReorders);
+      if (!validation.isValid) {
+        console.error("Row mapping validation failed:", validation.errors);
+        alert(`Cannot reorder rows: ${validation.errors.join(", ")}`);
+        return;
+      }
 
-      reorderedRows.forEach((row, index) => {
-        const newRowIndex = index + 1; // 1-based indexing
+      // Merge with existing pending reorders, handling conflicts
+      const mergedReorders = new Map(pendingRowReorders);
 
-        if (newRowIndex !== row.rowIndex) {
-          const existingPending = newPendingReorders.get(row.id);
-          const originalRowIndex = existingPending?.oldRowIndex || row.rowIndex;
-
-          const pendingReorder: PendingRowReorder = {
-            id: `reorder-${row.id}-${Date.now()}`,
-            rowId: row.id,
-            oldRowIndex: originalRowIndex,
-            newRowIndex: newRowIndex,
-            timestamp: Date.now(),
-          };
-
-          newPendingReorders.set(row.id, pendingReorder);
+      newPendingReorders.forEach((newMapping, rowId) => {
+        const existingMapping = mergedReorders.get(rowId);
+        if (existingMapping) {
+          // Update existing mapping to use the original old index but new target
+          mergedReorders.set(rowId, {
+            ...newMapping,
+            oldRowIndex: existingMapping.oldRowIndex, // Keep original starting position
+          });
+        } else {
+          mergedReorders.set(rowId, newMapping);
         }
       });
 
+      // Validate merged mappings as well
+      const mergedValidation = validateRowMappings(mergedReorders, allRows);
+      if (!mergedValidation.isValid) {
+        console.error(
+          "Merged mapping validation failed:",
+          mergedValidation.errors
+        );
+        alert(
+          `Cannot apply row reordering: ${mergedValidation.errors.join(", ")}`
+        );
+        return;
+      }
+
       // Create row mappings for formula updates
-      const rowMappings = createRowMappingsFromReorders(newPendingReorders);
+      const rowMappings = createRowMappingsFromReorders(mergedReorders);
 
       // Find all formulas that need to be updated
       const formulaUpdates = updateAllFormulasForRowReorder(
@@ -1196,15 +1269,38 @@ export default function InventoryAgGrid({
         const existingRow = sheetData.Rows.find(
           (r) => r.rowIndex === update.rowIndex
         );
-        const existingCell = existingRow?.Cells.find(
+
+        // Handle case where row index has changed due to reordering
+        let targetRow = existingRow;
+        if (!targetRow) {
+          // Find row by looking at the reverse mapping
+          const originalRowIndex = Array.from(mergedReorders.values()).find(
+            (mapping) => mapping.newRowIndex === update.rowIndex
+          )?.oldRowIndex;
+
+          if (originalRowIndex) {
+            targetRow = sheetData.Rows.find(
+              (r) => r.rowIndex === originalRowIndex
+            );
+          }
+        }
+
+        if (!targetRow) {
+          console.warn(
+            `Could not find target row for formula update at index ${update.rowIndex}`
+          );
+          return;
+        }
+
+        const existingCell = targetRow.Cells.find(
           (c) => c.columnIndex === update.columnIndex
         );
         const existingPendingChange = newPendingChanges.get(changeKey);
 
         const updatedChange: PendingCellChange = {
           id: existingPendingChange?.id || `${changeKey}-formula-${Date.now()}`,
-          rowId: existingRow?.id,
-          rowIndex: update.rowIndex,
+          rowId: targetRow.id,
+          rowIndex: update.rowIndex, // Use the new row index
           columnIndex: update.columnIndex,
           cellId: update.cellId,
           oldValue:
@@ -1217,26 +1313,15 @@ export default function InventoryAgGrid({
           changeType: "update",
           timestamp: Date.now(),
           isFormulaChange: true,
+          newRowIndex: update.rowIndex, // Track the new row position
         };
 
         newPendingChanges.set(changeKey, updatedChange);
       });
 
-      setPendingRowReorders(newPendingReorders);
+      // Update states
+      setPendingRowReorders(mergedReorders);
       setPendingChanges(newPendingChanges);
-
-      // Update the grid display immediately to show the reordered rows
-      const updatedGridData = gridData
-        .map((row) => {
-          const reorderChange = newPendingReorders.get(row.id);
-          if (reorderChange) {
-            return { ...row, rowIndex: reorderChange.newRowIndex };
-          }
-          return row;
-        })
-        .sort((a, b) => a.rowIndex - b.rowIndex);
-
-      setGridData(updatedGridData);
 
       console.log(
         "Inventory row reordering and formula updates tracked as pending changes"
@@ -1248,6 +1333,8 @@ export default function InventoryAgGrid({
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+    } finally {
+      setIsReordering(false);
     }
   };
 
