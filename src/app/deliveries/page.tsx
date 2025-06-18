@@ -1,22 +1,22 @@
-import { Suspense } from "react"
-import { DeliveryList } from "@/components/Deliveries/DeliveryList"
-import { Spinner } from "@/components/ui/spinner"
-import { getUserData } from "@/lib/server/getUserData"
-import { getAllDeliveriesByUserId } from "@/lib/server/getAllDeliveriesByUserId"
-import { redirect } from "next/navigation"
+import { Suspense } from "react";
+import { DeliveryList } from "@/components/Deliveries/DeliveryList";
+import { Spinner } from "@/components/ui/spinner";
+import { getUserData } from "@/lib/server/getUserData";
+import { getAllDeliveriesByUserId } from "@/lib/server/Deliveries/getAllDeliveriesByUserId";
+import { redirect } from "next/navigation";
 
 export default async function DeliveriesPage() {
-  let userData
+  let userData;
   try {
-    userData = await getUserData()
+    userData = await getUserData();
   } catch (error) {
     if (!userData) {
-      redirect("/")
+      redirect("/");
     }
-    console.error(error, "Unauthorized")
+    console.error(error, "Unauthorized");
   }
 
-  const deliveries = await getAllDeliveriesByUserId()
+  const deliveries = await getAllDeliveriesByUserId();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -24,6 +24,5 @@ export default async function DeliveriesPage() {
         <DeliveryList initialDeliveries={deliveries} />
       </Suspense>
     </div>
-  )
+  );
 }
-

@@ -22,11 +22,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { createProduct } from "@/lib/server/createProduct";
+import { createProduct } from "@/lib/server/Products/createProduct";
 import { SackTypeEnum, type SackType } from "../../../utils/types/schema.type";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface CreateProductProps {
   onProductCreated: (newProduct: unknown) => void;
@@ -45,18 +46,18 @@ export default function CreateProduct({
       type: SackType;
       price: number;
       stock: number;
-      profit: number;
+      profit?: number; // Make this optional
       specialPrice?: {
         price: number;
         minimumQty: number;
-        profit: number;
+        profit?: number; // Make this optional
       };
     }>
   >([]);
   const [perKiloPrice, setPerKiloPrice] = useState<{
     price: number;
     stock: number;
-    profit: number;
+    profit?: number; // Make this optional
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -76,8 +77,16 @@ export default function CreateProduct({
 
     if (!name.trim()) newErrors.name = "Product name is required";
     if (!picture) newErrors.picture = "Product image is required";
-    if (sackPrices.length === 0)
-      newErrors.sackPrices = "At least one sack price is required";
+
+    // Check that at least one pricing option is provided
+    const hasSackPrices = sackPrices.length > 0;
+    const hasPerKiloPrice =
+      perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock > 0;
+
+    if (!hasSackPrices && !hasPerKiloPrice) {
+      newErrors.pricing =
+        "At least one pricing option (sack prices or per kilo price) is required";
+    }
 
     sackPrices.forEach((sack, index) => {
       if (!sack.price)
@@ -112,14 +121,20 @@ export default function CreateProduct({
       if (picture) formData.append("picture", picture);
       formData.append("name", name);
       formData.append(
-        "sackPrice",
-        JSON.stringify(
+        "sackPrice",        JSON.stringify(
           sackPrices.map((sack) => ({
             ...sack,
+            profit:
+              sack.profit !== undefined
+                ? CurrencyCalculator.round(sack.profit)
+                : undefined,
             specialPrice: sack.specialPrice
               ? {
                   ...sack.specialPrice,
-                  profit: sack.specialPrice.profit || 0,
+                  profit:
+                    sack.specialPrice.profit !== undefined
+                      ? CurrencyCalculator.round(sack.specialPrice.profit)
+                      : undefined,
                 }
               : undefined,
           }))
@@ -127,9 +142,12 @@ export default function CreateProduct({
       );
       if (perKiloPrice) {
         formData.append(
-          "perKiloPrice",
-          JSON.stringify({
+          "perKiloPrice",          JSON.stringify({
             ...perKiloPrice,
+            profit:
+              perKiloPrice.profit !== undefined
+                ? CurrencyCalculator.round(perKiloPrice.profit)
+                : undefined,
           })
         );
       }
@@ -162,15 +180,42 @@ export default function CreateProduct({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setPicture(file);
 
     if (file) {
+      // Check file type
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file format",
+          description: "Please upload only JPG or PNG images",
+          variant: "destructive",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (3MB = 3 * 1024 * 1024 bytes)
+      const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 3MB",
+          variant: "destructive",
+        });
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      setPicture(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setPicturePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     } else {
+      setPicture(null);
       setPicturePreview(null);
     }
   };
@@ -253,7 +298,7 @@ export default function CreateProduct({
               <Input
                 id="picture"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png"
                 onChange={handleFileChange}
                 className={
                   errors.picture
@@ -261,6 +306,9 @@ export default function CreateProduct({
                     : "focus-visible:ring-primary"
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Supported formats: JPG, PNG. Maximum size: 3MB
+              </p>
               {errors.picture && (
                 <p className="text-xs text-destructive mt-1">
                   {errors.picture}
@@ -296,6 +344,10 @@ export default function CreateProduct({
                   Add
                 </Button>
               </div>
+
+              {errors.pricing && (
+                <p className="text-xs text-destructive">{errors.pricing}</p>
+              )}
 
               {errors.sackPrices && (
                 <p className="text-xs text-destructive">{errors.sackPrices}</p>
@@ -430,17 +482,26 @@ export default function CreateProduct({
                           <Label className="text-xs">Profit (₱)</Label>
                           <Input
                             type="number"
-                            placeholder="Profit"
-                            value={sack.profit || ""}
-                            onChange={(e) => {
+                            placeholder="Profit (optional)"
+                            value={
+                              sack.profit !== undefined
+                                ? sack.profit.toString()
+                                : ""
+                            }                            onChange={(e) => {
                               const newSackPrices = [...sackPrices];
-                              newSackPrices[index].profit = Number(
-                                e.target.value
-                              );
+                              const value = e.target.value;
+                              if (value === "") {
+                                newSackPrices[index].profit = undefined;
+                              } else {
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                  newSackPrices[index].profit = CurrencyCalculator.round(numValue);
+                                }
+                              }
                               setSackPrices(newSackPrices);
                             }}
                             min="0"
-                            step="0.01"
+                            step="1"
                             className="focus-visible:ring-primary"
                           />
                         </div>
@@ -528,8 +589,12 @@ export default function CreateProduct({
                               <Label className="text-xs">Profit (₱)</Label>
                               <Input
                                 type="number"
-                                placeholder="Profit"
-                                value={sack.specialPrice?.profit || ""}
+                                placeholder="Profit (optional)"
+                                value={
+                                  sack.specialPrice?.profit !== undefined
+                                    ? sack.specialPrice.profit.toString()
+                                    : ""
+                                }
                                 onChange={(e) => {
                                   const newSackPrices = [...sackPrices];
                                   if (!newSackPrices[index].specialPrice) {
@@ -539,12 +604,21 @@ export default function CreateProduct({
                                       profit: 0,
                                     };
                                   }
-                                  newSackPrices[index].specialPrice!.profit =
-                                    Number(e.target.value);
+                                  const value = e.target.value;
+                                  if (value === "") {
+                                    newSackPrices[index].specialPrice!.profit =
+                                      undefined;                                  } else {
+                                    const numValue = parseFloat(value);
+                                    if (!isNaN(numValue)) {
+                                      newSackPrices[
+                                        index
+                                      ].specialPrice!.profit = CurrencyCalculator.round(numValue);
+                                    }
+                                  }
                                   setSackPrices(newSackPrices);
                                 }}
                                 min="0"
-                                step="0.01"
+                                step="1"
                                 className="focus-visible:ring-secondary"
                               />
                             </div>
@@ -595,6 +669,7 @@ export default function CreateProduct({
                       })
                     }
                     min="0"
+                    step="0.01"
                     className="focus-visible:ring-primary"
                   />
                 </div>
@@ -603,16 +678,30 @@ export default function CreateProduct({
                   <Label className="text-xs">Profit (₱)</Label>
                   <Input
                     type="number"
-                    placeholder="Profit"
-                    value={perKiloPrice?.profit || ""}
-                    onChange={(e) =>
-                      setPerKiloPrice({
-                        ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
-                        profit: Number(e.target.value),
-                      })
+                    placeholder="Profit (optional)"
+                    value={
+                      perKiloPrice?.profit !== undefined
+                        ? perKiloPrice.profit.toString()
+                        : ""
                     }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "") {
+                        setPerKiloPrice({
+                          ...(perKiloPrice || { price: 0, stock: 0 }),
+                          profit: undefined,
+                        });                      } else {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                          setPerKiloPrice({
+                            ...(perKiloPrice || { price: 0, stock: 0 }),
+                            profit: CurrencyCalculator.round(numValue),
+                          });
+                        }
+                      }
+                    }}
                     min="0"
-                    step="0.01"
+                    step="1"
                     className="focus-visible:ring-primary"
                   />
                 </div>

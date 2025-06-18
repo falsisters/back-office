@@ -1,6 +1,6 @@
 "use client";
 
-import { GetAllSalesByUserIdPayload } from "../../../utils/types/getAllSalesByUserId.type";
+import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -50,16 +50,18 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         const matchingSackPrice = item.product.SackPrice.find(
           (sp) => sp.type === sackType
         );
-        
+
         if (!matchingSackPrice) {
-          console.warn(`Missing sack price for type ${sackType} in product ${item.product.name}`);
+          console.warn(
+            `Missing sack price for type ${sackType} in product ${item.product.name}`
+          );
         }
 
         // Commented out special price implementation
         // if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
         //   basePrice = matchingSackPrice.specialPrice.price;
         // } else {
-          basePrice = matchingSackPrice?.price || 0;
+        basePrice = matchingSackPrice?.price || 0;
         // }
       } else if (isPerKiloItem) {
         basePrice = item.product.perKiloPrice?.price || 0;
@@ -70,7 +72,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           ? item.discountedPrice
           : basePrice;
 
-      const isDiscounted = item.isDiscounted && item.discountedPrice !== basePrice;
+      const isDiscounted =
+        item.isDiscounted && item.discountedPrice !== basePrice;
       // const isSpecialPrice = item.isSpecialPrice; // Commented out
 
       const key = `${item.product.name}-${
@@ -107,7 +110,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       productGroup.totalQuantity += item.quantity;
       productGroup.totalAmount += price * item.quantity;
       productGroup.originalAmount += basePrice * item.quantity;
-      
+
       if (isDiscounted) productGroup.hasDiscounts = true;
       // if (isSpecialPrice) productGroup.hasSpecialPrices = true; // Commented out
     });
@@ -119,13 +122,11 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         <Card key={key} className="overflow-hidden">
           <CardHeader className="bg-muted/50 p-4">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">
-                {product.productName}
-              </CardTitle>
+              <CardTitle className="text-lg">{product.productName}</CardTitle>
               <div className="flex gap-2">
                 <Badge variant="outline">
-                  {product.priceType === "sack" 
-                    ? `${product.sackType} Sack` 
+                  {product.priceType === "sack"
+                    ? `${product.sackType} Sack`
                     : "Per Kilo"}
                 </Badge>
                 {product.isGantang && <Badge variant="outline">Gantang</Badge>}
@@ -134,7 +135,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-0">
             <div className="divide-y">
               {product.items.map((item, index) => (
@@ -160,11 +161,17 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                     </div>
                     <div className="text-right">
                       <p className="font-mono font-semibold">
-                        ₱{Math.floor(item.price * item.quantity).toLocaleString()}
+                        ₱
+                        {Math.floor(
+                          item.price * item.quantity
+                        ).toLocaleString()}
                       </p>
                       {item.isDiscounted && (
                         <p className="text-xs text-muted-foreground line-through">
-                          ₱{Math.floor(item.originalPrice * item.quantity).toLocaleString()}
+                          ₱
+                          {Math.floor(
+                            item.originalPrice * item.quantity
+                          ).toLocaleString()}
                         </p>
                       )}
                     </div>
@@ -172,13 +179,14 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               ))}
             </div>
-            
+
             <div className="bg-muted/30 p-4 border-t">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">Total</p>
                   <p className="text-sm text-muted-foreground">
-                    {product.totalQuantity} items across {product.items.length} sales
+                    {product.totalQuantity} items across {product.items.length}{" "}
+                    sales
                   </p>
                 </div>
                 <div className="text-right">
@@ -187,7 +195,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   </p>
                   {product.hasDiscounts && (
                     <p className="text-sm text-muted-foreground line-through">
-                      Original: ₱{Math.floor(product.originalAmount).toLocaleString()}
+                      Original: ₱
+                      {Math.floor(product.originalAmount).toLocaleString()}
                     </p>
                   )}
                 </div>

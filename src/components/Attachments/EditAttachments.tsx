@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { editAttachment } from "@/lib/server/editAttachment";
+import { editAttachment } from "@/lib/server/Attachment/editAttachment";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -43,7 +43,9 @@ export function EditAttachment({
       onAttachmentUpdated(updatedAttachment);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -88,9 +90,9 @@ export function EditAttachment({
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading} 
+            <Button
+              type="submit"
+              disabled={isLoading}
               className="bg-primary hover:bg-primary/90 text-white"
             >
               {isLoading ? "Saving..." : "Save Changes"}

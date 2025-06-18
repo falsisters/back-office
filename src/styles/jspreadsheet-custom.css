@@ -1,0 +1,73 @@
+/* Custom styles for jspreadsheet */
+.jexcel {
+  font-family: inherit;
+  border-top: none;
+}
+
+.jexcel > thead > tr > td {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+  padding: 12px;
+  color: hsl(var(--primary));
+}
+
+.jexcel > tbody > tr > td {
+  padding: 10px;
+  border-color: hsl(var(--border));
+}
+
+.jexcel > tbody > tr:hover > td {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.jexcel_corner {
+  background-color: hsl(var(--primary));
+}
+
+.jexcel_content::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.jexcel_content::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 5px;
+}
+
+.jexcel_content::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 5px;
+}
+
+/* Alternating row colors for better readability */
+.jexcel > tbody > tr:nth-child(even) > td {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+/* Highlight selected cells with primary color */
+.jexcel > tbody > tr > td.highlight {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+/* Make sure the spreadsheet container is visible and takes full width */
+#spreadsheet {
+  width: 100% !important;
+  display: block !important;
+  visibility: visible !important;
+  overflow: visible !important;
+}
+
+/* Ensure the spreadsheet container takes full width */
+.jexcel_container {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Fix for jspreadsheet visibility issues */
+.jexcel {
+  width: 100% !important;
+  display: table !important;
+  visibility: visible !important;
+}

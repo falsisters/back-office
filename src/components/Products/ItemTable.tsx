@@ -1,45 +1,59 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import type { ProductResponse } from "../../../utils/types/getAllProductsByUserId.type"
-import EditProduct from "./EditProduct"
-import DeleteProduct from "./DeleteProduct"
-import ProductDetails from "./ProductDetails"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { parseProductType } from "../../../utils/parsers/productType.parser"
+import { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
+import EditProduct from "./EditProduct";
+import DeleteProduct from "./DeleteProduct";
+import ProductDetails from "./ProductDetails";
+import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+import { parseProductType } from "../../../utils/parsers/productType.parser";
+import { SackPrice } from "../../../utils/types/schema.type";
 
 interface ItemTableProps {
-  products: ProductResponse[]
-  onProductUpdate: () => void
+  products: ProductResponse[];
+  onProductUpdate: () => void;
 }
 
-export default function ItemTable({ products, onProductUpdate }: ItemTableProps) {
-  const [selectedProduct, setSelectedProduct] = useState<ProductResponse | null>(null)
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+export default function ItemTable({
+  products,
+  onProductUpdate,
+}: ItemTableProps) {
+  const [selectedProduct, setSelectedProduct] =
+    useState<ProductResponse | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleProductDeleted = () => {
-    onProductUpdate()
-  }
+    onProductUpdate();
+  };
 
   const handleRowClick = (product: ProductResponse) => {
-    setSelectedProduct(product)
-    setIsDetailsOpen(true)
-  }
+    setSelectedProduct(product);
+    setIsDetailsOpen(true);
+  };
 
   const handleCloseDetails = () => {
-    setIsDetailsOpen(false)
-    setSelectedProduct(null)
-  }
+    setIsDetailsOpen(false);
+    setSelectedProduct(null);
+  };
 
   if (products.length === 0) {
     return (
       <div className="text-center py-8 border rounded-md bg-muted/20">
         <p className="text-muted-foreground mb-2">No products found</p>
-        <p className="text-sm text-muted-foreground">Add products using the Create Product button above</p>
+        <p className="text-sm text-muted-foreground">
+          Add products using the Create Product button above
+        </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -51,16 +65,18 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
               <TableHead className="w-[250px] font-semibold">Product</TableHead>
               <TableHead className="font-semibold">Sack Prices</TableHead>
               <TableHead className="font-semibold">Per Kilo Price</TableHead>
-              <TableHead className="text-right w-[120px] font-semibold">Actions</TableHead>
+              <TableHead className="text-right w-[120px] font-semibold">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.map((product) => (
-              <TableRow 
-                key={product.id} 
+              <TableRow
+                key={product.id}
                 className="hover:bg-muted/30 cursor-pointer"
               >
-                <TableCell 
+                <TableCell
                   className="font-medium"
                   onClick={() => handleRowClick(product)}
                 >
@@ -79,49 +95,63 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
                 <TableCell onClick={() => handleRowClick(product)}>
                   {product.SackPrice && product.SackPrice.length > 0 ? (
                     <div className="space-y-1.5">
-                      {product.SackPrice.map((sackPrice) => (
-                        <div key={sackPrice.id} className="flex items-center gap-2 text-sm">
-                          <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
+                      {product.SackPrice.map((sackPrice: any) => (
+                        <div
+                          key={sackPrice.id}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <Badge
+                            variant="outline"
+                            className="font-normal bg-primary/5 text-primary border-primary/20"
+                          >
                             {parseProductType(sackPrice.type)}
                           </Badge>
-                          <span className="font-medium text-secondary">₱{sackPrice.price.toFixed(2)}</span>
-                          <span className="text-muted-foreground text-xs">(Stock: {sackPrice.stock})</span>
-                          {/* Commented out special price badge */}
-                          {/* {sackPrice.specialPrice && sackPrice.specialPrice.price > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-secondary/10 text-secondary border-secondary/20"
-                            >
-                              Special: ₱{sackPrice.specialPrice.price.toFixed(2)}
-                              (Min: {sackPrice.specialPrice.minimumQty})
-                            </Badge>
-                          )} */}
+                          <span className="font-medium text-secondary">
+                            ₱{sackPrice.price.toFixed(2)}
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            (Stock: {sackPrice.stock})
+                          </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">No sack prices</span>
+                    <span className="text-sm text-muted-foreground italic">
+                      No sack pricing
+                    </span>
                   )}
                 </TableCell>
                 <TableCell onClick={() => handleRowClick(product)}>
                   {product.perKiloPrice ? (
                     <div className="flex items-center gap-2 text-sm">
-                      <Badge variant="outline" className="font-normal bg-primary/5 text-primary border-primary/20">
+                      <Badge
+                        variant="outline"
+                        className="font-normal bg-primary/5 text-primary border-primary/20"
+                      >
                         Per Kilo
                       </Badge>
-                      <span className="font-medium text-secondary">₱{product.perKiloPrice.price.toFixed(2)}</span>
-                      <span className="text-muted-foreground text-xs">(Stock: {product.perKiloPrice.stock} kg)</span>
+                      <span className="font-medium text-secondary">
+                        ₱{product.perKiloPrice.price.toFixed(2)}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        (Stock: {product.perKiloPrice.stock} kg)
+                      </span>
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">No kilo price</span>
+                    <span className="text-sm text-muted-foreground">
+                      No kilo price
+                    </span>
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div 
+                  <div
                     className="flex items-center justify-end gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <EditProduct productId={product.id} onProductUpdated={onProductUpdate} />
+                    <EditProduct
+                      productId={product.id}
+                      onProductUpdated={onProductUpdate}
+                    />
                     <DeleteProduct
                       productId={product.id}
                       productName={product.name}
@@ -134,12 +164,12 @@ export default function ItemTable({ products, onProductUpdate }: ItemTableProps)
           </TableBody>
         </Table>
       </div>
-      
-      <ProductDetails 
+
+      <ProductDetails
         product={selectedProduct}
         open={isDetailsOpen}
         onClose={handleCloseDetails}
       />
     </>
-  )
+  );
 }

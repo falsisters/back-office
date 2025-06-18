@@ -14,6 +14,8 @@ import {
   DollarSign,
   BanknoteIcon,
   Package2,
+  BoxIcon,
+  User,
 } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 
@@ -24,9 +26,11 @@ const navItems = [
   { href: "/sales", label: "Sales Report", icon: FileText },
   { href: "/deliveries", label: "Delivery", icon: Truck },
   { href: "/attachments", label: "Attachments", icon: Link2 },
+  { href: "/employees", label: "Employees", icon: User },
   { href: "/expenses", label: "Expenses", icon: BanknoteIcon },
   { href: "/profits", label: "Profits", icon: DollarSign },
   { href: "/stocks", label: "Stocks", icon: Package2 },
+  { href: "/kahon", label: "Kahon", icon: BoxIcon },
   { href: "/usage", label: "Usage", icon: FileText },
 ];
 
@@ -51,7 +55,7 @@ export function Sidebar() {
           {isOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
         </button>
         <div className="flex flex-col items-center">
-          <h1 className="text-2xl font-bold">FalSisters POS</h1>
+          <h1 className="text-2xl font-bold">Falsisters POS</h1>
           <p className="text-sm text-white/80">Backoffice</p>
         </div>
         <div className="w-11"></div> {/* Placeholder for layout balance */}
@@ -80,7 +84,7 @@ export function Sidebar() {
 
         {/* Sidebar Title - Desktop */}
         <div className="hidden md:flex flex-col items-center justify-center px-6 py-6 border-b border-white/10">
-          <h1 className="text-2xl font-bold">FalSisters POS</h1>
+          <h1 className="text-2xl font-bold">Falsisters POS</h1>
           <p className="text-sm text-white/80 mt-1">Backoffice</p>
         </div>
 

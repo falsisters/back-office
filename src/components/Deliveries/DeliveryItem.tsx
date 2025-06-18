@@ -12,9 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDeliveryById } from "@/lib/server/getDeliveryById";
-import type { GetDeliveryByIdPayload } from "../../../utils/types/getDeliveryById.type";
-import { deleteDelivery } from "@/lib/server/deleteDelivery";
+import { getDeliveryById } from "@/lib/server/Deliveries/getDeliveryById";
+import type { GetDeliveryByIdPayload } from "../../../utils/types/Deliveries/getDeliveryById.type";
+import { deleteDelivery } from "@/lib/server/Deliveries/deleteDelivery";
 import {
   Loader2,
   Trash2Icon,

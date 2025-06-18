@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { createAttachment } from "@/lib/server/createAttachment"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { createAttachment } from "@/lib/server/Attachment/createAttachment";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -13,61 +13,96 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { PlusCircle, Upload } from "lucide-react"
-import type { AttachmentType } from "../../../utils/types/schema.type"
+} from "@/components/ui/dialog";
+import { PlusCircle, Upload } from "lucide-react";
+import type { AttachmentType } from "../../../utils/types/schema.type";
 
 export function CreateAttachment({
   onAttachmentCreated,
 }: {
-  onAttachmentCreated: (newAttachment: { id: string; name: string; type: AttachmentType; url: string }) => void
+  onAttachmentCreated: (newAttachment: {
+    id: string;
+    name: string;
+    type: AttachmentType;
+    url: string;
+  }) => void;
 }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState("")
-  const [type, setType] = useState<AttachmentType>("EXPENSE_RECEIPT")
-  const [file, setFile] = useState<File | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<AttachmentType>("EXPENSE_RECEIPT");
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
 
     if (!file) {
-      setError("Please select a file to upload")
-      return
+      setError("Please select a file to upload");
+      return;
     }
 
     try {
-      setIsLoading(true)
-      const formData = new FormData()
-      formData.append("name", name)
-      formData.append("type", type)
-      formData.append("file", file)
+      setIsLoading(true);
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("type", type);
+      formData.append("file", file);
 
-      const newAttachment = await createAttachment(formData)
-      onAttachmentCreated(newAttachment)
-      resetForm()
-      setOpen(false)
+      const newAttachment = await createAttachment(formData);
+      onAttachmentCreated(newAttachment);
+      resetForm();
+      setOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred")
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const resetForm = () => {
-    setName("")
-    setType("EXPENSE_RECEIPT")
-    setFile(null)
-    setError(null)
-  }
+    setName("");
+    setType("EXPENSE_RECEIPT");
+    setFile(null);
+    setError(null);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0])
+    const file = e.target.files?.[0] || null;
+
+    if (file) {
+      // Check file type - allow JPG, PNG, and PDF for attachments
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/pdf",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError("Please upload only JPG, PNG, or PDF files");
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      // Check file size (3MB = 3 * 1024 * 1024 bytes)
+      const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+      if (file.size > maxSize) {
+        setError("File size must be smaller than 3MB");
+        // Reset the input
+        e.target.value = "";
+        return;
+      }
+
+      setFile(file);
+      setError(null); // Clear any previous errors
+    } else {
+      setFile(null);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -79,8 +114,12 @@ export function CreateAttachment({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] shadow-xl border-t-4 border-t-secondary">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-primary">Upload New Attachment</DialogTitle>
-          <DialogDescription>Add a new file to your attachments</DialogDescription>
+          <DialogTitle className="text-xl font-bold text-primary">
+            Upload New Attachment
+          </DialogTitle>
+          <DialogDescription>
+            Add a new file to your attachments
+          </DialogDescription>
         </DialogHeader>
 
         {error && (
@@ -115,7 +154,9 @@ export function CreateAttachment({
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="EXPENSE_RECEIPT">Expense Receipt</option>
-              <option value="CHECKS_AND_BANK_TRANSFER">Checks & Bank Transfers</option>
+              <option value="CHECKS_AND_BANK_TRANSFER">
+                Checks & Bank Transfers
+              </option>
               <option value="INVENTORIES">Inventories</option>
               <option value="SUPPORTING_DOCUMENTS">Supporting Documents</option>
             </select>
@@ -132,12 +173,15 @@ export function CreateAttachment({
                   <p className="mb-2 text-sm text-gray-500">
                     {file ? file.name : "Click to upload or drag and drop"}
                   </p>
-                  <p className="text-xs text-gray-500">PDF, DOCX, JPG, PNG (MAX. 10MB)</p>
+                  <p className="text-xs text-gray-500">
+                    JPG, PNG, PDF (MAX. 3MB)
+                  </p>
                 </div>
-                <input 
-                  id="file" 
-                  type="file" 
-                  className="hidden" 
+                <input
+                  id="file"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,application/pdf"
+                  className="hidden"
                   onChange={handleFileChange}
                   required
                 />
@@ -145,11 +189,15 @@ export function CreateAttachment({
             </div>
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full bg-secondary hover:bg-secondary/90 text-white">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-secondary hover:bg-secondary/90 text-white"
+          >
             {isLoading ? "Uploading..." : "Upload Attachment"}
           </Button>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

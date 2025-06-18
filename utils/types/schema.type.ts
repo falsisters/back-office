@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const CashierPermissionsEnum = z.enum([
@@ -7,24 +6,16 @@ export const CashierPermissionsEnum = z.enum([
   "STOCKS",
   "EDIT_PRICE",
   "KAHON",
-  "PROFITS",
+  "BILLS",
   "ATTACHMENTS",
   "SALES_HISTORY",
 ]);
 export type CashierPermissions = z.infer<typeof CashierPermissionsEnum>;
 
-export const SackTypeEnum = z.enum([
-  "FIFTY_KG",
-  "TWENTY_FIVE_KG",
-  "FIVE_KG",
-]);
+export const SackTypeEnum = z.enum(["FIFTY_KG", "TWENTY_FIVE_KG", "FIVE_KG"]);
 export type SackType = z.infer<typeof SackTypeEnum>;
 
-export const PaymentMethodEnum = z.enum([
-  "CASH",
-  "BANK_TRANSFER",
-  "CHECK",
-]);
+export const PaymentMethodEnum = z.enum(["CASH", "BANK_TRANSFER", "CHECK"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
 export const TransferTypeEnum = z.enum([
@@ -53,11 +44,7 @@ export const BillTypeEnum = z.enum([
 ]);
 export type BillType = z.infer<typeof BillTypeEnum>;
 
-export const OrderStatusEnum = z.enum([
-  "PENDING",
-  "COMPLETED",
-  "CANCELLED",
-]);
+export const OrderStatusEnum = z.enum(["PENDING", "COMPLETED", "CANCELLED"]);
 export type OrderStatus = z.infer<typeof OrderStatusEnum>;
 
 // Base Schemas
@@ -75,11 +62,12 @@ export const CashierSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   accessKey: z.string(),
-  secureCode: z.string().cuid().default(() => "generated-by-server"),
+  secureCode: z
+    .string()
+    .cuid()
+    .default(() => "generated-by-server"),
   permissions: z.array(CashierPermissionsEnum),
   userId: z.string(),
-  inventoryId: z.string().cuid().nullable().optional(),
-  kahonId: z.string().cuid().nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -128,9 +116,9 @@ export const SackPriceSchema = z.object({
   price: z.number().positive(),
   stock: z.number().int().min(0),
   type: SackTypeEnum,
-  profit: z.number().min(0).default(0),
+  profit: z.number().min(0).nullable().optional(),
   productId: z.string(),
-  specialPriceId: z.string().cuid().nullable().optional(),
+  specialPriceId: z.string().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -140,7 +128,7 @@ export const SpecialPriceSchema = z.object({
   id: z.string().cuid(),
   price: z.number().positive(),
   minimumQty: z.number().int().positive(),
-  profit: z.number().min(0).default(0),
+  profit: z.number().min(0).nullable().optional(),
   sackPriceId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -150,8 +138,8 @@ export type SpecialPrice = z.infer<typeof SpecialPriceSchema>;
 export const PerKiloPriceSchema = z.object({
   id: z.string().cuid(),
   price: z.number().positive(),
-  stock: z.number().min(0),
-  profit: z.number().min(0).default(0),
+  stock: z.number().min(0), // Changed from int to allow decimal values
+  profit: z.number().min(0).nullable().optional(),
   productId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -170,13 +158,13 @@ export type Sale = z.infer<typeof SaleSchema>;
 
 export const SaleItemSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(),
+  quantity: z.number().positive(), // Changed to allow decimal quantities
   discountedPrice: z.number().positive().nullable().optional(),
   isDiscounted: z.boolean().default(false),
   productId: z.string(),
-  sackPriceId: z.string().cuid().nullable().optional(),
+  sackPriceId: z.string().nullable().optional(),
   sackType: SackTypeEnum.nullable().optional(),
-  perKiloPriceId: z.string().cuid().nullable().optional(),
+  perKiloPriceId: z.string().nullable().optional(),
   saleId: z.string(),
   isGantang: z.boolean().default(false),
   isSpecialPrice: z.boolean().default(false),
@@ -197,11 +185,11 @@ export type Delivery = z.infer<typeof DeliverySchema>;
 
 export const DeliveryItemSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(),
+  quantity: z.number().positive(), // Changed to allow decimal quantities
   productId: z.string(),
-  sackPriceId: z.string().cuid().nullable().optional(),
+  sackPriceId: z.string().nullable().optional(),
   sackType: SackTypeEnum.nullable().optional(),
-  perKiloPriceId: z.string().cuid().nullable().optional(),
+  perKiloPriceId: z.string().nullable().optional(),
   deliveryId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -222,7 +210,7 @@ export type Transfer = z.infer<typeof TransferSchema>;
 export const KahonSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  userId: z.string(),
+  cashierId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -231,7 +219,7 @@ export type Kahon = z.infer<typeof KahonSchema>;
 export const InventorySchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  userId: z.string(),
+  cashierId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -251,7 +239,7 @@ export const InventorySheetSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   inventoryId: z.string(),
-  columns: z.number().int().positive().default(10),
+  columns: z.number().int().positive().default(10), // Updated to match Prisma default
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -285,7 +273,7 @@ export const SheetSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   kahonId: z.string(),
-  columns: z.number().int().positive().default(10),
+  columns: z.number().int().positive().default(10), // Updated to match Prisma default
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
@@ -329,9 +317,8 @@ export type Attachment = z.infer<typeof AttachmentSchema>;
 
 export const BillCountSchema = z.object({
   id: z.string().cuid(),
-  userId: z.string(),
-  expenses: z.number().min(0),
-  showExpenses: z.boolean().default(false),
+  userId: z.string().nullable().optional(),
+  cashierId: z.string().nullable().optional(),
   beginningBalance: z.number().min(0),
   showBeginningBalance: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
@@ -375,11 +362,11 @@ export type Order = z.infer<typeof OrderSchema>;
 
 export const OrderItemSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(),
+  quantity: z.number().positive(), // Changed to allow decimal quantities
   productId: z.string(),
-  sackPriceId: z.string().cuid().nullable().optional(),
+  sackPriceId: z.string().nullable().optional(),
   sackType: SackTypeEnum.nullable().optional(),
-  perKiloPriceId: z.string().cuid().nullable().optional(),
+  perKiloPriceId: z.string().nullable().optional(),
   isSpecialPrice: z.boolean().default(false),
   orderId: z.string(),
   createdAt: z.date().default(() => new Date()),
@@ -390,7 +377,8 @@ export type OrderItem = z.infer<typeof OrderItemSchema>;
 // New schemas for ExpenseList and ExpenseItems
 export const ExpenseListSchema = z.object({
   id: z.string().cuid(),
-  userId: z.string(),
+  userId: z.string().nullable().optional(),
+  cashierId: z.string().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
 });
