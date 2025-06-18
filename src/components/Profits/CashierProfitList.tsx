@@ -51,30 +51,48 @@ export default function CashierProfitList({
 
     loadProfits();
   }, [cashierId, dateFilterMode, date, selectedYear, selectedMonth]);
-
   // Transform profit data to match ProfitTracker expected format
   const transformProfitData = (data: any) => {
     if (!data?.rawItems) return [];
 
-    return data.rawItems.map((item: any) => ({
-      productKey: `${item.productName}-${item.priceType || "perKilo"}-sack`,
-      productName: item.productName,
-      productImage: "https://placehold.co/800x800?text=Product",
-      sackType:
-        item.priceType === "50KG"
-          ? "FIFTY_KG"
-          : item.priceType === "25KG"
-          ? "TWENTY_FIVE_KG"
-          : item.priceType === "5KG"
-          ? "FIVE_KG"
-          : undefined,
-      priceType: "sack" as const,
-      normalQty: item.quantity,
-      specialQty: 0,
-      isAsin: item.isAsin,
-      normalProfit: item.profitPerUnit ?? 0,
-      specialProfit: 0,
-    }));
+    return data.rawItems.map((item: any) => {
+      // Proper sack type mapping based on the actual data structure
+      let sackType: SackType | undefined;
+      
+      if (item.sackType) {
+        // Direct mapping from the database sackType field
+        sackType = item.sackType as SackType;
+      } else if (item.priceType) {
+        // Fallback mapping from priceType field
+        switch (item.priceType) {
+          case "50KG":
+          case "FIFTY_KG":
+            sackType = "FIFTY_KG";
+            break;
+          case "25KG":
+          case "TWENTY_FIVE_KG":
+            sackType = "TWENTY_FIVE_KG";
+            break;
+          case "5KG":
+          case "FIVE_KG":
+            sackType = "FIVE_KG";
+            break;
+          default:
+            sackType = undefined;
+        }
+      }      return {
+        productKey: `${item.productName}-${sackType || "perKilo"}-${sackType ? "sack" : "per-kilo"}`,
+        productName: item.productName,
+        productImage: item.productImage || "https://placehold.co/800x800?text=Product",
+        sackType: sackType,
+        priceType: sackType ? ("sack" as const) : ("per-kilo" as const),
+        normalQty: item.quantity || 0,
+        specialQty: 0,
+        isAsin: item.isAsin || false,
+        normalProfit: item.profitPerUnit ?? 0,
+        specialProfit: 0,
+      };
+    }).filter((item: any) => item.priceType === "sack"); // Only return sack items
   };
 
   return (

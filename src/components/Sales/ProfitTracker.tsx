@@ -33,9 +33,7 @@ interface ProfitTrackerProps {
 }
 
 export default function ProfitTracker({ salesData, previousDaySalesData, selectedDate, dateFilterMode }: ProfitTrackerProps) {
-  const filteredSalesData = salesData.filter((item) => item.priceType === "sack")
-
-  // Group sales data with proper type separation
+  const filteredSalesData = salesData.filter((item) => item.priceType === "sack")  // Group sales data with proper type separation
   const productGroups = filteredSalesData.reduce(
     (acc, item) => {
       const key = `${item.productName}-${item.sackType || ""}`
@@ -125,7 +123,7 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
         rows.push({
           key: `${item.productKey}-normal`,
           product: item.productName,
-          sackType: sackTypeLabels[item.sackType!],
+          sackType: item.sackType ? sackTypeLabels[item.sackType] : "Per Kilo",
           quantity: item.normalQty,
           profit: item.normalProfit,
           total: item.normalProfit * item.normalQty,
@@ -136,7 +134,7 @@ export default function ProfitTracker({ salesData, previousDaySalesData, selecte
         rows.push({
           key: `${item.productKey}-special`,
           product: item.productName,
-          sackType: sackTypeLabels[item.sackType!],
+          sackType: item.sackType ? sackTypeLabels[item.sackType] : "Per Kilo",
           quantity: item.specialQty,
           profit: item.specialProfit || 0,
           total: (item.specialProfit || 0) * item.specialQty,

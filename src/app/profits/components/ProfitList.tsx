@@ -100,84 +100,120 @@ export default function ProfitList() {
 
     setFilteredSales(filtered);
   }, [date, sales, dateFilterMode, formattedSelectedMonth]);
-
   const mappedSalesData = filteredSales.flatMap((sale) =>
-    sale.SaleItem.map((item) => {
-      const isSack = !!item.sackPriceId;
-      const priceType: "sack" | "per-kilo" = isSack ? "sack" : "per-kilo";
-      const sackType = item.sackType as SackType | undefined;
-      const sackPrice =
-        item.product.SackPrice.find((sp) => sp.type === sackType) ||
-        item.product.SackPrice[0];
+    sale.SaleItem.filter((item) => !!item.sackPriceId) // Only include sack items
+      .map((item) => {
+        const isSack = !!item.sackPriceId;
+        const priceType: "sack" | "per-kilo" = isSack ? "sack" : "per-kilo";
+        const sackType = item.sackType as SackType | undefined;
+        const sackPrice =
+          item.product.SackPrice.find((sp) => sp.type === sackType) ||
+          item.product.SackPrice[0];
 
-      let originalProfit = 0;
+        let originalProfit = 0;
 
-      if (isSack) {
-        originalProfit = sackPrice?.profit ?? 0;
-      } else {
-        originalProfit = item.product.perKiloPrice?.profit ?? 0;
-      }
+        if (isSack) {
+          originalProfit = sackPrice?.profit ?? 0;
+        } else {
+          originalProfit = item.product.perKiloPrice?.profit ?? 0;
+        }
 
-      const normalProfit = originalProfit;
-      const specialProfit = 0;
+        const normalProfit = originalProfit;
+        const specialProfit = 0;
 
-      return {
-        productKey: `${item.product.name}-${
-          sackType || "perKilo"
-        }-${priceType}`,
-        productName: item.product.name,
-        productImage: item.product.picture,
-        sackType: sackType,
-        priceType: priceType,
-        normalQty: item.quantity,
-        specialQty: 0,
-        isAsin: item.product.name.toLowerCase().includes("asin"),
-        normalProfit: normalProfit,
-        specialProfit: specialProfit,
-      };
-    })
+        return {
+          productKey: `${item.product.name}-${
+            sackType || "perKilo"
+          }-${priceType}`,
+          productName: item.product.name,
+          productImage: item.product.picture,
+          sackType: sackType,
+          priceType: priceType,
+          normalQty: item.quantity,
+          specialQty: 0,
+          isAsin: item.product.name.toLowerCase().includes("asin"),
+          normalProfit: normalProfit,
+          specialProfit: specialProfit,
+        };
+      })
   );
-
   const previousDayMappedSalesData = previousDaySales.flatMap((sale) =>
-    sale.SaleItem.map((item) => {
-      const isSack = !!item.sackPriceId;
-      const priceType: "sack" | "per-kilo" = isSack ? "sack" : "per-kilo";
-      const sackType = item.sackType as SackType | undefined;
-      const sackPrice =
-        item.product.SackPrice.find((sp) => sp.type === sackType) ||
-        item.product.SackPrice[0];
+    sale.SaleItem.filter((item) => !!item.sackPriceId) // Only include sack items
+      .map((item) => {
+        const isSack = !!item.sackPriceId;
+        const priceType: "sack" | "per-kilo" = isSack ? "sack" : "per-kilo";
+        const sackType = item.sackType as SackType | undefined;
+        const sackPrice =
+          item.product.SackPrice.find((sp) => sp.type === sackType) ||
+          item.product.SackPrice[0];
 
-      let originalProfit = 0;
+        let originalProfit = 0;
 
-      if (isSack) {
-        originalProfit = sackPrice?.profit ?? 0;
-      } else {
-        originalProfit = item.product.perKiloPrice?.profit ?? 0;
-      }
+        if (isSack) {
+          originalProfit = sackPrice?.profit ?? 0;
+        } else {
+          originalProfit = item.product.perKiloPrice?.profit ?? 0;
+        }
 
-      const normalProfit = originalProfit;
-      const specialProfit = 0;
+        const normalProfit = originalProfit;
+        const specialProfit = 0;
 
-      return {
-        productKey: `${item.product.name}-${
-          sackType || "perKilo"
-        }-${priceType}`,
-        productName: item.product.name,
-        productImage: item.product.picture,
-        sackType: sackType,
-        priceType: priceType,
-        normalQty: item.quantity,
-        specialQty: 0,
-        isAsin: item.product.name.toLowerCase().includes("asin"),
-        normalProfit: normalProfit,
-        specialProfit: specialProfit,
-      };
-    })
+        return {
+          productKey: `${item.product.name}-${
+            sackType || "perKilo"
+          }-${priceType}`,
+          productName: item.product.name,
+          productImage: item.product.picture,
+          sackType: sackType,
+          priceType: priceType,
+          normalQty: item.quantity,
+          specialQty: 0,
+          isAsin: item.product.name.toLowerCase().includes("asin"),
+          normalProfit: normalProfit,
+          specialProfit: specialProfit,
+        };
+      })
   );
-
   return (
     <div className="p-4 space-y-6">
       <h1 className="text-3xl font-bold mb-4">Profit Tracker</h1>
+
+      <SalesFilters
+        dateFilterMode={dateFilterMode}
+        setDateFilterMode={setDateFilterMode}
+        date={date}
+        setDate={setDate}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        productFilter={""}
+        setProductFilter={() => {}}
+        viewMode={"perProduct"}
+        setViewMode={() => {}}
+        paymentFilter={"ALL"}
+        setPaymentFilter={() => {}}
+        sackKiloFilter={"ALL"}
+        setSackKiloFilter={() => {}}
+        asinOtherFilter={"ALL"}
+        setAsinOtherFilter={() => {}}
+        hideExtraFilters={true}
+        title="Profit Filters"
+      />
+
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
+          <Spinner />
+          <p className="text-gray-500 mt-4">Loading profit data...</p>
+        </div>
+      ) : (
+        <ProfitTracker
+          salesData={mappedSalesData}
+          previousDaySalesData={previousDayMappedSalesData}
+          selectedDate={date || new Date()}
+          dateFilterMode={dateFilterMode}
+        />
+      )}
 
       <CashierSelector
         selectedCashierId={selectedCashierId}
