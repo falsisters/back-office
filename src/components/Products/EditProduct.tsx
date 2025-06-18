@@ -570,11 +570,10 @@ export default function EditProduct({
                                 const newSackPrices = [...sackPrices];
                                 const value = e.target.value;
                                 if (value === "") {
-                                  newSackPrices[index].profit = undefined;
-                                } else {
+                                  newSackPrices[index].profit = undefined;                                } else {
                                   const numValue = parseFloat(value);
                                   if (!isNaN(numValue)) {
-                                    newSackPrices[index].profit = numValue;
+                                    newSackPrices[index].profit = CurrencyCalculator.round(numValue);
                                   }
                                 }
                                 setSackPrices(newSackPrices);
@@ -704,13 +703,12 @@ export default function EditProduct({
                                       if (value === "") {
                                         newSackPrices[
                                           index
-                                        ].specialPrice!.profit = undefined;
-                                      } else {
+                                        ].specialPrice!.profit = undefined;                                      } else {
                                         const numValue = parseFloat(value);
                                         if (!isNaN(numValue)) {
                                           newSackPrices[
                                             index
-                                          ].specialPrice!.profit = numValue;
+                                          ].specialPrice!.profit = CurrencyCalculator.round(numValue);
                                         }
                                       }
                                       setSackPrices(newSackPrices);
@@ -811,13 +809,12 @@ export default function EditProduct({
                           setPerKiloPrice({
                             ...(perKiloPrice || { price: 0, stock: 0 }),
                             profit: undefined,
-                          });
-                        } else {
+                          });                        } else {
                           const numValue = parseFloat(value);
                           if (!isNaN(numValue)) {
                             setPerKiloPrice({
                               ...(perKiloPrice || { price: 0, stock: 0 }),
-                              profit: numValue,
+                              profit: CurrencyCalculator.round(numValue),
                             });
                           }
                         }

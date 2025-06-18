@@ -125,9 +125,8 @@ export default function CashierProfitList({
           <Spinner />
           <p className="text-gray-500 mt-4">Loading profit data...</p>
         </div>
-      ) : (
-        <>
-          {profitData ? (
+      ) : (        <>
+          {profitData && transformProfitData(profitData).length > 0 ? (
             <ProfitTracker
               salesData={transformProfitData(profitData)}
               previousDaySalesData={[]}
@@ -135,10 +134,22 @@ export default function CashierProfitList({
               dateFilterMode={dateFilterMode}
             />
           ) : (
-            <div className="bg-gray-50 rounded-lg p-6 text-center">
-              <p className="text-gray-500 text-lg">
-                No profit data available for the selected period.
-              </p>
+            <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="text-center p-8">
+                <div className="text-6xl text-gray-400 mb-4">💰</div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Cashier Profit Data
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {dateFilterMode === "day" 
+                    ? `No profit data found for this cashier on ${date?.toLocaleDateString() || "the selected date"}`
+                    : `No profit data found for this cashier in ${new Date(dateFilterMode === "month" ? `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01` : Date.now()).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`
+                  }
+                </p>
+                <p className="text-sm text-gray-400">
+                  Profit data will appear here once this cashier records sales transactions.
+                </p>
+              </div>
             </div>
           )}
         </>
