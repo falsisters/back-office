@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface EditProductProps {
   productId: string;
@@ -257,9 +258,8 @@ export default function EditProduct({
         id: sp.id,
         price: sp.price,
         stock: sp.stock,
-        type: sp.type,
-        profit:
-          sp.profit !== undefined ? Number(sp.profit.toFixed(2)) : undefined,
+        type: sp.type,        profit:
+          sp.profit !== undefined ? CurrencyCalculator.round(sp.profit) : undefined,
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
@@ -267,7 +267,7 @@ export default function EditProduct({
               minimumQty: sp.specialPrice.minimumQty,
               profit:
                 sp.specialPrice.profit !== undefined
-                  ? Number(sp.specialPrice.profit.toFixed(2))
+                  ? CurrencyCalculator.round(sp.specialPrice.profit)
                   : undefined,
             }
           : null,
@@ -280,10 +280,9 @@ export default function EditProduct({
           JSON.stringify({
             id: perKiloPrice.id,
             price: perKiloPrice.price,
-            stock: perKiloPrice.stock,
-            profit:
+            stock: perKiloPrice.stock,            profit:
               perKiloPrice.profit !== undefined
-                ? Number(perKiloPrice.profit.toFixed(2))
+                ? CurrencyCalculator.round(perKiloPrice.profit)
                 : undefined,
           })
         );
@@ -581,7 +580,7 @@ export default function EditProduct({
                                 setSackPrices(newSackPrices);
                               }}
                               min="0"
-                              step="0.01"
+                              step="1"
                               className="focus-visible:ring-primary"
                             />
                           </div>
@@ -717,7 +716,7 @@ export default function EditProduct({
                                       setSackPrices(newSackPrices);
                                     }}
                                     min="0"
-                                    step="0.01"
+                                    step="1"
                                     className="focus-visible:ring-secondary"
                                   />
                                 </div>
@@ -824,7 +823,7 @@ export default function EditProduct({
                         }
                       }}
                       min="0"
-                      step="0.01"
+                      step="1"
                       className="focus-visible:ring-primary"
                     />
                   </div>
