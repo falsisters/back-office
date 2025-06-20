@@ -34,7 +34,6 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       (item) => item.perKiloPriceId && !item.sackPriceId
     ).map((item) => ({ item, sale }))
   );
-
   const calculateTotalSales = (items: typeof perKiloPriceItems) => {
     return items.reduce((total, { item }) => {
       let price = 0;
@@ -54,6 +53,10 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           : price;
       return total + displayPrice * item.quantity;
     }, 0);
+  };
+
+  const calculateTotalQuantity = (items: typeof perKiloPriceItems) => {
+    return items.reduce((total, { item }) => total + item.quantity, 0);
   };
 
   return (
@@ -128,12 +131,11 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               </div>
             );
-          })}
-          {asinSackItems.length > 0 && (
+          })}          {asinSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-primary">Total Sales:</span>
-                <span className="font-mono font-bold text-lg text-primary">
+                <span className="font-bold text-xl text-primary">{calculateTotalQuantity(asinSackItems)}</span>
+                <span className="font-mono font-bold text-2xl text-primary">
                   ₱
                   {Math.floor(
                     calculateTotalSales(asinSackItems)
@@ -215,12 +217,11 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               </div>
             );
-          })}
-          {otherSackItems.length > 0 && (
+          })}          {otherSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-primary">Total Sales:</span>
-                <span className="font-mono font-bold text-lg text-primary">
+                <span className="font-bold text-xl text-primary">{calculateTotalQuantity(otherSackItems)}</span>
+                <span className="font-mono font-bold text-2xl text-primary">
                   ₱
                   {Math.floor(
                     calculateTotalSales(otherSackItems)
@@ -290,12 +291,11 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               </div>
             );
-          })}
-          {perKiloPriceItems.length > 0 && (
+          })}          {perKiloPriceItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-primary">Total Sales:</span>
-                <span className="font-mono font-bold text-lg text-primary">
+                <span className="font-bold text-xl text-primary">{calculateTotalQuantity(perKiloPriceItems)}</span>
+                <span className="font-mono font-bold text-2xl text-primary">
                   ₱
                   {Math.floor(
                     calculateTotalSales(perKiloPriceItems)
