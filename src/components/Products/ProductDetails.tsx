@@ -37,13 +37,17 @@ export default function ProductDetails({
     >
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border">
+          <div className="flex items-center gap-4">            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border">
               <Image
                 src={product.picture || "/placeholder.svg"}
-                alt={product.name}
+                alt={product.name || "Product image"}
                 fill
+                sizes="64px"
                 className="object-cover"
+                onError={(e) => {
+                  console.warn("Product image failed to load:", product.picture);
+                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                }}
               />
             </div>
             <div>

@@ -450,9 +450,10 @@ export default function EditProduct({
                       Add Sack Price
                     </Button>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sackPrices.map((sack, index) => (
+                ) : (                  <div className="space-y-4">
+                    {sackPrices
+                      .filter(sack => sack && typeof sack === 'object')
+                      .map((sack, index) => (
                       <div
                         key={sack.id || index}
                         className="space-y-3 border p-4 rounded-lg relative hover:shadow-sm transition-shadow"
@@ -542,10 +543,9 @@ export default function EditProduct({
                             <Label className="text-xs">Stock</Label>{" "}
                             <Input
                               type="number"
-                              placeholder="Stock"
-                              value={
+                              placeholder="Stock"                              value={
                                 sack.stock !== undefined && sack.stock !== null
-                                  ? sack.stock.toString()
+                                  ? String(sack.stock)
                                   : ""
                               }
                               onChange={(e) => {
@@ -573,10 +573,9 @@ export default function EditProduct({
                             <Label className="text-xs">Profit (₱)</Label>
                             <Input
                               type="number"
-                              placeholder="Profit (optional)"
-                              value={
-                                sack.profit !== undefined
-                                  ? sack.profit.toString()
+                              placeholder="Profit (optional)"                              value={
+                                sack.profit !== undefined && sack.profit !== null
+                                  ? String(sack.profit)
                                   : ""
                               }
                               onChange={(e) => {
@@ -702,10 +701,9 @@ export default function EditProduct({
                                   <Label className="text-xs">Profit (₱)</Label>
                                   <Input
                                     type="number"
-                                    placeholder="Profit (optional)"
-                                    value={
-                                      sack.specialPrice?.profit !== undefined
-                                        ? sack.specialPrice.profit.toString()
+                                    placeholder="Profit (optional)"                                    value={
+                                      sack.specialPrice?.profit !== undefined && sack.specialPrice?.profit !== null
+                                        ? String(sack.specialPrice.profit)
                                         : ""
                                     }
                                     onChange={(e) => {
@@ -797,11 +795,10 @@ export default function EditProduct({
                     <Label className="text-xs">Stock (KG)</Label>
                     <Input
                       type="number"
-                      placeholder="Stock"
-                      value={
+                      placeholder="Stock"                      value={
                         perKiloPrice?.stock !== undefined &&
                         perKiloPrice?.stock !== null
-                          ? perKiloPrice.stock.toString()
+                          ? String(perKiloPrice.stock)
                           : ""
                       }
                       onChange={(e) =>
@@ -825,10 +822,9 @@ export default function EditProduct({
                     <Label className="text-xs">Profit (₱)</Label>
                     <Input
                       type="number"
-                      placeholder="Profit (optional)"
-                      value={
-                        perKiloPrice?.profit !== undefined
-                          ? perKiloPrice.profit.toString()
+                      placeholder="Profit (optional)"                      value={
+                        perKiloPrice?.profit !== undefined && perKiloPrice?.profit !== null
+                          ? String(perKiloPrice.profit)
                           : ""
                       }
                       onChange={(e) => {

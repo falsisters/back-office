@@ -10,40 +10,104 @@ interface PriceSummaryProps {
 
 export default function PriceSummary({ products }: PriceSummaryProps) {
   const calculateTotalInventoryValue = () => {
-    return products.reduce((total, product) => {
-      // Safe calculation for sack prices
-      const sackPriceValue = Array.isArray(product.SackPrice)
-        ? product.SackPrice.reduce(
-            (sackTotal: any, sackPrice: any) =>
-              sackTotal + sackPrice.price * sackPrice.stock,
-            0
-          )
-        : 0;
+    try {
+      return products.reduce((total, product) => {
+        if (!product || typeof product !== 'object') {
+          console.warn('Invalid product in inventory calculation:', product);
+          return total;
+        }
 
-      // Safe calculation for per kilo prices (now nullable)
-      const perKiloValue = product.perKiloPrice
-        ? product.perKiloPrice.price * product.perKiloPrice.stock
-        : 0;
+        // Safe calculation for sack prices
+        const sackPriceValue = Array.isArray(product.SackPrice)
+          ? product.SackPrice.reduce(
+              (sackTotal: number, sackPrice: any) => {
+                if (!sackPrice || typeof sackPrice.price !== 'number' || typeof sackPrice.stock !== 'number') {
+                  console.warn('Invalid sack price data:', sackPrice);
+                  return sackTotal;
+                }
+                return sackTotal + (sackPrice.price * sackPrice.stock);
+              },
+              0
+            )
+          : 0;
 
-      return total + sackPriceValue + perKiloValue;
-    }, 0);
+        // Safe calculation for per kilo prices (now nullable)
+        const perKiloValue = product.perKiloPrice && 
+          typeof product.perKiloPrice.price === 'number' && 
+          typeof product.perKiloPrice.stock === 'number'
+          ? product.perKiloPrice.price * product.perKiloPrice.stock
+          : 0;
+
+        return total + sackPriceValue + perKiloValue;
+      }, 0);
+    } catch (error) {
+      console.error('Error calculating inventory value:', error);
+      return 0;
+    }
   };
 
   const calculateTotalStock = () => {
-    return products.reduce((total, product) => {
-      // Safe calculation for sack stock
-      const sackStock = Array.isArray(product.SackPrice)
-        ? product.SackPrice.reduce(
-            (sackTotal: any, sackPrice: any) => sackTotal + sackPrice.stock,
-            0
-          )
-        : 0;
+    try {
+      return products.reduce((total, product) => {
+        if (!product || typeof product !== 'object') {
+          console.warn('Invalid product in stock calculation:', product);
+          return total;
+        }
 
-      // Safe calculation for kilo stock (now nullable)
-      const kiloStock = product.perKiloPrice ? product.perKiloPrice.stock : 0;
+        // Safe calculation for sack stock
+        const sackStock = Array.isArray(product.SackPrice)
+          ? product.SackPrice.reduce(
+              (sackTotal: number, sackPrice: any) => {
+                if (!sackPrice || typeof sackPrice.stock !== 'number') {
+                  console.warn('Invalid sack stock data:', sackPrice);
+                  return sackTotal;
+                }
+                return sackTotal + sackPrice.stock;
+              },
+              0
+            )
+          : 0;
 
-      return total + sackStock + kiloStock;
-    }, 0);
+        // Safe calculation for kilo stock (now nullable)
+        const kiloStock = product.perKiloPrice && typeof product.perKiloPrice.stock === 'number'
+          ? product.perKiloPrice.stock 
+          : 0;
+
+        return total + sackStock + kiloStock;
+      }, 0);
+    } catch (error) {
+      console.error('Error calculating total stock:', error);
+      return 0;
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    try {
+      if (typeof value !== 'number' || isNaN(value)) {
+        console.warn('Invalid value for currency formatting:', value);
+        return '0.00';
+      }
+      return value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    } catch (error) {
+      console.error('Error formatting currency:', error);
+      return '0.00';
+    }
+  };
+
+  const formatNumber = (value: number) => {
+    try {
+      if (typeof value !== 'number' || isNaN(value)) {
+        console.warn('Invalid value for number formatting:', value);
+        return '0';
+      }
+      return value.toLocaleString();
+    } catch (error) {
+      console.error('Error formatting number:', error);
+      return '0';
+    }
   };
 
   return (
@@ -62,8 +126,7 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
             <div>
               <p className="text-sm font-medium text-muted-foreground">
                 Total Products
-              </p>
-              <p className="text-2xl font-bold">{products.length}</p>
+              </p>              <p className="text-2xl font-bold">{products.length || 0}</p>
             </div>
           </div>
 
@@ -76,11 +139,7 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
                 Inventory Value
               </p>
               <p className="text-2xl font-bold">
-                ₱
-                {calculateTotalInventoryValue().toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                ₱{formatCurrency(calculateTotalInventoryValue())}
               </p>
             </div>
           </div>
@@ -94,7 +153,7 @@ export default function PriceSummary({ products }: PriceSummaryProps) {
                 Total Stock
               </p>
               <p className="text-2xl font-bold">
-                {calculateTotalStock().toLocaleString()}
+                {formatNumber(calculateTotalStock())}
               </p>
             </div>
           </div>
