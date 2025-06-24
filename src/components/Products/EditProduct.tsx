@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -35,6 +34,8 @@ import Image from "next/image";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
+import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
+import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 
 interface EditProductProps {
   productId: string;
@@ -66,6 +67,11 @@ export default function EditProduct({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
+  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
+    null
+  );
+  const [isLoadingCashiers, setIsLoadingCashiers] = useState(false);
 
   const loadProduct = useCallback(async () => {
     setIsLoading(true);
@@ -76,6 +82,8 @@ export default function EditProduct({
         setProduct(fetchedProduct);
         setName(fetchedProduct.name);
         setPicturePreview(fetchedProduct.picture);
+        // Fix: Handle cashier property safely
+        setSelectedCashierId(fetchedProduct.cashier?.id || null);
 
         // Handle SackPrice array
         setSackPrices(
@@ -120,11 +128,24 @@ export default function EditProduct({
     }
   }, [productId, toast]);
 
+  const loadCashiers = useCallback(async () => {
+    setIsLoadingCashiers(true);
+    try {
+      const cashiersList = await getAllCashiersByUserId();
+      setCashiers(cashiersList);
+    } catch (error) {
+      console.error("Error loading cashiers:", error);
+    } finally {
+      setIsLoadingCashiers(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isDialogOpen && !product) {
       loadProduct();
+      loadCashiers();
     }
-  }, [isDialogOpen, product, loadProduct]);
+  }, [isDialogOpen, product, loadProduct, loadCashiers]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -252,6 +273,11 @@ export default function EditProduct({
         formData.append("picture", picture);
       }
 
+      // Include cashier ID if changed
+      if (selectedCashierId) {
+        formData.append("cashierId", selectedCashierId);
+      }
+
       const sackPricesData = sackPrices.map((sp) => ({
         id: sp.id,
         price: sp.price,
@@ -357,6 +383,32 @@ export default function EditProduct({
             </div>
           ) : product ? (
             <form onSubmit={handleSubmit} className="space-y-6 py-4">
+              {/* Cashier Assignment Section */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Assigned Cashier</Label>
+                <Select
+                  value={selectedCashierId || ""}
+                  onValueChange={setSelectedCashierId}
+                  disabled={isLoadingCashiers}
+                >
+                  <SelectTrigger className="focus-visible:ring-primary">
+                    <SelectValue placeholder="Select cashier..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cashiers.map((cashier) => (
+                      <SelectItem key={cashier.id} value={cashier.id}>
+                        {cashier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Reassign this product to a different cashier (optional)
+                </p>
+              </div>
+
+              <Separator />
+
               <div className="space-y-2">
                 <Label htmlFor="edit-name" className="text-sm font-medium">
                   Product Name
@@ -450,317 +502,336 @@ export default function EditProduct({
                       Add Sack Price
                     </Button>
                   </div>
-                ) : (                  <div className="space-y-4">
+                ) : (
+                  <div className="space-y-4">
                     {sackPrices
-                      .filter(sack => sack && typeof sack === 'object')
+                      .filter((sack) => sack && typeof sack === "object")
                       .map((sack, index) => (
-                      <div
-                        key={sack.id || index}
-                        className="space-y-3 border p-4 rounded-lg relative hover:shadow-sm transition-shadow"
-                      >
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeSackPrice(index)}
-                          className="h-6 w-6 absolute top-2 right-2 text-destructive hover:bg-destructive/10"
-                          disabled={sackPrices.length === 1}
+                        <div
+                          key={sack.id || index}
+                          className="space-y-3 border p-4 rounded-lg relative hover:shadow-sm transition-shadow"
                         >
-                          <Trash2 size={14} />
-                        </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeSackPrice(index)}
+                            className="h-6 w-6 absolute top-2 right-2 text-destructive hover:bg-destructive/10"
+                            disabled={sackPrices.length === 1}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Type</Label>
-                            <Select
-                              value={sack.type as string}
-                              onValueChange={(value) => {
-                                const newSackPrices = [...sackPrices];
-                                newSackPrices[index].type = value as SackType;
-                                setSackPrices(newSackPrices);
-                              }}
-                            >
-                              <SelectTrigger className="focus:ring-primary">
-                                <SelectValue placeholder="Sack Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.values(SackTypeEnum.enum).map(
-                                  (type) => {
-                                    const isUsed = sackPrices.some(
-                                      (sp, i) => i !== index && sp.type === type
-                                    );
-                                    return (
-                                      <SelectItem
-                                        key={type}
-                                        value={type}
-                                        disabled={isUsed}
-                                      >
-                                        {type === "FIFTY_KG"
-                                          ? "50 KG"
-                                          : type === "TWENTY_FIVE_KG"
-                                          ? "25 KG"
-                                          : "5 KG"}
-                                      </SelectItem>
-                                    );
-                                  }
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-xs">Price (₱)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Price"
-                              value={sack.price || ""}
-                              onChange={(e) => {
-                                const newSackPrices = [...sackPrices];
-                                newSackPrices[index].price = Number(
-                                  e.target.value
-                                );
-                                setSackPrices(newSackPrices);
-                              }}
-                              onWheel={preventWheelChange}
-                              min="0"
-                              step="0.01"
-                              className={
-                                errors[`sackPrice_${index}_price`]
-                                  ? "border-destructive"
-                                  : "focus-visible:ring-primary"
-                              }
-                            />
-                            {errors[`sackPrice_${index}_price`] && (
-                              <p className="text-xs text-destructive">
-                                {errors[`sackPrice_${index}_price`]}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Stock</Label>{" "}
-                            <Input
-                              type="number"
-                              placeholder="Stock"                              value={
-                                sack.stock !== undefined && sack.stock !== null
-                                  ? String(sack.stock)
-                                  : ""
-                              }
-                              onChange={(e) => {
-                                const newSackPrices = [...sackPrices];
-                                newSackPrices[index].stock = Number(
-                                  e.target.value
-                                );
-                                setSackPrices(newSackPrices);
-                              }}
-                              onWheel={preventWheelChange}
-                              min="0"
-                              className={
-                                errors[`sackPrice_${index}_stock`]
-                                  ? "border-destructive"
-                                  : "focus-visible:ring-primary"
-                              }
-                            />
-                            {errors[`sackPrice_${index}_stock`] && (
-                              <p className="text-xs text-destructive">
-                                {errors[`sackPrice_${index}_stock`]}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Profit (₱)</Label>
-                            <Input
-                              type="number"
-                              placeholder="Profit (optional)"                              value={
-                                sack.profit !== undefined && sack.profit !== null
-                                  ? String(sack.profit)
-                                  : ""
-                              }
-                              onChange={(e) => {
-                                const newSackPrices = [...sackPrices];
-                                const value = e.target.value;
-                                if (value === "") {
-                                  newSackPrices[index].profit = undefined;
-                                } else {
-                                  const numValue = parseFloat(value);
-                                  if (!isNaN(numValue)) {
-                                    newSackPrices[index].profit =
-                                      CurrencyCalculator.round(numValue);
-                                  }
-                                }
-                                setSackPrices(newSackPrices);
-                              }}
-                              onWheel={preventWheelChange}
-                              min="0"
-                              step="1"
-                              className="focus-visible:ring-primary"
-                            />
-                          </div>
-                        </div>
-
-                        <Separator className="my-2" />
-
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs text-muted-foreground">
-                              Special Price (Optional)
-                            </Label>
-                            {sack.specialPrice &&
-                              sack.specialPrice &&
-                              (sack.specialPrice.price ?? 0) > 0 && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeSpecialPrice(index)}
-                                  className="h-6 text-xs text-destructive hover:bg-destructive/10"
-                                >
-                                  Remove Special Price
-                                </Button>
-                              )}
-                          </div>
-                          {sack.specialPrice ? (
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-xs">
-                                  Special Price (₱)
-                                </Label>
-                                <Input
-                                  type="number"
-                                  placeholder="Special Price"
-                                  value={sack.specialPrice?.price || ""}
-                                  onChange={(e) => {
-                                    const newSackPrices = [...sackPrices];
-                                    if (!newSackPrices[index].specialPrice) {
-                                      newSackPrices[index].specialPrice = {
-                                        price: 0,
-                                        minimumQty: 0,
-                                      };
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Type</Label>
+                              <Select
+                                value={sack.type as string}
+                                onValueChange={(value) => {
+                                  const newSackPrices = [...sackPrices];
+                                  newSackPrices[index].type = value as SackType;
+                                  setSackPrices(newSackPrices);
+                                }}
+                              >
+                                <SelectTrigger className="focus:ring-primary">
+                                  <SelectValue placeholder="Sack Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.values(SackTypeEnum.enum).map(
+                                    (type) => {
+                                      const isUsed = sackPrices.some(
+                                        (sp, i) =>
+                                          i !== index && sp.type === type
+                                      );
+                                      return (
+                                        <SelectItem
+                                          key={type}
+                                          value={type}
+                                          disabled={isUsed}
+                                        >
+                                          {type === "FIFTY_KG"
+                                            ? "50 KG"
+                                            : type === "TWENTY_FIVE_KG"
+                                            ? "25 KG"
+                                            : "5 KG"}
+                                        </SelectItem>
+                                      );
                                     }
-                                    newSackPrices[index].specialPrice!.price =
-                                      Number(e.target.value);
-                                    setSackPrices(newSackPrices);
-                                  }}
-                                  onWheel={preventWheelChange}
-                                  min="0"
-                                  step="0.01"
-                                  className="focus-visible:ring-secondary"
-                                />
-                              </div>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
+                            <div className="space-y-1">
+                              <Label className="text-xs">Price (₱)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Price"
+                                value={sack.price || ""}
+                                onChange={(e) => {
+                                  const newSackPrices = [...sackPrices];
+                                  newSackPrices[index].price = Number(
+                                    e.target.value
+                                  );
+                                  setSackPrices(newSackPrices);
+                                }}
+                                onWheel={preventWheelChange}
+                                min="0"
+                                step="0.01"
+                                className={
+                                  errors[`sackPrice_${index}_price`]
+                                    ? "border-destructive"
+                                    : "focus-visible:ring-primary"
+                                }
+                              />
+                              {errors[`sackPrice_${index}_price`] && (
+                                <p className="text-xs text-destructive">
+                                  {errors[`sackPrice_${index}_price`]}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Stock</Label>{" "}
+                              <Input
+                                type="number"
+                                placeholder="Stock"
+                                value={
+                                  sack.stock !== undefined &&
+                                  sack.stock !== null
+                                    ? String(sack.stock)
+                                    : ""
+                                }
+                                onChange={(e) => {
+                                  const newSackPrices = [...sackPrices];
+                                  newSackPrices[index].stock = Number(
+                                    e.target.value
+                                  );
+                                  setSackPrices(newSackPrices);
+                                }}
+                                onWheel={preventWheelChange}
+                                min="0"
+                                className={
+                                  errors[`sackPrice_${index}_stock`]
+                                    ? "border-destructive"
+                                    : "focus-visible:ring-primary"
+                                }
+                              />
+                              {errors[`sackPrice_${index}_stock`] && (
+                                <p className="text-xs text-destructive">
+                                  {errors[`sackPrice_${index}_stock`]}
+                                </p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Profit (₱)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Profit (optional)"
+                                value={
+                                  sack.profit !== undefined &&
+                                  sack.profit !== null
+                                    ? String(sack.profit)
+                                    : ""
+                                }
+                                onChange={(e) => {
+                                  const newSackPrices = [...sackPrices];
+                                  const value = e.target.value;
+                                  if (value === "") {
+                                    newSackPrices[index].profit = undefined;
+                                  } else {
+                                    const numValue = parseFloat(value);
+                                    if (!isNaN(numValue)) {
+                                      newSackPrices[index].profit =
+                                        CurrencyCalculator.round(numValue);
+                                    }
+                                  }
+                                  setSackPrices(newSackPrices);
+                                }}
+                                onWheel={preventWheelChange}
+                                min="0"
+                                step="1"
+                                className="focus-visible:ring-primary"
+                              />
+                            </div>
+                          </div>
+
+                          <Separator className="my-2" />
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs text-muted-foreground">
+                                Special Price (Optional)
+                              </Label>
+                              {sack.specialPrice &&
+                                sack.specialPrice &&
+                                (sack.specialPrice.price ?? 0) > 0 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeSpecialPrice(index)}
+                                    className="h-6 text-xs text-destructive hover:bg-destructive/10"
+                                  >
+                                    Remove Special Price
+                                  </Button>
+                                )}
+                            </div>
+                            {sack.specialPrice ? (
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                   <Label className="text-xs">
-                                    Minimum Quantity
+                                    Special Price (₱)
                                   </Label>
                                   <Input
                                     type="number"
-                                    placeholder="Min Qty"
-                                    value={sack.specialPrice?.minimumQty || ""}
+                                    placeholder="Special Price"
+                                    value={sack.specialPrice?.price || ""}
                                     onChange={(e) => {
                                       const newSackPrices = [...sackPrices];
                                       if (!newSackPrices[index].specialPrice) {
                                         newSackPrices[index].specialPrice = {
                                           price: 0,
                                           minimumQty: 0,
-                                          profit: 0,
                                         };
                                       }
-                                      newSackPrices[
-                                        index
-                                      ].specialPrice!.minimumQty = Number(
-                                        e.target.value
-                                      );
+                                      newSackPrices[index].specialPrice!.price =
+                                        Number(e.target.value);
                                       setSackPrices(newSackPrices);
                                     }}
                                     onWheel={preventWheelChange}
                                     min="0"
-                                    className={
-                                      errors[
-                                        `sackPrice_${index}_specialPrice_minimumQty`
-                                      ]
-                                        ? "border-destructive"
-                                        : "focus-visible:ring-secondary"
-                                    }
-                                  />
-                                  {errors[
-                                    `sackPrice_${index}_specialPrice_minimumQty`
-                                  ] && (
-                                    <p className="text-xs text-destructive">
-                                      {
-                                        errors[
-                                          `sackPrice_${index}_specialPrice_minimumQty`
-                                        ]
-                                      }
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Profit (₱)</Label>
-                                  <Input
-                                    type="number"
-                                    placeholder="Profit (optional)"                                    value={
-                                      sack.specialPrice?.profit !== undefined && sack.specialPrice?.profit !== null
-                                        ? String(sack.specialPrice.profit)
-                                        : ""
-                                    }
-                                    onChange={(e) => {
-                                      const newSackPrices = [...sackPrices];
-                                      if (!newSackPrices[index].specialPrice) {
-                                        newSackPrices[index].specialPrice = {
-                                          price: 0,
-                                          minimumQty: 0,
-                                          profit: 0,
-                                        };
-                                      }
-                                      const value = e.target.value;
-                                      if (value === "") {
-                                        newSackPrices[
-                                          index
-                                        ].specialPrice!.profit = undefined;
-                                      } else {
-                                        const numValue = parseFloat(value);
-                                        if (!isNaN(numValue)) {
-                                          newSackPrices[
-                                            index
-                                          ].specialPrice!.profit =
-                                            CurrencyCalculator.round(numValue);
-                                        }
-                                      }
-                                      setSackPrices(newSackPrices);
-                                    }}
-                                    onWheel={preventWheelChange}
-                                    min="0"
-                                    step="1"
+                                    step="0.01"
                                     className="focus-visible:ring-secondary"
                                   />
                                 </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">
+                                      Minimum Quantity
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      placeholder="Min Qty"
+                                      value={
+                                        sack.specialPrice?.minimumQty || ""
+                                      }
+                                      onChange={(e) => {
+                                        const newSackPrices = [...sackPrices];
+                                        if (
+                                          !newSackPrices[index].specialPrice
+                                        ) {
+                                          newSackPrices[index].specialPrice = {
+                                            price: 0,
+                                            minimumQty: 0,
+                                            profit: 0,
+                                          };
+                                        }
+                                        newSackPrices[
+                                          index
+                                        ].specialPrice!.minimumQty = Number(
+                                          e.target.value
+                                        );
+                                        setSackPrices(newSackPrices);
+                                      }}
+                                      onWheel={preventWheelChange}
+                                      min="0"
+                                      className={
+                                        errors[
+                                          `sackPrice_${index}_specialPrice_minimumQty`
+                                        ]
+                                          ? "border-destructive"
+                                          : "focus-visible:ring-secondary"
+                                      }
+                                    />
+                                    {errors[
+                                      `sackPrice_${index}_specialPrice_minimumQty`
+                                    ] && (
+                                      <p className="text-xs text-destructive">
+                                        {
+                                          errors[
+                                            `sackPrice_${index}_specialPrice_minimumQty`
+                                          ]
+                                        }
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">
+                                      Profit (₱)
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      placeholder="Profit (optional)"
+                                      value={
+                                        sack.specialPrice?.profit !==
+                                          undefined &&
+                                        sack.specialPrice?.profit !== null
+                                          ? String(sack.specialPrice.profit)
+                                          : ""
+                                      }
+                                      onChange={(e) => {
+                                        const newSackPrices = [...sackPrices];
+                                        if (
+                                          !newSackPrices[index].specialPrice
+                                        ) {
+                                          newSackPrices[index].specialPrice = {
+                                            price: 0,
+                                            minimumQty: 0,
+                                            profit: 0,
+                                          };
+                                        }
+                                        const value = e.target.value;
+                                        if (value === "") {
+                                          newSackPrices[
+                                            index
+                                          ].specialPrice!.profit = undefined;
+                                        } else {
+                                          const numValue = parseFloat(value);
+                                          if (!isNaN(numValue)) {
+                                            newSackPrices[
+                                              index
+                                            ].specialPrice!.profit =
+                                              CurrencyCalculator.round(
+                                                numValue
+                                              );
+                                          }
+                                        }
+                                        setSackPrices(newSackPrices);
+                                      }}
+                                      onWheel={preventWheelChange}
+                                      min="0"
+                                      step="1"
+                                      className="focus-visible:ring-secondary"
+                                    />
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const newSackPrices = [...sackPrices];
-                                newSackPrices[index].specialPrice = {
-                                  price: 0,
-                                  minimumQty: 0,
-                                  profit: 0,
-                                };
-                                setSackPrices(newSackPrices);
-                              }}
-                              className="w-full h-8 text-xs text-secondary hover:text-secondary/80 hover:bg-secondary/10"
-                            >
-                              Add Special Price
-                            </Button>
-                          )}
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newSackPrices = [...sackPrices];
+                                  newSackPrices[index].specialPrice = {
+                                    price: 0,
+                                    minimumQty: 0,
+                                    profit: 0,
+                                  };
+                                  setSackPrices(newSackPrices);
+                                }}
+                                className="w-full h-8 text-xs text-secondary hover:text-secondary/80 hover:bg-secondary/10"
+                              >
+                                Add Special Price
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
@@ -795,7 +866,8 @@ export default function EditProduct({
                     <Label className="text-xs">Stock (KG)</Label>
                     <Input
                       type="number"
-                      placeholder="Stock"                      value={
+                      placeholder="Stock"
+                      value={
                         perKiloPrice?.stock !== undefined &&
                         perKiloPrice?.stock !== null
                           ? String(perKiloPrice.stock)
@@ -822,8 +894,10 @@ export default function EditProduct({
                     <Label className="text-xs">Profit (₱)</Label>
                     <Input
                       type="number"
-                      placeholder="Profit (optional)"                      value={
-                        perKiloPrice?.profit !== undefined && perKiloPrice?.profit !== null
+                      placeholder="Profit (optional)"
+                      value={
+                        perKiloPrice?.profit !== undefined &&
+                        perKiloPrice?.profit !== null
                           ? String(perKiloPrice.profit)
                           : ""
                       }

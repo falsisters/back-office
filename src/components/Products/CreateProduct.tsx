@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { createProduct } from "@/lib/server/Products/createProduct";
+import { createProductForCashier } from "@/lib/server/Products/createProductForCashier";
 import { SackTypeEnum, type SackType } from "../../../utils/types/schema.type";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2 } from "lucide-react";
@@ -30,10 +30,12 @@ import Image from "next/image";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface CreateProductProps {
+  selectedCashierId: string | null;
   onProductCreated: (newProduct: unknown) => void;
 }
 
 export default function CreateProduct({
+  selectedCashierId,
   onProductCreated,
 }: CreateProductProps) {
   const { toast } = useToast();
@@ -46,18 +48,18 @@ export default function CreateProduct({
       type: SackType;
       price: number;
       stock: number;
-      profit?: number; // Make this optional
+      profit?: number;
       specialPrice?: {
         price: number;
         minimumQty: number;
-        profit?: number; // Make this optional
+        profit?: number;
       };
     }>
   >([]);
   const [perKiloPrice, setPerKiloPrice] = useState<{
     price: number;
     stock: number;
-    profit?: number; // Make this optional
+    profit?: number;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -75,8 +77,19 @@ export default function CreateProduct({
     const newErrors: Record<string, string> = {};
     const usedTypes = new Set<string>();
 
+    if (!selectedCashierId) {
+      newErrors.cashier = "Please select a cashier first";
+      toast({
+        title: "No cashier selected",
+        description: "Please select a cashier before creating a product",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     if (!name.trim()) newErrors.name = "Product name is required";
-    if (!picture) newErrors.picture = "Product image is required"; // Check that at least one pricing option is provided
+    if (!picture) newErrors.picture = "Product image is required";
+
     const hasSackPrices = sackPrices.length > 0;
     const hasPerKiloPrice =
       perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
@@ -112,7 +125,6 @@ export default function CreateProduct({
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    console.log("Form submission - perKiloPrice:", perKiloPrice);
 
     try {
       const formData = new FormData();
@@ -152,11 +164,10 @@ export default function CreateProduct({
         );
       }
 
-      const newProduct = await createProduct(formData);
-      console.log("Form Data contents:");
-      for (const [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
+      const newProduct = await createProductForCashier(
+        selectedCashierId!,
+        formData
+      );
 
       onProductCreated(newProduct);
 
@@ -190,7 +201,6 @@ export default function CreateProduct({
           description: "Please upload only JPG or PNG images",
           variant: "destructive",
         });
-        // Reset the input
         e.target.value = "";
         return;
       }
@@ -203,7 +213,6 @@ export default function CreateProduct({
           description: "Please select an image smaller than 3MB",
           variant: "destructive",
         });
-        // Reset the input
         e.target.value = "";
         return;
       }
@@ -247,7 +256,6 @@ export default function CreateProduct({
     setSackPrices(newSackPrices);
   };
 
-  // Utility function to prevent wheel events on number inputs
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
@@ -264,6 +272,7 @@ export default function CreateProduct({
         <Button
           className="gap-2 bg-secondary text-white hover:bg-secondary/90 shadow-md"
           size="default"
+          disabled={!selectedCashierId}
         >
           <Plus size={16} />
           Create Product
@@ -277,6 +286,14 @@ export default function CreateProduct({
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 py-4">
+            {!selectedCashierId && (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                <p className="text-sm text-amber-700">
+                  Please select a cashier first to create products.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">
                 Product Name
@@ -747,7 +764,7 @@ export default function CreateProduct({
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !selectedCashierId}
                 className="bg-secondary hover:bg-secondary/90 text-white"
               >
                 {isSubmitting ? (

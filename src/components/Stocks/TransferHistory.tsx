@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllTransfers } from "@/lib/server/Transfers/getAllTransfers";
+import { getTransfersByCashier } from "@/lib/server/Transfers/getTransfersByCashier";
+import { getTransfersByCashierWithDate } from "@/lib/server/Transfers/getTransfersByCashierWithDate";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
@@ -15,20 +16,45 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GetAllTransfersResponse } from "../../../utils/types/Transfers/getAllTransfers.type";
+import { CashierSelector } from "../Cashier/CashierSelector";
 
-export default function TransferHistory() {
+interface TransferHistoryProps {
+  selectedCashierId?: string | null;
+}
+
+export default function TransferHistory({
+  selectedCashierId: propCashierId,
+}: TransferHistoryProps) {
   const [transfers, setTransfers] = useState<GetAllTransfersResponse>([]);
   const [filteredTransfers, setFilteredTransfers] =
     useState<GetAllTransfersResponse>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
+    propCashierId || null
+  );
 
   const fetchTransfers = useCallback(async () => {
+    if (!selectedCashierId) {
+      setTransfers([]);
+      setFilteredTransfers([]);
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await getAllTransfers();
+      let result;
+      if (date) {
+        result = await getTransfersByCashierWithDate(
+          selectedCashierId,
+          date.toISOString()
+        );
+      } else {
+        result = await getTransfersByCashier(selectedCashierId);
+      }
+
       if (result.data) {
         setTransfers(result.data);
         setFilteredTransfers(result.data);
@@ -42,32 +68,28 @@ export default function TransferHistory() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedCashierId, date]);
 
   useEffect(() => {
     fetchTransfers();
   }, [fetchTransfers]);
 
   useEffect(() => {
-    if (!date) {
-      setFilteredTransfers(transfers);
-    } else {
-      const filtered = transfers.filter((transfer) => {
-        const transferDate = new Date(transfer.createdAt);
-        return (
-          transferDate.getDate() === date.getDate() &&
-          transferDate.getMonth() === date.getMonth() &&
-          transferDate.getFullYear() === date.getFullYear()
-        );
-      });
-      setFilteredTransfers(filtered);
+    // Fix: Properly handle undefined prop
+    const newCashierId = propCashierId === undefined ? null : propCashierId;
+    if (newCashierId !== selectedCashierId) {
+      setSelectedCashierId(newCashierId);
     }
-  }, [date, transfers]);
+  }, [propCashierId, selectedCashierId]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     fetchTransfers().finally(() => setIsRefreshing(false));
   }, [fetchTransfers]);
+
+  const handleCashierSelect = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+  };
 
   const groupTransfersByType = (transfers: GetAllTransfersResponse) => {
     const grouped: Record<string, GetAllTransfersResponse> = {};
@@ -99,6 +121,7 @@ export default function TransferHistory() {
                   "w-[240px] justify-start text-left font-normal",
                   !date && "text-muted-foreground"
                 )}
+                disabled={!selectedCashierId}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -117,7 +140,7 @@ export default function TransferHistory() {
             variant="outline"
             size="default"
             onClick={handleRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || !selectedCashierId}
             className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
           >
             <RefreshCw
@@ -129,9 +152,19 @@ export default function TransferHistory() {
         </div>
       </CardHeader>
       <CardContent className="space-y-8 pt-6 px-6">
-        <div className="text-sm text-muted-foreground">
-          Track inventory movements and adjustments
-        </div>
+        {/* Show cashier selector only if not passed as prop */}
+        {!propCashierId && (
+          <CashierSelector
+            selectedCashierId={selectedCashierId}
+            onCashierSelect={handleCashierSelect}
+          />
+        )}
+
+        {selectedCashierId && (
+          <div className="text-sm text-muted-foreground">
+            Track inventory movements and adjustments for selected cashier
+          </div>
+        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
@@ -152,13 +185,23 @@ export default function TransferHistory() {
               Try Again
             </Button>
           </div>
+        ) : !selectedCashierId ? (
+          <div className="text-center py-12 border border-dashed rounded-md bg-muted/20">
+            <p className="text-muted-foreground mb-2">
+              Select a cashier to view transfer history
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Choose a cashier from the dropdown above to view their transfer
+              records
+            </p>
+          </div>
         ) : filteredTransfers.length === 0 ? (
           <div className="text-center py-12 border rounded-md bg-muted/20">
             <p className="text-muted-foreground mb-2 text-lg">
               No transfers found
             </p>
             <p className="text-muted-foreground">
-              No transfer history available for selected date
+              No transfer history available for selected cashier and date
             </p>
           </div>
         ) : (
