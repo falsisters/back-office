@@ -2,13 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getAllSalesByUserId } from "@/lib/server/Sales/getAllSalesByUserId";
-import SalesSummary from "./SalesSummary";
 import type { PaymentMethodEnum } from "../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
-import { SalesFilters } from "./SalesFilter";
-import { SalesDateGroup } from "./SalesDateGroup";
-import { NoSalesFound } from "./NoSalesFound";
-import { LoadingSales } from "./LoadingSales";
 import { CashierSelector } from "../Cashier/CashierSelector";
 import CashierSalesList from "./CashierSalesList";
 import { supabase } from "@/lib/supabase";
