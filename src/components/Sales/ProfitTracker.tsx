@@ -325,14 +325,6 @@ export default function ProfitTracker({
                 <div className="space-y-2">
                   <div className="flex justify-between text-lg">
                     <span className="font-bold text-primary">
-                      Total Quantity:
-                    </span>
-                    <span className="font-bold text-primary">
-                      {otherTotalQuantity}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-lg">
-                    <span className="font-bold text-primary">
                       Total Profit:
                     </span>
                     <span className="font-bold text-primary">
@@ -379,14 +371,6 @@ export default function ProfitTracker({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="flex justify-between text-lg">
-                    <span className="font-bold text-primary">
-                      Total Quantity:
-                    </span>
-                    <span className="font-bold text-primary">
-                      {asinTotalQuantity}
-                    </span>
-                  </div>
                   <div className="flex justify-between text-lg">
                     <span className="font-bold text-primary">
                       Total Profit:
