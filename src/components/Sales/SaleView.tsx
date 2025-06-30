@@ -103,7 +103,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 <div className="flex justify-between items-center">
                   <div className="flex-1 flex items-center gap-2">
                     <span className="font-medium">
-                      {item.quantity} {item.product.name} {sackTypeLabel}
+                      {item.quantity} {item.product.name} <strong>{sackTypeLabel}</strong>
                       {gantangInfo}
                     </span>
                     {item.isDiscounted && (
@@ -189,7 +189,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 <div className="flex justify-between items-center">
                   <div className="flex-1 flex items-center gap-2">
                     <span className="font-medium">
-                      {item.quantity} {item.product.name} {sackTypeLabel}
+                      {item.quantity} {item.product.name} <strong>{sackTypeLabel}</strong>
                       {gantangInfo}
                     </span>
                     {item.isDiscounted && (

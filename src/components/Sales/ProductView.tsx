@@ -82,8 +82,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
 
       if (!productGroups.has(key)) {
         productGroups.set(key, {
-          productName: `${item.product.name} ${
-            isSackPriceItem ? sackTypeLabel : ""
+          productName: `${item.product.name}${
+            isSackPriceItem && sackTypeLabel ? ` ${sackTypeLabel}` : ""
           }`.trim(),
           isGantang: item.isGantang,
           sackType: isSackPriceItem ? sackTypeLabel : "",
@@ -122,7 +122,15 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         <Card key={key} className="overflow-hidden">
           <CardHeader className="bg-muted/50 p-4">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">{product.productName}</CardTitle>
+              <CardTitle className="text-lg">
+                {product.priceType === "sack" ? (
+                  <>
+                    {product.productName.replace(` ${product.sackType}`, "")} <strong>{product.sackType}</strong>
+                  </>
+                ) : (
+                  product.productName
+                )}
+              </CardTitle>
               <div className="flex gap-2">
                 <Badge variant="outline">
                   {product.priceType === "sack"
@@ -144,7 +152,13 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">
-                          {item.quantity} {product.productName}
+                          {item.quantity} {product.priceType === "sack" ? (
+                            <>
+                              {product.productName.replace(` ${product.sackType}`, "")} <strong>{product.sackType}</strong>
+                            </>
+                          ) : (
+                            product.productName
+                          )}
                         </p>
                         {item.isDiscounted && (
                           <Badge variant="destructive" className="text-xs">
