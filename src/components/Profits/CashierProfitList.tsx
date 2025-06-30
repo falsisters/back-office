@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProfitsByCashier } from "@/lib/server/Profits/getProfitsByCashier";
+import { getProfitsByCashier, getAllProfitsByCashier } from "@/lib/server/Profits/getProfitsByCashier";
 import ProfitTracker from "@/components/Sales/ProfitTracker";
 import { type SackType } from "../../../utils/types/schema.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";
@@ -14,6 +14,7 @@ interface CashierProfitListProps {
 export default function CashierProfitList({
   cashierId,
 }: CashierProfitListProps) {
+  const [allProfitData, setAllProfitData] = useState<any>(null);
   const [profitData, setProfitData] = useState<any>(null);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(true);
@@ -29,33 +30,147 @@ export default function CashierProfitList({
     selectedMonth
   ).padStart(2, "0")}`;
 
+  // Initial data loading effect - matches Sales component pattern
   useEffect(() => {
     const loadProfits = async () => {
       if (!cashierId) return;
 
       try {
         setIsLoading(true);
-        const dateParam =
-          dateFilterMode === "day"
-            ? date?.toISOString().split("T")[0]
-            : `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+        console.log("🔄 PROFITS: Loading profits for cashier:", cashierId);
+        console.log("🔄 PROFITS: dateFilterMode:", dateFilterMode);
+        console.log("🔄 PROFITS: formattedSelectedMonth:", formattedSelectedMonth);
+        
+        // Always get ALL profit data without date filtering from backend
+        // Use the new getAllProfitsByCashier which fetches data for multiple dates
+        const data = await getAllProfitsByCashier(cashierId);
+        
+        console.log("📊 PROFITS: Raw data from backend:", data);
+        console.log("📊 PROFITS: Raw items count:", data?.rawItems?.length || 0);
+        
+        if (data?.rawItems) {
+          console.log("📊 PROFITS: All raw items:", data.rawItems.map((item: any) => ({
+            productName: item.productName,
+            saleDate: item.saleDate,
+            quantity: item.quantity,
+            profitPerUnit: item.profitPerUnit
+          })));
+        }
+        
+        setAllProfitData(data);
 
-        const data = await getProfitsByCashier(cashierId, dateParam);
-        setProfitData(data);
+        // Initial filtering based on current mode
+        if (data?.rawItems) {
+          let filteredItems;
+          if (dateFilterMode === "day") {
+            const today = new Date();
+            console.log("🔍 PROFITS: Filtering for today:", today.toDateString());
+            filteredItems = data.rawItems.filter((item: any) => {
+              if (!item.saleDate) return false;
+              const itemDate = new Date(item.saleDate);
+              const match = itemDate.toDateString() === today.toDateString();
+              console.log(`🔍 PROFITS: Item date ${itemDate.toDateString()} vs today ${today.toDateString()}: ${match}`);
+              return match;
+            });
+          } else {
+            const [year, month] = formattedSelectedMonth.split("-").map(Number);
+            console.log("🔍 PROFITS: Filtering for month:", year, month);
+            filteredItems = data.rawItems.filter((item: any) => {
+              if (!item.saleDate) return false;
+              const itemDate = new Date(item.saleDate);
+              const match = itemDate.getFullYear() === year && itemDate.getMonth() === month - 1;
+              console.log(`🔍 PROFITS: Item date ${itemDate.getFullYear()}-${itemDate.getMonth() + 1} vs ${year}-${month}: ${match}`);
+              return match;
+            });
+          }
+          
+          console.log("✅ PROFITS: Filtered items count:", filteredItems.length);
+          console.log("✅ PROFITS: Filtered items:", filteredItems.map((item: any) => ({
+            productName: item.productName,
+            saleDate: item.saleDate,
+            quantity: item.quantity,
+            profitPerUnit: item.profitPerUnit
+          })));
+          
+          setProfitData({
+            ...data,
+            rawItems: filteredItems
+          });
+        } else {
+          console.log("⚠️ PROFITS: No rawItems in data, setting data as is");
+          setProfitData(data);
+        }
       } catch (error) {
-        console.error("Error loading profits:", error);
+        console.error("❌ PROFITS: Error loading profits:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadProfits();
-  }, [cashierId, dateFilterMode, date, selectedYear, selectedMonth]);
+  }, [cashierId, dateFilterMode, formattedSelectedMonth]);
+
+  // Separate filtering effect - matches Sales component pattern
+  useEffect(() => {
+    if (!allProfitData?.rawItems) {
+      console.log("🔍 PROFITS: No allProfitData.rawItems to filter");
+      return;
+    }
+
+    console.log("🔄 PROFITS: Re-filtering data...");
+    console.log("🔄 PROFITS: Current date:", date);
+    console.log("🔄 PROFITS: dateFilterMode:", dateFilterMode);
+    console.log("🔄 PROFITS: formattedSelectedMonth:", formattedSelectedMonth);
+    console.log("🔄 PROFITS: allProfitData.rawItems count:", allProfitData.rawItems.length);
+
+    let filteredItems = [...allProfitData.rawItems];
+
+    if (dateFilterMode === "day" && date) {
+      console.log("🔍 PROFITS: Filtering by day:", date.toDateString());
+      filteredItems = filteredItems.filter((item: any) => {
+        if (!item.saleDate) return false;
+        const itemDate = new Date(item.saleDate);
+        const match = itemDate.toDateString() === date.toDateString();
+        console.log(`🔍 PROFITS: Item ${item.productName} date ${itemDate.toDateString()} vs selected ${date.toDateString()}: ${match}`);
+        return match;
+      });
+    } else if (dateFilterMode === "month") {
+      const [year, month] = formattedSelectedMonth.split("-").map(Number);
+      console.log("🔍 PROFITS: Filtering by month:", year, month);
+      filteredItems = filteredItems.filter((item: any) => {
+        if (!item.saleDate) return false;
+        const itemDate = new Date(item.saleDate);
+        const match = itemDate.getFullYear() === year && itemDate.getMonth() === month - 1;
+        console.log(`🔍 PROFITS: Item ${item.productName} date ${itemDate.getFullYear()}-${itemDate.getMonth() + 1} vs selected ${year}-${month}: ${match}`);
+        return match;
+      });
+    }
+
+    console.log("✅ PROFITS: Final filtered items count:", filteredItems.length);
+    console.log("✅ PROFITS: Final filtered items:", filteredItems.map((item: any) => ({
+      productName: item.productName,
+      saleDate: item.saleDate,
+      quantity: item.quantity,
+      profitPerUnit: item.profitPerUnit
+    })));
+
+    setProfitData({
+      ...allProfitData,
+      rawItems: filteredItems
+    });
+  }, [date, allProfitData, dateFilterMode, formattedSelectedMonth]);
   // Transform profit data to match ProfitTracker expected format
   const transformProfitData = (data: any) => {
-    if (!data?.rawItems) return [];
+    console.log("🔄 TRANSFORM: Starting transformation with data:", data);
+    
+    if (!data?.rawItems) {
+      console.log("⚠️ TRANSFORM: No rawItems in data");
+      return [];
+    }
 
-    return data.rawItems.map((item: any) => {
+    console.log("🔄 TRANSFORM: Raw items to transform:", data.rawItems.length);
+
+    const transformed = data.rawItems.map((item: any) => {
       // Proper sack type mapping based on the actual data structure
       let sackType: SackType | undefined;
       
@@ -80,7 +195,9 @@ export default function CashierProfitList({
           default:
             sackType = undefined;
         }
-      }      return {
+      }
+      
+      return {
         productKey: `${item.productName}-${sackType || "perKilo"}-${sackType ? "sack" : "per-kilo"}`,
         productName: item.productName,
         productImage: item.productImage || "https://placehold.co/800x800?text=Product",
@@ -93,6 +210,56 @@ export default function CashierProfitList({
         specialProfit: 0,
       };
     }).filter((item: any) => item.priceType === "sack"); // Only return sack items
+
+    console.log("✅ TRANSFORM: Transformed items:", transformed.length);
+    console.log("✅ TRANSFORM: Final transformed data:", transformed);
+    
+    return transformed;
+  };
+
+  // Calculate previous day's profit data
+  const getPreviousDayProfitData = () => {
+    if (!allProfitData?.rawItems || dateFilterMode !== "day" || !date) {
+      return [];
+    }
+
+    console.log("🔄 PREVIOUS DAY: Calculating previous day profit data");
+    console.log("🔄 PREVIOUS DAY: Selected date:", date.toDateString());
+
+    // Calculate previous day
+    const previousDay = new Date(date);
+    previousDay.setDate(previousDay.getDate() - 1);
+    
+    console.log("🔄 PREVIOUS DAY: Previous day date:", previousDay.toDateString());
+
+    // Filter items for previous day
+    const previousDayItems = allProfitData.rawItems.filter((item: any) => {
+      if (!item.saleDate) return false;
+      const itemDate = new Date(item.saleDate);
+      const match = itemDate.toDateString() === previousDay.toDateString();
+      if (match) {
+        console.log(`✅ PREVIOUS DAY: Found item for ${previousDay.toDateString()}:`, item.productName);
+      }
+      return match;
+    });
+
+    console.log("✅ PREVIOUS DAY: Items found:", previousDayItems.length);
+
+    if (previousDayItems.length === 0) {
+      console.log("⚠️ PREVIOUS DAY: No items found for previous day");
+      return [];
+    }
+
+    // Transform previous day items
+    const previousDayData = {
+      ...allProfitData,
+      rawItems: previousDayItems
+    };
+
+    const transformedPreviousDay = transformProfitData(previousDayData);
+    console.log("✅ PREVIOUS DAY: Transformed previous day data:", transformedPreviousDay);
+    
+    return transformedPreviousDay;
   };
 
   return (
@@ -129,8 +296,12 @@ export default function CashierProfitList({
           {profitData && transformProfitData(profitData).length > 0 ? (
             <ProfitTracker
               salesData={transformProfitData(profitData)}
-              previousDaySalesData={[]}
-              selectedDate={date || new Date()}
+              previousDaySalesData={getPreviousDayProfitData()}
+              selectedDate={
+                dateFilterMode === "day" 
+                  ? (date || new Date())
+                  : new Date(selectedYear, selectedMonth - 1, 1) // First day of selected month/year
+              }
               dateFilterMode={dateFilterMode}
             />
           ) : (

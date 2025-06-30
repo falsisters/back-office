@@ -255,7 +255,7 @@ export default function ProfitTracker({
                 <TableCell className="text-center font-bold text-primary">
                   <Badge
                     variant="outline"
-                    className="bg-gray-100 text-black border-gray-400 font-bold"
+                    className="bg-gray-100 text-primary border-gray-400 font-bold"
                   >
                     {totalQuantity}
                   </Badge>
@@ -299,21 +299,9 @@ export default function ProfitTracker({
               {dateFilterMode === "day" ? (
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Previous Day Quantity:</span>
-                    <span className="font-semibold text-black">
-                      {previousDayOtherTotalQuantity}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
                     <span>Previous Day Profit:</span>
                     <span className="font-semibold text-black">
                       ₱{previousDayOtherTotalProfit}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Current Day Quantity:</span>
-                    <span className="font-semibold text-black">
-                      {otherTotalQuantity}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -325,17 +313,9 @@ export default function ProfitTracker({
                   <div className="border-t pt-2 space-y-1">
                     <div className="flex justify-between text-lg">
                       <span className="font-bold text-primary">
-                        Total Quantity:
-                      </span>
-                      <span className="font-bold text-black">
-                        {otherTotalQuantity + previousDayOtherTotalQuantity}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-lg">
-                      <span className="font-bold text-primary">
                         Total Profit:
                       </span>
-                      <span className="font-bold text-black">
+                      <span className="font-bold text-primary">
                         ₱{otherTotalProfit + previousDayOtherTotalProfit}
                       </span>
                     </div>
@@ -347,7 +327,7 @@ export default function ProfitTracker({
                     <span className="font-bold text-primary">
                       Total Quantity:
                     </span>
-                    <span className="font-bold text-black">
+                    <span className="font-bold text-primary">
                       {otherTotalQuantity}
                     </span>
                   </div>
@@ -355,7 +335,7 @@ export default function ProfitTracker({
                     <span className="font-bold text-primary">
                       Total Profit:
                     </span>
-                    <span className="font-bold text-black">
+                    <span className="font-bold text-primary">
                       ₱{otherTotalProfit}
                     </span>
                   </div>
@@ -374,23 +354,12 @@ export default function ProfitTracker({
               {dateFilterMode === "day" ? (
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Previous Day Quantity:</span>
-                    <span className="font-semibold text-black">
-                      {previousDayAsinTotalQuantity}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
                     <span>Previous Day Profit:</span>
                     <span className="font-semibold text-black">
                       ₱{previousDayAsinTotalProfit}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Current Day Quantity:</span>
-                    <span className="font-semibold text-black">
-                      {asinTotalQuantity}
-                    </span>
-                  </div>
+
                   <div className="flex justify-between">
                     <span>Current Day Profit:</span>
                     <span className="font-semibold text-black">
@@ -400,17 +369,9 @@ export default function ProfitTracker({
                   <div className="border-t pt-2 space-y-1">
                     <div className="flex justify-between text-lg">
                       <span className="font-bold text-primary">
-                        Total Quantity:
-                      </span>
-                      <span className="font-bold text-black">
-                        {asinTotalQuantity + previousDayAsinTotalQuantity}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-lg">
-                      <span className="font-bold text-primary">
                         Total Profit:
                       </span>
-                      <span className="font-bold text-black">
+                      <span className="font-bold text-primary">
                         ₱{asinTotalProfit + previousDayAsinTotalProfit}
                       </span>
                     </div>
@@ -422,7 +383,7 @@ export default function ProfitTracker({
                     <span className="font-bold text-primary">
                       Total Quantity:
                     </span>
-                    <span className="font-bold text-black">
+                    <span className="font-bold text-primary">
                       {asinTotalQuantity}
                     </span>
                   </div>
@@ -430,7 +391,7 @@ export default function ProfitTracker({
                     <span className="font-bold text-primary">
                       Total Profit:
                     </span>
-                    <span className="font-bold text-black">
+                    <span className="font-bold text-primary">
                       ₱{asinTotalProfit}
                     </span>
                   </div>
