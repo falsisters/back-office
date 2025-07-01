@@ -274,16 +274,6 @@ export function BillCountList() {
                       </span>
                     </div>
 
-                    {/* Total Cash (from Sales) */}
-                    <div className="flex justify-between items-center py-1 text-sm">
-                      <span className="text-gray-600">
-                        Total Cash (from Sales)
-                      </span>
-                      <span className="font-medium text-primary">
-                        ₱{billCount.totalCash.toLocaleString()}
-                      </span>
-                    </div>
-
                     {/* Divider */}
                     <div className="border-t border-gray-300 my-3"></div>
 
