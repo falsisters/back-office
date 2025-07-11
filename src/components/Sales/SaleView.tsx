@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const sackTypeLabels = {
   FIFTY_KG: "50KG",
@@ -10,7 +13,13 @@ const sackTypeLabels = {
   FIVE_KG: "5KG",
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
+  const [asinCurrentPage, setAsinCurrentPage] = useState(1);
+  const [otherCurrentPage, setOtherCurrentPage] = useState(1);
+  const [perKiloCurrentPage, setPerKiloCurrentPage] = useState(1);
+
   const asinSackItems = sales.flatMap((sale) =>
     sale.SaleItem.filter(
       (item) =>
@@ -34,6 +43,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       (item) => item.perKiloPriceId && !item.sackPriceId
     ).map((item) => ({ item, sale }))
   );
+
   const calculateTotalSales = (items: typeof perKiloPriceItems) => {
     return items.reduce((total, { item }) => {
       let price = 0;
@@ -59,6 +69,52 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
     return items.reduce((total, { item }) => total + item.quantity, 0);
   };
 
+  const getPaginatedItems = (items: typeof perKiloPriceItems, currentPage: number) => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return items.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (items: typeof perKiloPriceItems) => {
+    return Math.ceil(items.length / ITEMS_PER_PAGE);
+  };
+
+  const PaginationControls = ({ 
+    currentPage, 
+    totalPages, 
+    onPageChange 
+  }: { 
+    currentPage: number; 
+    totalPages: number; 
+    onPageChange: (page: number) => void;
+  }) => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-center gap-2 pt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          {currentPage} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <div className="flex gap-4 flex-wrap">
       {/* Asin Sack Items */}
@@ -67,7 +123,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           <CardTitle>Asin Sack Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {asinSackItems.map(({ item, sale }) => {
+          {getPaginatedItems(asinSackItems, asinCurrentPage).map(({ item, sale }) => {
             const sackType = item.sackType;
             const sackTypeLabel = sackType ? sackTypeLabels[sackType] : "";
 
@@ -131,7 +187,15 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               </div>
             );
-          })}          {asinSackItems.length > 0 && (
+          })}
+          
+          <PaginationControls 
+            currentPage={asinCurrentPage}
+            totalPages={getTotalPages(asinSackItems)}
+            onPageChange={setAsinCurrentPage}
+          />
+          
+          {asinSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-xl text-primary">{calculateTotalQuantity(asinSackItems)}</span>
@@ -153,7 +217,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           <CardTitle>Rice & Other Sack Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {otherSackItems.map(({ item, sale }) => {
+          {getPaginatedItems(otherSackItems, otherCurrentPage).map(({ item, sale }) => {
             const sackType = item.sackType;
             const sackTypeLabel = sackType ? sackTypeLabels[sackType] : "";
 
@@ -217,7 +281,15 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               </div>
             );
-          })}          {otherSackItems.length > 0 && (
+          })}
+          
+          <PaginationControls 
+            currentPage={otherCurrentPage}
+            totalPages={getTotalPages(otherSackItems)}
+            onPageChange={setOtherCurrentPage}
+          />
+          
+          {otherSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-xl text-primary">{calculateTotalQuantity(otherSackItems)}</span>
@@ -239,7 +311,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           <CardTitle>Per Kilo Price Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {perKiloPriceItems.map(({ item, sale }) => {
+          {getPaginatedItems(perKiloPriceItems, perKiloCurrentPage).map(({ item, sale }) => {
             const price = item.product.perKiloPrice?.price || 0;
 
             const displayPrice =
@@ -291,7 +363,15 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
               </div>
             );
-          })}          {perKiloPriceItems.length > 0 && (
+          })}
+          
+          <PaginationControls 
+            currentPage={perKiloCurrentPage}
+            totalPages={getTotalPages(perKiloPriceItems)}
+            onPageChange={setPerKiloCurrentPage}
+          />
+          
+          {perKiloPriceItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-xl text-primary">{calculateTotalQuantity(perKiloPriceItems)}</span>
