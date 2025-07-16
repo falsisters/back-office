@@ -37,7 +37,7 @@ interface ProfitTrackerProps {
   salesData: ProfitItem[];
   previousDaySalesData: ProfitItem[];
   selectedDate: Date;
-  dateFilterMode: "day" | "month"; // Add this prop
+  dateFilterMode: "day" | "month";
 }
 
 export default function ProfitTracker({
@@ -48,7 +48,9 @@ export default function ProfitTracker({
 }: ProfitTrackerProps) {
   const filteredSalesData = salesData.filter(
     (item) => item.priceType === "sack"
-  ); // Group sales data with proper type separation
+  );
+  
+  // Group sales data with proper type separation
   const productGroups = filteredSalesData.reduce((acc, item) => {
     const key = `${item.productName}-${item.sackType || ""}`;
 
@@ -74,6 +76,7 @@ export default function ProfitTracker({
   const groupedProducts = Object.values(productGroups);
   const asinProducts = groupedProducts.filter((p) => p.isAsin);
   const otherProducts = groupedProducts.filter((p) => !p.isAsin);
+  
   const calculateTotalProfits = useCallback((products: ProfitItem[]) => {
     return products.reduce((total, item) => {
       const normalProfit = item.normalProfit * item.normalQty;
@@ -130,6 +133,7 @@ export default function ProfitTracker({
     }
     return acc;
   }, {} as Record<string, ProfitItem>);
+  
   const previousDayGroupedProducts = Object.values(previousDayProductGroups);
   const previousDayAsinProducts = previousDayGroupedProducts.filter(
     (p) => p.isAsin
@@ -191,6 +195,7 @@ export default function ProfitTracker({
 
     return rows;
   };
+  
   const renderProductTable = (products: ProfitItem[], title: string) => {
     const productRows = createProductRows(products);
     const totalQuantity =
@@ -239,10 +244,10 @@ export default function ProfitTracker({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center font-medium">
-                    ₱{row.profit}
+                    ₱{row.profit.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right font-medium text-secondary">
-                    ₱{row.total}
+                    ₱{row.total.toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))}
@@ -264,7 +269,7 @@ export default function ProfitTracker({
                   Profit:
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary">
-                  ₱{totalProfit}
+                  ₱{totalProfit.toLocaleString()}
                 </TableCell>
               </TableRow>
             </TableFooter>
@@ -273,6 +278,10 @@ export default function ProfitTracker({
       </Card>
     );
   };
+
+  const totalOverallProfit = dateFilterMode === "day" 
+    ? asinTotalProfit + otherTotalProfit + previousDayAsinTotalProfit + previousDayOtherTotalProfit
+    : asinTotalProfit + otherTotalProfit;
 
   return (
     <Card className="shadow-md border-t-4 border-t-primary">
@@ -286,9 +295,10 @@ export default function ProfitTracker({
         <div className="space-y-6">
           {renderProductTable(otherProducts, "RICE AND OTHER PRODUCTS PROFITS")}
           {renderProductTable(asinProducts, "ASIN PROFITS")}
-        </div>{" "}
+        </div>
+        
         {/* Split Overall Total into Two Cards */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="shadow-md border-t-4 border-t-secondary">
             <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
               <CardTitle className="text-secondary text-lg">
@@ -299,38 +309,36 @@ export default function ProfitTracker({
               {dateFilterMode === "day" ? (
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Previous Day Profit:</span>
-                    <span className="font-semibold text-black">
-                      ₱{previousDayOtherTotalProfit}
+                    <span className="text-gray-600">Previous Day Profit:</span>
+                    <span className="font-semibold text-gray-800">
+                      ₱{previousDayOtherTotalProfit.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Current Day Profit:</span>
-                    <span className="font-semibold text-black">
-                      ₱{otherTotalProfit}
+                    <span className="text-gray-600">Current Day Profit:</span>
+                    <span className="font-semibold text-gray-800">
+                      ₱{otherTotalProfit.toLocaleString()}
                     </span>
                   </div>
-                  <div className="border-t pt-2 space-y-1">
+                  <div className="border-t pt-2">
                     <div className="flex justify-between text-lg">
-                      <span className="font-bold text-primary">
+                      <span className="font-bold text-secondary">
                         Total Profit:
                       </span>
-                      <span className="font-bold text-primary">
-                        ₱{otherTotalProfit + previousDayOtherTotalProfit}
+                      <span className="font-bold text-secondary">
+                        ₱{(otherTotalProfit + previousDayOtherTotalProfit).toLocaleString()}
                       </span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-lg">
-                    <span className="font-bold text-primary">
-                      Total Profit:
-                    </span>
-                    <span className="font-bold text-primary">
-                      ₱{otherTotalProfit}
-                    </span>
-                  </div>
+                <div className="flex justify-between text-lg">
+                  <span className="font-bold text-secondary">
+                    Total Profit:
+                  </span>
+                  <span className="font-bold text-secondary">
+                    ₱{otherTotalProfit.toLocaleString()}
+                  </span>
                 </div>
               )}
             </CardContent>
@@ -346,44 +354,60 @@ export default function ProfitTracker({
               {dateFilterMode === "day" ? (
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Previous Day Profit:</span>
-                    <span className="font-semibold text-black">
-                      ₱{previousDayAsinTotalProfit}
+                    <span className="text-gray-600">Previous Day Profit:</span>
+                    <span className="font-semibold text-gray-800">
+                      ₱{previousDayAsinTotalProfit.toLocaleString()}
                     </span>
                   </div>
-
                   <div className="flex justify-between">
-                    <span>Current Day Profit:</span>
-                    <span className="font-semibold text-black">
-                      ₱{asinTotalProfit}
+                    <span className="text-gray-600">Current Day Profit:</span>
+                    <span className="font-semibold text-gray-800">
+                      ₱{asinTotalProfit.toLocaleString()}
                     </span>
                   </div>
-                  <div className="border-t pt-2 space-y-1">
+                  <div className="border-t pt-2">
                     <div className="flex justify-between text-lg">
-                      <span className="font-bold text-primary">
+                      <span className="font-bold text-secondary">
                         Total Profit:
                       </span>
-                      <span className="font-bold text-primary">
-                        ₱{asinTotalProfit + previousDayAsinTotalProfit}
+                      <span className="font-bold text-secondary">
+                        ₱{(asinTotalProfit + previousDayAsinTotalProfit).toLocaleString()}
                       </span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-lg">
-                    <span className="font-bold text-primary">
-                      Total Profit:
-                    </span>
-                    <span className="font-bold text-primary">
-                      ₱{asinTotalProfit}
-                    </span>
-                  </div>
+                <div className="flex justify-between text-lg">
+                  <span className="font-bold text-secondary">
+                    Total Profit:
+                  </span>
+                  <span className="font-bold text-secondary">
+                    ₱{asinTotalProfit.toLocaleString()}
+                  </span>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
+        
+        {/* Total Profit Overall Card - Now consistent with other cards */}
+        <Card className="shadow-md border-t-4 border-t-primary">
+          <CardHeader className="pb-2 bg-gradient-to-r from-accent/5 to-transparent">
+            <CardTitle className="text-primary text-lg border-b mb-2">
+              Total Profit Overall
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between text-xl">
+              <span className="font-bold text-primary">
+                Grand Total:
+              </span>
+              <span className="font-bold text-primary">
+                ₱{totalOverallProfit.toLocaleString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </CardContent>
     </Card>
   );
