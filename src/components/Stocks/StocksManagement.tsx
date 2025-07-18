@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllProducts } from "@/lib/server/Products/getAllProductsByUserId";
+import { getProductsByCashier } from "@/lib/server/Products/getProductsByCashier";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import { Toaster } from "@/components/ui/toaster";
 import { Loader2, RefreshCw, Search } from "lucide-react";
@@ -11,6 +11,7 @@ import { SearchBar } from "@/components/SearchBar";
 import StocksTable from "./StocksTable";
 import StockSummary from "./StocksSummary";
 import TransferHistory from "./TransferHistory";
+import { CashierSelector } from "../Cashier/CashierSelector";
 
 export default function StocksManagement() {
   const [products, setProducts] = useState<ProductResponse[]>([]);
@@ -18,15 +19,24 @@ export default function StocksManagement() {
     []
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"stocks" | "transfers">("stocks");
+  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
+    null
+  );
 
   const fetchProducts = useCallback(async () => {
+    if (!selectedCashierId) {
+      setProducts([]);
+      setFilteredProducts([]);
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await getAllProducts();
+      const result = await getProductsByCashier(selectedCashierId);
       if (result.data) {
         setProducts(result.data);
         setFilteredProducts(result.data);
@@ -40,7 +50,7 @@ export default function StocksManagement() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedCashierId]);
 
   useEffect(() => {
     fetchProducts();
@@ -64,6 +74,11 @@ export default function StocksManagement() {
 
   const handleClearSearch = () => {
     setSearchTerm("");
+  };
+
+  const handleCashierSelect = (cashierId: string) => {
+    setSelectedCashierId(cashierId);
+    setSearchTerm(""); // Clear search when switching cashiers
   };
 
   return (
@@ -95,7 +110,7 @@ export default function StocksManagement() {
               variant="outline"
               size="default"
               onClick={handleProductUpdate}
-              disabled={isRefreshing}
+              disabled={isRefreshing || !selectedCashierId}
               className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
             >
               <RefreshCw
@@ -106,79 +121,101 @@ export default function StocksManagement() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-8 pt-6 px-6">
-            {/* Search bar implementation */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <SearchBar
-                  searchTerm={searchTerm}
-                  setSearchTerm={setSearchTerm}
-                  placeholder="Search products by name..."
-                />
-                {searchTerm && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                    onClick={handleClearSearch}
-                  >
-                    <span className="sr-only">Clear search</span>×
-                  </Button>
-                )}
-              </div>
-              <div className="text-base text-muted-foreground">
-                {filteredProducts.length} of {products.length} items
-              </div>
-            </div>
+            {/* Cashier Selector */}
+            <CashierSelector
+              selectedCashierId={selectedCashierId}
+              onCashierSelect={handleCashierSelect}
+            />
 
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                <p className="text-lg text-muted-foreground">
-                  Loading stock data...
-                </p>
-              </div>
-            ) : error ? (
-              <div className="bg-destructive/10 p-6 rounded-md border border-destructive/20 text-center">
-                <p className="text-base text-destructive font-medium">
-                  {error}
-                </p>
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={handleProductUpdate}
-                  className="mt-4 border-primary/30 text-primary hover:bg-primary/10"
-                >
-                  Try Again
-                </Button>
-              </div>
-            ) : (
+            {selectedCashierId && (
               <>
-                {filteredProducts.length === 0 && searchTerm ? (
-                  <div className="text-center py-12 border border-dashed rounded-md">
-                    <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                {/* Search bar implementation */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <SearchBar
+                      searchTerm={searchTerm}
+                      setSearchTerm={setSearchTerm}
+                      placeholder="Search products by name..."
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                        onClick={handleClearSearch}
+                      >
+                        <span className="sr-only">Clear search</span>×
+                      </Button>
+                    )}
+                  </div>
+                  <div className="text-base text-muted-foreground">
+                    {filteredProducts.length} of {products.length} items
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                     <p className="text-lg text-muted-foreground">
-                      No products found matching &quot;{searchTerm}&quot;
+                      Loading stock data...
+                    </p>
+                  </div>
+                ) : error ? (
+                  <div className="bg-destructive/10 p-6 rounded-md border border-destructive/20 text-center">
+                    <p className="text-base text-destructive font-medium">
+                      {error}
                     </p>
                     <Button
-                      variant="link"
-                      onClick={handleClearSearch}
-                      className="mt-4 text-base"
+                      variant="outline"
+                      size="default"
+                      onClick={handleProductUpdate}
+                      className="mt-4 border-primary/30 text-primary hover:bg-primary/10"
                     >
-                      Clear search
+                      Try Again
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <StocksTable products={filteredProducts} />
-                    <StockSummary products={filteredProducts} />
+                    {filteredProducts.length === 0 && searchTerm ? (
+                      <div className="text-center py-12 border border-dashed rounded-md">
+                        <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                        <p className="text-lg text-muted-foreground">
+                          No products found matching &quot;{searchTerm}&quot;
+                        </p>
+                        <Button
+                          variant="link"
+                          onClick={handleClearSearch}
+                          className="mt-4 text-base"
+                        >
+                          Clear search
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <StocksTable products={filteredProducts} />
+                        <StockSummary products={filteredProducts} />
+                      </>
+                    )}
                   </>
                 )}
               </>
             )}
+
+            {!selectedCashierId && (
+              <div className="text-center py-12 border border-dashed rounded-md bg-muted/20">
+                <p className="text-muted-foreground mb-2">
+                  Select a cashier to view stock information
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Choose a cashier from the dropdown above to view their stock
+                  data
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <TransferHistory />
+        <TransferHistory selectedCashierId={selectedCashierId} />
       )}
       <Toaster />
     </>

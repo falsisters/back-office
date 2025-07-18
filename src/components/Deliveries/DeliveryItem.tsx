@@ -24,6 +24,7 @@ import {
   CalendarIcon,
   ClockIcon,
   UserIcon,
+  CreditCardIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
@@ -116,6 +117,18 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
             </div>
             <div className="space-y-1">
               <p className="font-medium text-muted-foreground flex items-center gap-1">
+                <CreditCardIcon className="w-3.5 h-3.5" />
+                Cashier
+              </p>
+              <p className="font-semibold">
+                {delivery.cashier?.name || "Unknown"}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="space-y-1">
+              <p className="font-medium text-muted-foreground flex items-center gap-1">
                 <CalendarIcon className="w-3.5 h-3.5" />
                 Scheduled
               </p>
@@ -185,6 +198,15 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                     </p>
                     <p className="font-semibold">
                       {detailedDelivery.driverName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <CreditCardIcon className="w-3.5 h-3.5" />
+                      Cashier
+                    </p>
+                    <p className="font-semibold">
+                      {detailedDelivery.cashier?.name || "Unknown"}
                     </p>
                   </div>
                   <div>

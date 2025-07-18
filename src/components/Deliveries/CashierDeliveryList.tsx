@@ -17,7 +17,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 
-export function DeliveryList() {
+export function CashierDeliveryList() {
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
     null
   );

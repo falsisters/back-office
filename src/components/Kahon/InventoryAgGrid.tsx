@@ -1447,59 +1447,6 @@ export default function InventoryAgGrid({
         </div>
       </div>
 
-      {/* Pending Changes Summary */}
-      {(pendingChanges.size > 0 || pendingRowReorders.size > 0) && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <h4 className="font-medium text-yellow-800 mb-2">
-            Pending Changes ({pendingChanges.size + pendingRowReorders.size}):
-          </h4>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {/* Cell changes */}
-            {Array.from(pendingChanges.values()).map((change) => (
-              <div
-                key={change.id}
-                className="text-sm text-yellow-700 flex items-center space-x-2"
-              >
-                <span className="font-mono">
-                  {String.fromCharCode(65 + change.columnIndex)}
-                  {change.rowIndex}:
-                </span>
-                {change.isFormulaChange ? (
-                  <span className="text-blue-600">
-                    Formula: {change.formula}
-                  </span>
-                ) : change.color ? (
-                  <div className="flex items-center space-x-1">
-                    <span>Color:</span>
-                    <div
-                      className="w-4 h-4 rounded border border-gray-300"
-                      style={{ backgroundColor: change.color }}
-                      title={change.color}
-                    />
-                  </div>
-                ) : (
-                  <span>
-                    "{change.oldValue}" → "{change.newValue}"
-                  </span>
-                )}
-              </div>
-            ))}
-            {/* Row reorder changes */}
-            {Array.from(pendingRowReorders.values()).map((reorder) => (
-              <div
-                key={reorder.id}
-                className="text-sm text-purple-700 flex items-center space-x-2"
-              >
-                <span className="font-mono">Row {reorder.oldRowIndex}:</span>
-                <span className="text-purple-600">
-                  Move to position {reorder.newRowIndex}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Selected Cell Info */}
       {selectedCellInfo && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

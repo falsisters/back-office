@@ -8,7 +8,7 @@ import {
   PerKiloPriceSchema,
 } from "../schema.type";
 
-export const GetAllDeliveriesByUserIdPayloadSchema = z.array(
+export const GetAllDeliveriesByCashierIdPayloadSchema = z.array(
   DeliverySchema.extend({
     cashier: CashierSchema,
     DeliveryItem: z.array(
@@ -21,6 +21,6 @@ export const GetAllDeliveriesByUserIdPayloadSchema = z.array(
   })
 );
 
-export type GetAllDeliveriesByUserIdPayload = z.infer<
-  typeof GetAllDeliveriesByUserIdPayloadSchema
+export type GetAllDeliveriesByCashierIdPayload = z.infer<
+  typeof GetAllDeliveriesByCashierIdPayloadSchema
 >;

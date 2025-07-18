@@ -105,6 +105,7 @@ export const ProductSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   picture: z.string().default("https://placehold.co/800x800?text=Product"),
+  cashierId: z.string().nullable().optional(), // Made optional for migration
   userId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),

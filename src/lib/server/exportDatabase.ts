@@ -14,7 +14,6 @@ export const exportDatabase = async () => {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
-      "Content-Type": "application/json",
     },
   });
 
@@ -24,5 +23,5 @@ export const exportDatabase = async () => {
   }
 
   revalidatePath("/");
-  return await response.text();
+  return await response.arrayBuffer();
 };

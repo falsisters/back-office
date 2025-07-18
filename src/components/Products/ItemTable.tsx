@@ -31,21 +31,34 @@ export default function ItemTable({
     useState<ProductResponse | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
+  // Safety check for products array
+  const safeProducts = Array.isArray(products) 
+    ? products.filter(product => product && product.id)
+    : [];
+
   const handleProductDeleted = () => {
     onProductUpdate();
   };
 
   const handleRowClick = (product: ProductResponse) => {
-    setSelectedProduct(product);
-    setIsDetailsOpen(true);
+    try {
+      // Validate product data before opening details
+      if (!product || !product.id) {
+        console.error("Invalid product data:", product);
+        return;
+      }
+      setSelectedProduct(product);
+      setIsDetailsOpen(true);
+    } catch (error) {
+      console.error("Error opening product details:", error, { product });
+    }
   };
 
   const handleCloseDetails = () => {
     setIsDetailsOpen(false);
     setSelectedProduct(null);
   };
-
-  if (products.length === 0) {
+  if (safeProducts.length === 0) {
     return (
       <div className="text-center py-8 border rounded-md bg-muted/20">
         <p className="text-muted-foreground mb-2">No products found</p>
@@ -67,11 +80,10 @@ export default function ItemTable({
               <TableHead className="font-semibold">Per Kilo Price</TableHead>
               <TableHead className="text-right w-[120px] font-semibold">
                 Actions
-              </TableHead>
-            </TableRow>
+              </TableHead>            </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
+            {safeProducts.map((product) => (
               <TableRow
                 key={product.id}
                 className="hover:bg-muted/30 cursor-pointer"
@@ -80,13 +92,17 @@ export default function ItemTable({
                   className="font-medium"
                   onClick={() => handleRowClick(product)}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border">
+                  <div className="flex items-center gap-3">                    <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border">
                       <Image
                         src={product.picture || "/placeholder.svg"}
-                        alt={product.name}
+                        alt={product.name || "Product image"}
                         fill
+                        sizes="40px"
                         className="object-cover"
+                        onError={(e) => {
+                          console.warn("Product image failed to load:", product.picture);
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
                       />
                     </div>
                     <span className="truncate">{product.name}</span>

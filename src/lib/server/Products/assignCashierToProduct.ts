@@ -3,7 +3,10 @@ import { cookies } from "next/headers";
 import { NestApiError } from "../../../../utils/types/error.type";
 import { revalidatePath } from "next/cache";
 
-export const editProduct = async (id: string, formData: FormData) => {
+export const assignCashierToProduct = async (
+  productId: string,
+  cashierId: string
+) => {
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("access_token");
@@ -12,30 +15,30 @@ export const editProduct = async (id: string, formData: FormData) => {
       throw new Error("Unauthorized");
     }
 
-    const response = await fetch(`${process.env.API_URL}/product/user/${id}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken.value}`,
-      },
-      body: formData,
-    });
+    const response = await fetch(
+      `${process.env.API_URL}/product/user/${productId}/assign-cashier/${cashierId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken.value}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (!response.ok) {
       const data: NestApiError = await response.json();
       throw new Error(
         Array.isArray(data.message)
           ? data.message.join(", ")
-          : data.message || "Unexpected error occurred"
+          : data.message || "Failed to assign cashier to product"
       );
     }
 
     revalidatePath("/products");
-    revalidatePath(`/products/${id}`);
-    return response.json();
+    return await response.json();
   } catch (error) {
-    console.error("Edit product error:", error);
-    const message =
-      error instanceof Error ? error.message : "Unexpected error occurred";
-    return { error: message };
+    console.error("Assign cashier to product error:", error);
+    throw error;
   }
 };

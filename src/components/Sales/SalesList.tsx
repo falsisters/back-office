@@ -2,15 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { getAllSalesByUserId } from "@/lib/server/Sales/getAllSalesByUserId";
-import SalesSummary from "./SalesSummary";
 import type { PaymentMethodEnum } from "../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
-import { SalesFilters } from "./SalesFilter";
-import { SalesDateGroup } from "./SalesDateGroup";
-import { NoSalesFound } from "./NoSalesFound";
-import { LoadingSales } from "./LoadingSales";
 import { CashierSelector } from "../Cashier/CashierSelector";
 import CashierSalesList from "./CashierSalesList";
+import { supabase } from "@/lib/supabase";
 
 const months = [
   "January",
@@ -54,12 +50,43 @@ export default function SalesList() {
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
     null
   );
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const formattedSelectedMonth = `${selectedYear}-${String(
     selectedMonth
   ).padStart(2, "0")}`;
 
   useEffect(() => {
+    // Separate function to load sales without loading state for real-time updates
+    const refreshSalesData = async () => {
+      try {
+        const data = await getAllSalesByUserId();
+        setSales(data);
+
+        let filtered;
+        if (dateFilterMode === "day") {
+          const currentDate = date || new Date();
+          filtered = data.filter((sale) => {
+            const saleDate = new Date(sale.createdAt);
+            return saleDate.toDateString() === currentDate.toDateString();
+          });
+        } else {
+          const [year, month] = formattedSelectedMonth.split("-").map(Number);
+          filtered = data.filter((sale) => {
+            const saleDate = new Date(sale.createdAt);
+            return (
+              saleDate.getFullYear() === year &&
+              saleDate.getMonth() === month - 1
+            );
+          });
+        }
+
+        setFilteredSales(filtered);
+      } catch (error) {
+        console.error("Error refreshing sales:", error);
+      }
+    };
+
     const loadSales = async () => {
       try {
         setIsLoading(true);
@@ -91,8 +118,28 @@ export default function SalesList() {
         setIsLoading(false);
       }
     };
+
+    const channelA = supabase
+      .channel("schema-db-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+        },
+        () => {
+          setRefreshTrigger((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
     loadSales();
-  }, [dateFilterMode, formattedSelectedMonth]);
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channelA);
+    };
+  }, [dateFilterMode, formattedSelectedMonth, date]);
 
   useEffect(() => {
     let filtered = [...sales];
@@ -130,9 +177,8 @@ export default function SalesList() {
         }))
         .filter((sale) => sale.SaleItem.length > 0);
     }
-
     filtered = filtered
-      .map((sale) => ({
+      .map((sale: (typeof sales)[number]) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
           const isSack = !!item.sackPriceId;
@@ -144,10 +190,10 @@ export default function SalesList() {
           );
         }),
       }))
-      .filter((sale) => sale.SaleItem.length > 0);
+      .filter((sale: (typeof sales)[number]) => sale.SaleItem.length > 0);
 
     filtered = filtered
-      .map((sale) => ({
+      .map((sale: (typeof sales)[number]) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
           const isAsin = item.product.name.toLowerCase().includes("asin");
@@ -158,7 +204,7 @@ export default function SalesList() {
           );
         }),
       }))
-      .filter((sale) => sale.SaleItem.length > 0);
+      .filter((sale: (typeof sales)[number]) => sale.SaleItem.length > 0);
 
     setFilteredSales(filtered);
   }, [
@@ -206,51 +252,17 @@ export default function SalesList() {
         onCashierSelect={setSelectedCashierId}
       />
 
-      {selectedCashierId && <CashierSalesList cashierId={selectedCashierId} />}
-
-      <SalesFilters
-        dateFilterMode={dateFilterMode}
-        setDateFilterMode={setDateFilterMode}
-        date={date}
-        setDate={setDate}
-        selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear}
-        selectedMonth={selectedMonth}
-        setSelectedMonth={setSelectedMonth}
-        productFilter={productFilter}
-        setProductFilter={setProductFilter}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        paymentFilter={paymentFilter}
-        setPaymentFilter={setPaymentFilter}
-        sackKiloFilter={sackKiloFilter}
-        setSackKiloFilter={setSackKiloFilter}
-        asinOtherFilter={asinOtherFilter}
-        setAsinOtherFilter={setAsinOtherFilter}
-      />
-
-      {isLoading ? (
-        <LoadingSales />
+      {selectedCashierId ? (
+        <CashierSalesList
+          cashierId={selectedCashierId}
+          refreshTrigger={refreshTrigger}
+        />
       ) : (
-        <>
-          {Object.entries(groupSalesByDate()).map(([dateString, sales]) => (
-            <SalesDateGroup
-              key={dateString}
-              dateString={dateString}
-              sales={sales}
-              viewMode={viewMode}
-              dateFilterMode={dateFilterMode}
-            />
-          ))}
-
-          {filteredSales.length === 0 && <NoSalesFound />}
-
-          {filteredSales.length > 0 && (
-            <>
-              <SalesSummary sales={filteredSales} />
-            </>
-          )}
-        </>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">
+            Please select a cashier to view their sales data.
+          </p>
+        </div>
       )}
     </div>
   );
