@@ -36,7 +36,7 @@ import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
 import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
-import { validateProductImage } from "../../../utils/fileValidation";
+import { validateProductImage } from "@/lib/utils/fileValidation";
 
 interface EditProductProps {
   productId: string;
@@ -451,7 +451,8 @@ export default function EditProduct({
                   className="focus-visible:ring-primary"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Supported formats: JPEG, PNG, WebP, HEIC, TIFF, AVIF, BMP, GIF. Maximum size: 15MB
+                  Supported formats: JPEG, PNG, WebP, HEIC, TIFF, AVIF, BMP,
+                  GIF. Maximum size: 15MB
                 </p>
               </div>
 
@@ -952,11 +953,6 @@ export default function EditProduct({
               Failed to load product data
             </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
         </div>
       </DialogContent>
     </Dialog>
