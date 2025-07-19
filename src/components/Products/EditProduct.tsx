@@ -446,13 +446,13 @@ export default function EditProduct({
                 <Input
                   id="edit-picture"
                   type="file"
-                  accept=".jpg,.jpeg,.png,.webp,.tiff,.tif,.avif,.heic,.heif,.bmp,.gif"
+                  accept=".jpg,.jpeg,.png,.webp,.tiff,.tif,.avif,.heic,.heif,.bmp,.gif,image/jpeg,image/png,image/webp,image/tiff,image/avif,image/heic,image/heif,image/bmp,image/gif"
                   onChange={handleFileChange}
                   className="focus-visible:ring-primary"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Supported formats: JPEG, PNG, WebP, HEIC, TIFF, AVIF, BMP,
-                  GIF. Maximum size: 15MB
+                  Supported formats: JPEG, PNG, WebP, HEIC/HEIF, TIFF, AVIF,
+                  BMP, GIF. Maximum size: 15MB
                 </p>
               </div>
 
