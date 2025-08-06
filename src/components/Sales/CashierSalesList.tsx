@@ -104,12 +104,24 @@ export default function CashierSalesList({
         const data = await getSalesByCashier(cashierId, false);
         setSales(data);
 
+        console.log("🔄 SALES: Loaded sales data with timezone correction");
+        console.log("🔄 SALES: Sample sales dates:", data.slice(0, 3).map(sale => ({
+          id: sale.id,
+          correctedDate: new Date(sale.createdAt).toDateString(),
+          originalDate: (sale as any).originalCreatedAt ? new Date((sale as any).originalCreatedAt).toDateString() : 'N/A'
+        })));
+
         let filtered;
         if (dateFilterMode === "day") {
           const today = new Date();
+          console.log("🔍 SALES: Filtering for today:", today.toDateString());
           filtered = data.filter((sale) => {
             const saleDate = new Date(sale.createdAt);
-            return saleDate.toDateString() === today.toDateString();
+            const match = saleDate.toDateString() === today.toDateString();
+            if (match) {
+              console.log("✅ SALES: Found matching sale for today:", sale.id, saleDate.toDateString());
+            }
+            return match;
           });
         } else {
           const [year, month] = formattedSelectedMonth.split("-").map(Number);
