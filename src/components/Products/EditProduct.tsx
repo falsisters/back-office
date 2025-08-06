@@ -34,6 +34,7 @@ import { Edit, Loader2 } from "lucide-react";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
 import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
+import { validateProductImage } from "@/lib/utils/fileValidation";
 import SackPricesManager from "./SackPricesManager";
 
 interface EditProductProps {
@@ -151,23 +152,23 @@ export default function EditProduct({
     const file = e.target.files?.[0] || null;
 
     if (file) {
-      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-      if (!allowedTypes.includes(file.type)) {
+      const validation = validateProductImage(file);
+
+      if (!validation.isValid) {
         toast({
-          title: "Invalid file format",
-          description: "Please upload only JPG or PNG images",
+          title: "Invalid file",
+          description: validation.error,
           variant: "destructive",
         });
         e.target.value = "";
         return;
       }
 
-      const maxSize = 3 * 1024 * 1024;
-      if (file.size > maxSize) {
+      // Show file info in success message
+      if (validation.fileInfo) {
         toast({
-          title: "File too large",
-          description: "Please select an image smaller than 3MB",
-          variant: "destructive",
+          title: "File selected",
+          description: `${validation.fileInfo.name} (${validation.fileInfo.sizeInMB}MB) ready for upload`,
         });
         e.target.value = "";
         return;
@@ -417,12 +418,13 @@ export default function EditProduct({
                 <Input
                   id="edit-picture"
                   type="file"
-                  accept="image/jpeg,image/jpg,image/png"
+                  accept=".jpg,.jpeg,.png,.webp,.tiff,.tif,.avif,.heic,.heif,.bmp,.gif,image/jpeg,image/png,image/webp,image/tiff,image/avif,image/heic,image/heif,image/bmp,image/gif"
                   onChange={handleFileChange}
                   className="focus-visible:ring-primary"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Supported formats: JPG, PNG. Maximum size: 3MB
+                  Supported formats: JPEG, PNG, WebP, HEIC/HEIF, TIFF, AVIF,
+                  BMP, GIF. Maximum size: 15MB
                 </p>
               </div>
 

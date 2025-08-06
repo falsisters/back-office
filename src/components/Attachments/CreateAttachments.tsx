@@ -16,6 +16,11 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle, Upload } from "lucide-react";
 import type { AttachmentType } from "../../../utils/types/schema.type";
+import {
+  validateAttachmentFile,
+  getFileTypeCategory,
+  formatFileSize,
+} from "@/lib/utils/fileValidation";
 
 export function CreateAttachment({
   onAttachmentCreated,
@@ -74,27 +79,22 @@ export function CreateAttachment({
     const file = e.target.files?.[0] || null;
 
     if (file) {
-      // Check file type - allow JPG, PNG, and PDF for attachments
-      const allowedTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "application/pdf",
-      ];
-      if (!allowedTypes.includes(file.type)) {
-        setError("Please upload only JPG, PNG, or PDF files");
-        // Reset the input
+      const validation = validateAttachmentFile(file);
+
+      if (!validation.isValid) {
+        setError(validation.error || "Invalid file");
         e.target.value = "";
         return;
       }
 
-      // Check file size (3MB = 3 * 1024 * 1024 bytes)
-      const maxSize = 3 * 1024 * 1024; // 3MB in bytes
-      if (file.size > maxSize) {
-        setError("File size must be smaller than 3MB");
-        // Reset the input
-        e.target.value = "";
-        return;
+      // Show file info and category
+      if (validation.fileInfo) {
+        const category = getFileTypeCategory(file.type);
+        console.log(
+          `File selected: ${
+            validation.fileInfo.name
+          } (${category}, ${formatFileSize(validation.fileInfo.size)})`
+        );
       }
 
       setFile(file);
@@ -171,16 +171,21 @@ export function CreateAttachment({
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="w-8 h-8 mb-3 text-gray-400" />
                   <p className="mb-2 text-sm text-gray-500">
-                    {file ? file.name : "Click to upload or drag and drop"}
+                    {file
+                      ? `${file.name} (${formatFileSize(file.size)})`
+                      : "Click to upload or drag and drop"}
                   </p>
                   <p className="text-xs text-gray-500">
-                    JPG, PNG, PDF (MAX. 3MB)
+                    Images: JPEG, PNG, WebP, HEIC, TIFF, AVIF, BMP, GIF, SVG
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Documents: PDF, TXT, DOCX, XLSX, DOC, XLS (MAX. 15MB)
                   </p>
                 </div>
                 <input
                   id="file"
                   type="file"
-                  accept="image/jpeg,image/jpg,image/png,application/pdf"
+                  accept=".jpg,.jpeg,.png,.webp,.tiff,.tif,.avif,.heic,.heif,.bmp,.gif,.svg,.pdf,.txt,.docx,.xlsx,.doc,.xls"
                   className="hidden"
                   onChange={handleFileChange}
                   required

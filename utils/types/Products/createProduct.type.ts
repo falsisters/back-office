@@ -7,10 +7,42 @@ import {
   SackTypeEnum,
 } from "../schema.type";
 
+// Enhanced file validation for products
+const ProductImageSchema = z
+  .instanceof(File)
+  .refine(
+    (file) => {
+      const supportedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+        "image/tiff",
+        "image/tif",
+        "image/avif",
+        "image/heic",
+        "image/heif",
+        "image/bmp",
+        "image/gif",
+      ];
+      return supportedTypes.includes(file.type);
+    },
+    {
+      message:
+        "Please upload a supported image format (JPEG, PNG, WebP, HEIC, TIFF, AVIF, BMP, GIF)",
+    }
+  )
+  .refine(
+    (file) => file.size <= 15 * 1024 * 1024, // 15MB limit
+    {
+      message: "File size must be less than 15MB",
+    }
+  );
+
 export const CreateProductFormDataSchema = z
   .object({
     name: z.string().min(3, "Name must be at least 3 characters"),
-    picture: z.instanceof(File, { message: "Product image is required" }),
+    picture: ProductImageSchema,
     sackPrices: z
       .array(
         SackPriceSchema.extend({

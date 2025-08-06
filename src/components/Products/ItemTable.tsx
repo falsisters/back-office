@@ -16,7 +16,6 @@ import ProductDetails from "./ProductDetails";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
-import { SackPrice } from "../../../utils/types/schema.type";
 
 interface ItemTableProps {
   products: ProductResponse[];
@@ -32,8 +31,8 @@ export default function ItemTable({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   // Safety check for products array
-  const safeProducts = Array.isArray(products) 
-    ? products.filter(product => product && product.id)
+  const safeProducts = Array.isArray(products)
+    ? products.filter((product) => product && product.id)
     : [];
 
   const handleProductDeleted = () => {
@@ -80,7 +79,8 @@ export default function ItemTable({
               <TableHead className="font-semibold">Per Kilo Price</TableHead>
               <TableHead className="text-right w-[120px] font-semibold">
                 Actions
-              </TableHead>            </TableRow>
+              </TableHead>{" "}
+            </TableRow>
           </TableHeader>
           <TableBody>
             {safeProducts.map((product) => (
@@ -92,7 +92,9 @@ export default function ItemTable({
                   className="font-medium"
                   onClick={() => handleRowClick(product)}
                 >
-                  <div className="flex items-center gap-3">                    <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border">
+                  <div className="flex items-center gap-3">
+                    {" "}
+                    <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border">
                       <Image
                         src={product.picture || "/placeholder.svg"}
                         alt={product.name || "Product image"}
@@ -100,8 +102,12 @@ export default function ItemTable({
                         sizes="40px"
                         className="object-cover"
                         onError={(e) => {
-                          console.warn("Product image failed to load:", product.picture);
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          console.warn(
+                            "Product image failed to load:",
+                            product.picture
+                          );
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder.svg";
                         }}
                       />
                     </div>
