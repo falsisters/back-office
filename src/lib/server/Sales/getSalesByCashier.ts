@@ -46,5 +46,21 @@ export const getSalesByCashier = async (
     );
   }
 
-  return (await response.json()) as GetAllSalesByUserIdPayload;
+  const salesData = (await response.json()) as GetAllSalesByUserIdPayload;
+  
+  // Apply timezone correction to match profit data (UTC to PH time)
+  const correctedSalesData = salesData.map(sale => ({
+    ...sale,
+    createdAt: new Date(new Date(sale.createdAt).getTime() - 8 * 60 * 60 * 1000),
+    originalCreatedAt: sale.createdAt,
+  }));
+
+  console.log("🔄 SALES: Applied timezone correction to sales data");
+  console.log("🔄 SALES: Sample before/after:", salesData.slice(0, 2).map(sale => ({
+    id: sale.id,
+    original: sale.createdAt,
+    corrected: new Date(new Date(sale.createdAt).getTime() - 8 * 60 * 60 * 1000).toISOString()
+  })));
+
+  return correctedSalesData;
 };

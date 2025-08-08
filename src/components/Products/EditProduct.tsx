@@ -24,19 +24,18 @@ import { Separator } from "@/components/ui/separator";
 import { editProduct } from "@/lib/server/Products/editProduct";
 import { getProductById } from "@/lib/server/Products/getProductById";
 import {
-  type SackType,
   type SackPrice,
   type SpecialPrice,
-  SackTypeEnum,
 } from "../../../utils/types/schema.type";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
-import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
+import { Edit, Loader2 } from "lucide-react";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
 import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 import { validateProductImage } from "@/lib/utils/fileValidation";
+import SackPricesManager from "./SackPricesManager";
 
 interface EditProductProps {
   productId: string;
@@ -63,16 +62,18 @@ export default function EditProduct({
     id?: string;
     price: number;
     stock: number;
-    profit?: number; // Make this optional
+    profit?: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
-  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
-    null
-  );
+  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(null);
   const [isLoadingCashiers, setIsLoadingCashiers] = useState(false);
+  
+  // Track deleted IDs for proper backend deletion
+  const [deletedSackPriceIds, setDeletedSackPriceIds] = useState<string[]>([]);
+  const [deletedSpecialPriceIds, setDeletedSpecialPriceIds] = useState<string[]>([]);
 
   const loadProduct = useCallback(async () => {
     setIsLoading(true);
@@ -83,7 +84,6 @@ export default function EditProduct({
         setProduct(fetchedProduct);
         setName(fetchedProduct.name);
         setPicturePreview(fetchedProduct.picture);
-        // Fix: Handle cashier property safely
         setSelectedCashierId(fetchedProduct.cashier?.id || null);
 
         // Handle SackPrice array
@@ -93,25 +93,25 @@ export default function EditProduct({
             type: sp?.type || "FIFTY_KG",
             price: sp?.price ?? 0,
             stock: sp?.stock ?? 0,
-            profit: sp?.profit, // Keep as undefined if not set
+            profit: sp?.profit,
             specialPrice: sp?.specialPrice
               ? {
                   id: sp.specialPrice?.id,
                   price: sp.specialPrice?.price ?? 0,
                   minimumQty: sp.specialPrice?.minimumQty ?? 0,
-                  profit: sp.specialPrice?.profit, // Keep as undefined if not set
+                  profit: sp.specialPrice?.profit,
                 }
               : null,
           }))
         );
 
-        // Handle per kilo price (now nullable instead of array)
+        // Handle per kilo price
         if (fetchedProduct.perKiloPrice) {
           setPerKiloPrice({
             id: fetchedProduct.perKiloPrice.id,
             price: fetchedProduct.perKiloPrice.price ?? 0,
             stock: fetchedProduct.perKiloPrice.stock ?? 0,
-            profit: fetchedProduct.perKiloPrice.profit, // Keep as undefined if not set
+            profit: fetchedProduct.perKiloPrice.profit,
           });
         } else {
           setPerKiloPrice(null);
@@ -170,6 +170,8 @@ export default function EditProduct({
           title: "File selected",
           description: `${validation.fileInfo.name} (${validation.fileInfo.sizeInMB}MB) ready for upload`,
         });
+        e.target.value = "";
+        return;
       }
 
       setPicture(file);
@@ -180,21 +182,20 @@ export default function EditProduct({
       reader.readAsDataURL(file);
     } else {
       setPicture(null);
-      // Keep the existing preview when no new file is selected
     }
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!name.trim()) newErrors.name = "Product name is required"; // Check that at least one pricing option is provided
+    if (!name.trim()) newErrors.name = "Product name is required";
+    
+    // Only consider active sack prices for validation
     const hasSackPrices = sackPrices.length > 0;
-    const hasPerKiloPrice =
-      perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
+    const hasPerKiloPrice = perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
 
     if (!hasSackPrices && !hasPerKiloPrice) {
-      newErrors.pricing =
-        "At least one pricing option (sack prices or per kilo price) is required";
+      newErrors.pricing = "At least one pricing option (sack prices or per kilo price) is required";
     }
 
     sackPrices.forEach((sack, index) => {
@@ -213,46 +214,6 @@ export default function EditProduct({
     return Object.keys(newErrors).length === 0;
   };
 
-  const addSackPrice = () => {
-    const availableTypes = Object.values(SackTypeEnum.enum).filter(
-      (type) => !sackPrices.some((sp) => sp.type === type)
-    );
-
-    if (availableTypes.length === 0) {
-      toast({ title: "All sack types already added", variant: "destructive" });
-      return;
-    }
-
-    setSackPrices([
-      ...sackPrices,
-      {
-        type: availableTypes[0],
-        price: 0,
-        stock: 0,
-      },
-    ]);
-  };
-
-  const removeSackPrice = (index: number) => {
-    const newSackPrices = [...sackPrices];
-    newSackPrices.splice(index, 1);
-    setSackPrices(newSackPrices);
-  };
-
-  const removeSpecialPrice = (index: number) => {
-    const newSackPrices = [...sackPrices];
-    if (newSackPrices[index].specialPrice) {
-      const specialPriceId = newSackPrices[index].specialPrice?.id;
-      newSackPrices[index].specialPrice = {
-        id: specialPriceId,
-        price: 0,
-        minimumQty: 0,
-        profit: 0,
-      };
-    }
-    setSackPrices(newSackPrices);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -268,33 +229,39 @@ export default function EditProduct({
         formData.append("picture", picture);
       }
 
-      // Include cashier ID if changed
       if (selectedCashierId) {
         formData.append("cashierId", selectedCashierId);
       }
 
+      // Process sack prices - send clean data without deletion flags
       const sackPricesData = sackPrices.map((sp) => ({
         id: sp.id,
         price: sp.price,
         stock: sp.stock,
         type: sp.type,
-        profit:
-          sp.profit !== undefined
-            ? CurrencyCalculator.round(sp.profit)
-            : undefined,
+        profit: sp.profit !== undefined ? CurrencyCalculator.round(sp.profit) : undefined,
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
               price: sp.specialPrice.price,
               minimumQty: sp.specialPrice.minimumQty,
-              profit:
-                sp.specialPrice.profit !== undefined
-                  ? CurrencyCalculator.round(sp.specialPrice.profit)
-                  : undefined,
+              profit: sp.specialPrice.profit !== undefined
+                ? CurrencyCalculator.round(sp.specialPrice.profit)
+                : undefined,
             }
           : null,
       }));
+
       formData.append("sackPrice", JSON.stringify(sackPricesData));
+      
+      // Send deleted IDs separately
+      if (deletedSackPriceIds.length > 0) {
+        formData.append("deletedSackPriceIds", JSON.stringify(deletedSackPriceIds));
+      }
+      
+      if (deletedSpecialPriceIds.length > 0) {
+        formData.append("deletedSpecialPriceIds", JSON.stringify(deletedSpecialPriceIds));
+      }
 
       if (perKiloPrice) {
         formData.append(
@@ -303,14 +270,12 @@ export default function EditProduct({
             id: perKiloPrice.id,
             price: perKiloPrice.price,
             stock: perKiloPrice.stock,
-            profit:
-              perKiloPrice.profit !== undefined
-                ? CurrencyCalculator.round(perKiloPrice.profit)
-                : undefined,
+            profit: perKiloPrice.profit !== undefined
+              ? CurrencyCalculator.round(perKiloPrice.profit)
+              : undefined,
           })
         );
       } else {
-        // Send null when perKiloPrice is not set
         formData.append("perKiloPrice", JSON.stringify(null));
       }
 
@@ -323,6 +288,10 @@ export default function EditProduct({
 
       onProductUpdated?.();
       setIsDialogOpen(false);
+      
+      // Reset deletion tracking
+      setDeletedSackPriceIds([]);
+      setDeletedSpecialPriceIds([]);
     } catch (error) {
       toast({
         title: "Error Updating Product",
@@ -334,7 +303,6 @@ export default function EditProduct({
     }
   };
 
-  // Utility function to prevent wheel events on number inputs
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
@@ -345,9 +313,11 @@ export default function EditProduct({
       onOpenChange={(open) => {
         setIsDialogOpen(open);
         if (!open) {
-          // Reset state when dialog closes
           setProduct(null);
           setErrors({});
+          // Reset deletion tracking when dialog closes
+          setDeletedSackPriceIds([]);
+          setDeletedSpecialPriceIds([]);
         }
       }}
     >
@@ -404,6 +374,7 @@ export default function EditProduct({
 
               <Separator />
 
+              {/* Product Name */}
               <div className="space-y-2">
                 <Label htmlFor="edit-name" className="text-sm font-medium">
                   Product Name
@@ -423,6 +394,7 @@ export default function EditProduct({
                 )}
               </div>
 
+              {/* Product Image */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Current Image</Label>
                 {picturePreview && (
@@ -458,382 +430,17 @@ export default function EditProduct({
 
               <Separator />
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Sack Prices</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addSackPrice}
-                    className="h-8 gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    <Plus size={14} />
-                    Add
-                  </Button>
-                </div>
-
-                {errors.pricing && (
-                  <p className="text-xs text-destructive">{errors.pricing}</p>
-                )}
-
-                {errors.sackPrices && (
-                  <p className="text-xs text-destructive">
-                    {errors.sackPrices}
-                  </p>
-                )}
-
-                {sackPrices.length === 0 ? (
-                  <div className="text-center py-4 border border-dashed rounded-md">
-                    <p className="text-sm text-muted-foreground">
-                      No sack prices added yet
-                    </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={addSackPrice}
-                      className="mt-2 text-primary hover:text-primary/80 hover:bg-primary/10"
-                    >
-                      Add Sack Price
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sackPrices
-                      .filter((sack) => sack && typeof sack === "object")
-                      .map((sack, index) => (
-                        <div
-                          key={sack.id || index}
-                          className="space-y-3 border p-4 rounded-lg relative hover:shadow-sm transition-shadow"
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeSackPrice(index)}
-                            className="h-6 w-6 absolute top-2 right-2 text-destructive hover:bg-destructive/10"
-                            disabled={sackPrices.length === 1}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Type</Label>
-                              <Select
-                                value={sack.type as string}
-                                onValueChange={(value) => {
-                                  const newSackPrices = [...sackPrices];
-                                  newSackPrices[index].type = value as SackType;
-                                  setSackPrices(newSackPrices);
-                                }}
-                              >
-                                <SelectTrigger className="focus:ring-primary">
-                                  <SelectValue placeholder="Sack Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Object.values(SackTypeEnum.enum).map(
-                                    (type) => {
-                                      const isUsed = sackPrices.some(
-                                        (sp, i) =>
-                                          i !== index && sp.type === type
-                                      );
-                                      return (
-                                        <SelectItem
-                                          key={type}
-                                          value={type}
-                                          disabled={isUsed}
-                                        >
-                                          {type === "FIFTY_KG"
-                                            ? "50 KG"
-                                            : type === "TWENTY_FIVE_KG"
-                                            ? "25 KG"
-                                            : "5 KG"}
-                                        </SelectItem>
-                                      );
-                                    }
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-1">
-                              <Label className="text-xs">Price (₱)</Label>
-                              <Input
-                                type="number"
-                                placeholder="Price"
-                                value={sack.price || ""}
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  newSackPrices[index].price = Number(
-                                    e.target.value
-                                  );
-                                  setSackPrices(newSackPrices);
-                                }}
-                                onWheel={preventWheelChange}
-                                min="0"
-                                step="0.01"
-                                className={
-                                  errors[`sackPrice_${index}_price`]
-                                    ? "border-destructive"
-                                    : "focus-visible:ring-primary"
-                                }
-                              />
-                              {errors[`sackPrice_${index}_price`] && (
-                                <p className="text-xs text-destructive">
-                                  {errors[`sackPrice_${index}_price`]}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Stock</Label>{" "}
-                              <Input
-                                type="number"
-                                placeholder="Stock"
-                                value={
-                                  sack.stock !== undefined &&
-                                  sack.stock !== null
-                                    ? String(sack.stock)
-                                    : ""
-                                }
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  newSackPrices[index].stock = Number(
-                                    e.target.value
-                                  );
-                                  setSackPrices(newSackPrices);
-                                }}
-                                onWheel={preventWheelChange}
-                                min="0"
-                                className={
-                                  errors[`sackPrice_${index}_stock`]
-                                    ? "border-destructive"
-                                    : "focus-visible:ring-primary"
-                                }
-                              />
-                              {errors[`sackPrice_${index}_stock`] && (
-                                <p className="text-xs text-destructive">
-                                  {errors[`sackPrice_${index}_stock`]}
-                                </p>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Profit (₱)</Label>
-                              <Input
-                                type="number"
-                                placeholder="Profit (optional)"
-                                value={
-                                  sack.profit !== undefined &&
-                                  sack.profit !== null
-                                    ? String(sack.profit)
-                                    : ""
-                                }
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  const value = e.target.value;
-                                  if (value === "") {
-                                    newSackPrices[index].profit = undefined;
-                                  } else {
-                                    const numValue = parseFloat(value);
-                                    if (!isNaN(numValue)) {
-                                      newSackPrices[index].profit =
-                                        CurrencyCalculator.round(numValue);
-                                    }
-                                  }
-                                  setSackPrices(newSackPrices);
-                                }}
-                                onWheel={preventWheelChange}
-                                min="0"
-                                step="1"
-                                className="focus-visible:ring-primary"
-                              />
-                            </div>
-                          </div>
-
-                          <Separator className="my-2" />
-
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs text-muted-foreground">
-                                Special Price (Optional)
-                              </Label>
-                              {sack.specialPrice &&
-                                sack.specialPrice &&
-                                (sack.specialPrice.price ?? 0) > 0 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeSpecialPrice(index)}
-                                    className="h-6 text-xs text-destructive hover:bg-destructive/10"
-                                  >
-                                    Remove Special Price
-                                  </Button>
-                                )}
-                            </div>
-                            {sack.specialPrice ? (
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">
-                                    Special Price (₱)
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    placeholder="Special Price"
-                                    value={sack.specialPrice?.price || ""}
-                                    onChange={(e) => {
-                                      const newSackPrices = [...sackPrices];
-                                      if (!newSackPrices[index].specialPrice) {
-                                        newSackPrices[index].specialPrice = {
-                                          price: 0,
-                                          minimumQty: 0,
-                                        };
-                                      }
-                                      newSackPrices[index].specialPrice!.price =
-                                        Number(e.target.value);
-                                      setSackPrices(newSackPrices);
-                                    }}
-                                    onWheel={preventWheelChange}
-                                    min="0"
-                                    step="0.01"
-                                    className="focus-visible:ring-secondary"
-                                  />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">
-                                      Minimum Quantity
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      placeholder="Min Qty"
-                                      value={
-                                        sack.specialPrice?.minimumQty || ""
-                                      }
-                                      onChange={(e) => {
-                                        const newSackPrices = [...sackPrices];
-                                        if (
-                                          !newSackPrices[index].specialPrice
-                                        ) {
-                                          newSackPrices[index].specialPrice = {
-                                            price: 0,
-                                            minimumQty: 0,
-                                            profit: 0,
-                                          };
-                                        }
-                                        newSackPrices[
-                                          index
-                                        ].specialPrice!.minimumQty = Number(
-                                          e.target.value
-                                        );
-                                        setSackPrices(newSackPrices);
-                                      }}
-                                      onWheel={preventWheelChange}
-                                      min="0"
-                                      className={
-                                        errors[
-                                          `sackPrice_${index}_specialPrice_minimumQty`
-                                        ]
-                                          ? "border-destructive"
-                                          : "focus-visible:ring-secondary"
-                                      }
-                                    />
-                                    {errors[
-                                      `sackPrice_${index}_specialPrice_minimumQty`
-                                    ] && (
-                                      <p className="text-xs text-destructive">
-                                        {
-                                          errors[
-                                            `sackPrice_${index}_specialPrice_minimumQty`
-                                          ]
-                                        }
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">
-                                      Profit (₱)
-                                    </Label>
-                                    <Input
-                                      type="number"
-                                      placeholder="Profit (optional)"
-                                      value={
-                                        sack.specialPrice?.profit !==
-                                          undefined &&
-                                        sack.specialPrice?.profit !== null
-                                          ? String(sack.specialPrice.profit)
-                                          : ""
-                                      }
-                                      onChange={(e) => {
-                                        const newSackPrices = [...sackPrices];
-                                        if (
-                                          !newSackPrices[index].specialPrice
-                                        ) {
-                                          newSackPrices[index].specialPrice = {
-                                            price: 0,
-                                            minimumQty: 0,
-                                            profit: 0,
-                                          };
-                                        }
-                                        const value = e.target.value;
-                                        if (value === "") {
-                                          newSackPrices[
-                                            index
-                                          ].specialPrice!.profit = undefined;
-                                        } else {
-                                          const numValue = parseFloat(value);
-                                          if (!isNaN(numValue)) {
-                                            newSackPrices[
-                                              index
-                                            ].specialPrice!.profit =
-                                              CurrencyCalculator.round(
-                                                numValue
-                                              );
-                                          }
-                                        }
-                                        setSackPrices(newSackPrices);
-                                      }}
-                                      onWheel={preventWheelChange}
-                                      min="0"
-                                      step="1"
-                                      className="focus-visible:ring-secondary"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const newSackPrices = [...sackPrices];
-                                  newSackPrices[index].specialPrice = {
-                                    price: 0,
-                                    minimumQty: 0,
-                                    profit: 0,
-                                  };
-                                  setSackPrices(newSackPrices);
-                                }}
-                                className="w-full h-8 text-xs text-secondary hover:text-secondary/80 hover:bg-secondary/10"
-                              >
-                                Add Special Price
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
+              {/* Sack Prices Manager */}
+              <SackPricesManager
+                  sackPrices={sackPrices}
+                  setSackPrices={setSackPrices}
+                  errors={errors}
+                  setDeletedSackPriceIds={setDeletedSackPriceIds}
+                  setDeletedSpecialPriceIds={setDeletedSpecialPriceIds} deletedSackPriceIds={[]} deletedSpecialPriceIds={[]}              />
 
               <Separator />
 
+              {/* Per Kilo Price */}
               <div className="space-y-4">
                 <Label className="text-sm font-medium">
                   Per Kilo Price (Optional)
