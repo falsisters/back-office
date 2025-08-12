@@ -45,7 +45,7 @@ export default function SalesSummary({
             ? item.discountedPrice
             : sackPrice;
 
-        const itemTotal = displayPrice * item.quantity;
+        const itemTotal = Math.ceil(displayPrice * item.quantity);
 
         category = isAsin ? "asinSack" : "otherSack";
 
@@ -65,7 +65,7 @@ export default function SalesSummary({
             ? item.discountedPrice
             : kiloPrice;
 
-        const itemTotal = displayPrice * item.quantity;
+        const itemTotal = Math.ceil(displayPrice * item.quantity);
 
         category = isAsin ? "asinKilo" : "otherKilo";
 
@@ -137,7 +137,7 @@ export default function SalesSummary({
                   Total Sales:
                 </TableCell>
                 <TableCell className="text-right font-semibold text-secondary">
-                  ₱{Math.floor(grandTotal.sales).toLocaleString()}
+                  ₱{grandTotal.sales.toLocaleString()}
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -146,7 +146,7 @@ export default function SalesSummary({
                   Check Deductions:
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
-                  - ₱{Math.floor(grandTotal.check).toLocaleString()}
+                  - ₱{grandTotal.check.toLocaleString()}
                 </TableCell>
               </TableRow>
               <TableRow>
@@ -155,7 +155,7 @@ export default function SalesSummary({
                   Bank Transfer Deductions:
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
-                  - ₱{Math.floor(grandTotal.bankTransfer).toLocaleString()}
+                  - ₱{grandTotal.bankTransfer.toLocaleString()}
                 </TableCell>
               </TableRow>
               <TableRow className="border-t-2 border-t-secondary/20">
@@ -164,7 +164,7 @@ export default function SalesSummary({
                   Net Cash Total:
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary text-xl">
-                  ₱{Math.floor(grandTotal.cash).toLocaleString()}
+                  ₱{grandTotal.cash.toLocaleString()}
                 </TableCell>
               </TableRow>
             </TableBody>

@@ -7,7 +7,7 @@ const BillDtoSchema = z.object({
 });
 
 export const UpdateBillCountSchema = z.object({
-  beginningBalance: z.number().min(0).optional(),
+  beginningBalance: z.number().optional(), // Remove min(0) to allow negative values like backend
   showBeginningBalance: z.boolean().optional(),
   bills: z.array(BillDtoSchema).optional(),
 });

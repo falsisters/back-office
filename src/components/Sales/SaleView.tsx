@@ -63,7 +63,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         item.isDiscounted && item.discountedPrice
           ? item.discountedPrice
           : price;
-      return total + displayPrice * item.quantity;
+      return total + Math.ceil(displayPrice * item.quantity);
     }, 0);
   };
 
@@ -148,7 +148,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   ? item.discountedPrice
                   : price;
 
-              const totalPrice = Math.floor(displayPrice * item.quantity);
+              const totalPrice = Math.ceil(displayPrice * item.quantity);
               const paymentInfo =
                 sale.paymentMethod !== "CASH"
                   ? sale.paymentMethod.replace("_", " ")
@@ -208,10 +208,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   {calculateTotalQuantity(asinSackItems)}
                 </span>
                 <span className="font-mono font-bold text-2xl text-primary">
-                  ₱
-                  {Math.floor(
-                    calculateTotalSales(asinSackItems)
-                  ).toLocaleString()}
+                  ₱{calculateTotalSales(asinSackItems).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -242,7 +239,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   ? item.discountedPrice
                   : price;
 
-              const totalPrice = Math.floor(displayPrice * item.quantity);
+              const totalPrice = Math.ceil(displayPrice * item.quantity);
               const paymentInfo =
                 sale.paymentMethod !== "CASH"
                   ? sale.paymentMethod.replace("_", " ")
@@ -302,10 +299,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   {calculateTotalQuantity(otherSackItems)}
                 </span>
                 <span className="font-mono font-bold text-2xl text-primary">
-                  ₱
-                  {Math.floor(
-                    calculateTotalSales(otherSackItems)
-                  ).toLocaleString()}
+                  ₱{calculateTotalSales(otherSackItems).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -328,7 +322,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   ? item.discountedPrice
                   : price;
 
-              const totalPrice = Math.floor(displayPrice * item.quantity);
+              const totalPrice = Math.ceil(displayPrice * item.quantity);
               const paymentInfo =
                 sale.paymentMethod !== "CASH"
                   ? sale.paymentMethod.replace("_", " ")
@@ -388,10 +382,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                   {calculateTotalQuantity(perKiloPriceItems)}
                 </span>
                 <span className="font-mono font-bold text-2xl text-primary">
-                  ₱
-                  {Math.floor(
-                    calculateTotalSales(perKiloPriceItems)
-                  ).toLocaleString()}
+                  ₱{calculateTotalSales(perKiloPriceItems).toLocaleString()}
                 </span>
               </div>
             </div>

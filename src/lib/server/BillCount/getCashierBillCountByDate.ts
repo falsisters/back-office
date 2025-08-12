@@ -37,5 +37,23 @@ export const getCashierBillCountForDate = async (
   }
 
   const text = await response.text();
-  return text ? JSON.parse(text) : null;
+  if (!text) return null;
+
+  const data = JSON.parse(text);
+
+  // Convert date strings to Date objects to match type expectations
+  if (data) {
+    return {
+      ...data,
+      date: new Date(data.date),
+      updatedAt: new Date(data.updatedAt),
+      bills: data.bills.map((bill: any) => ({
+        ...bill,
+        createdAt: new Date(bill.createdAt),
+        updatedAt: new Date(bill.updatedAt),
+      })),
+    };
+  }
+
+  return null;
 };

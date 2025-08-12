@@ -28,5 +28,17 @@ export const getBillCountById = async (
     );
   }
 
-  return response.json();
+  const data = await response.json();
+
+  // Convert date strings to Date objects to match type expectations
+  return {
+    ...data,
+    date: new Date(data.date),
+    updatedAt: new Date(data.updatedAt),
+    bills: data.bills.map((bill: any) => ({
+      ...bill,
+      createdAt: new Date(bill.createdAt),
+      updatedAt: new Date(bill.updatedAt),
+    })),
+  };
 };

@@ -181,12 +181,17 @@ export function CreateBillCounts({
                         </span>
                         <Input
                           type="number"
+                          step="0.01"
                           placeholder="0.00"
                           className="pl-8"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
+                          onChange={(e) => {
+                            const value =
+                              e.target.value === ""
+                                ? 0
+                                : Number(e.target.value);
+                            field.onChange(value);
+                          }}
                           onWheel={preventWheelChange}
                         />
                       </div>

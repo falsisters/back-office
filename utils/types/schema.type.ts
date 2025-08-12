@@ -352,7 +352,7 @@ export const BillCountSchema = z.object({
   id: z.string().cuid(),
   userId: z.string().nullable().optional(),
   cashierId: z.string().nullable().optional(),
-  beginningBalance: parseDecimalMin(0),
+  beginningBalance: parseDecimal, // Changed from parseDecimalMin(0) to allow negative values like backend
   showBeginningBalance: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -361,7 +361,7 @@ export type BillCount = z.infer<typeof BillCountSchema>;
 
 export const BillsSchema = z.object({
   id: z.string().cuid(),
-  amount: z.number().int().positive(),
+  amount: z.number().int().min(0), // Keep as integer for bill quantities
   type: BillTypeEnum,
   billCountId: z.string(),
   createdAt: z.date().default(() => new Date()),

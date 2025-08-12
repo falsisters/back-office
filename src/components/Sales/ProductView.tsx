@@ -93,8 +93,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         isDiscounted,
       });
       productGroup.totalQuantity += item.quantity;
-      productGroup.totalAmount += price * item.quantity;
-      productGroup.originalAmount += basePrice * item.quantity;
+      productGroup.totalAmount += Math.ceil(price * item.quantity);
+      productGroup.originalAmount += Math.ceil(basePrice * item.quantity);
 
       if (isDiscounted) productGroup.hasDiscounts = true;
     });
@@ -160,14 +160,12 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                     <div className="text-right">
                       <p className="font-mono font-semibold">
                         ₱
-                        {Math.floor(
-                          item.price * item.quantity
-                        ).toLocaleString()}
+                        {Math.ceil(item.price * item.quantity).toLocaleString()}
                       </p>
                       {item.isDiscounted && (
                         <p className="text-xs text-muted-foreground line-through">
                           ₱
-                          {Math.floor(
+                          {Math.ceil(
                             item.originalPrice * item.quantity
                           ).toLocaleString()}
                         </p>
@@ -189,12 +187,11 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 </div>
                 <div className="text-right">
                   <p className="font-mono font-semibold text-lg">
-                    ₱{Math.floor(product.totalAmount).toLocaleString()}
+                    ₱{product.totalAmount.toLocaleString()}
                   </p>
                   {product.hasDiscounts && (
                     <p className="text-sm text-muted-foreground line-through">
-                      Original: ₱
-                      {Math.floor(product.originalAmount).toLocaleString()}
+                      Original: ₱{product.originalAmount.toLocaleString()}
                     </p>
                   )}
                 </div>
