@@ -7,11 +7,25 @@ interface StockSummaryProps {
 
 export default function StockSummary({ products }: StockSummaryProps) {
   const totalSackStock = products.reduce((total, product) => {
-    return total + product.SackPrice.reduce((sum, sack) => sum + sack.stock, 0);
+    return (
+      total +
+      product.SackPrice.reduce((sum, sack) => {
+        const stock =
+          typeof sack.stock === "string"
+            ? parseFloat(sack.stock) || 0
+            : sack.stock || 0;
+        return sum + stock;
+      }, 0)
+    );
   }, 0);
 
   const totalKiloStock = products.reduce((total, product) => {
-    return total + (product.perKiloPrice?.stock || 0);
+    if (!product.perKiloPrice) return total;
+    const stock =
+      typeof product.perKiloPrice.stock === "string"
+        ? parseFloat(product.perKiloPrice.stock) || 0
+        : product.perKiloPrice.stock || 0;
+    return total + stock;
   }, 0);
 
   return (
@@ -28,11 +42,11 @@ export default function StockSummary({ products }: StockSummaryProps) {
         </div>
         <div className="space-y-2">
           <p className="text-base text-muted-foreground">Total Sacks</p>
-          <p className="text-3xl font-bold">{totalSackStock}</p>
+          <p className="text-3xl font-bold">{totalSackStock.toFixed(0)}</p>
         </div>
         <div className="space-y-2">
           <p className="text-base text-muted-foreground">Total Kilos</p>
-          <p className="text-3xl font-bold">{totalKiloStock} kg</p>
+          <p className="text-3xl font-bold">{totalKiloStock.toFixed(2)} kg</p>
         </div>
       </CardContent>
     </Card>

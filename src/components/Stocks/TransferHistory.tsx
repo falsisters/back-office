@@ -36,6 +36,21 @@ export default function TransferHistory({
     propCashierId || null
   );
 
+  // Helper function to safely parse and format quantity
+  const formatQuantity = (
+    quantity: number | string | null | undefined
+  ): string => {
+    if (quantity === null || quantity === undefined) return "0";
+    const numQuantity =
+      typeof quantity === "string" ? parseFloat(quantity) || 0 : quantity;
+
+    // For transfers, if quantity is 0, it usually means it's a per-kilo transfer
+    // Display with appropriate decimal places
+    if (numQuantity === 0) return "0";
+    if (numQuantity % 1 === 0) return numQuantity.toString();
+    return numQuantity.toFixed(2);
+  };
+
   const fetchTransfers = useCallback(async () => {
     if (!selectedCashierId) {
       setTransfers([]);
@@ -218,7 +233,7 @@ export default function TransferHistory({
                         <span className="font-medium">{transfer.name}</span>
                         <span className="text-muted-foreground">•</span>
                         <span className="text-primary font-semibold">
-                          {transfer.quantity}
+                          {formatQuantity(transfer.quantity)}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">

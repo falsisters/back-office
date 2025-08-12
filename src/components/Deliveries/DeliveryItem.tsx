@@ -289,7 +289,11 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                         </div>
                         <div className="flex flex-col items-end">
                           <Badge className="px-3 py-1 text-sm bg-secondary/10 text-secondary border-secondary/20">
-                            Quantity: {item.quantity}
+                            Quantity:{" "}
+                            {Number(item.quantity).toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2,
+                            })}
                           </Badge>
                         </div>
                       </div>

@@ -16,6 +16,24 @@ interface StocksTableProps {
 }
 
 export default function StocksTable({ products }: StocksTableProps) {
+  // Helper function to safely parse decimal values
+  const parseStock = (stock: number | string | null | undefined): number => {
+    if (stock === null || stock === undefined) return 0;
+    if (typeof stock === "string") {
+      const parsed = parseFloat(stock);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return stock;
+  };
+
+  // Helper function to format stock display
+  const formatStock = (stock: number, isPerKilo: boolean): string => {
+    if (isPerKilo) {
+      return `${stock.toFixed(2)} kg`;
+    }
+    return `${stock.toFixed(0)} sacks`;
+  };
+
   if (products.length === 0) {
     return (
       <div className="text-center py-12 border rounded-md bg-muted/20">
@@ -50,7 +68,7 @@ export default function StocksTable({ products }: StocksTableProps) {
         rowSpan: rowCount,
         type: sack.type,
         price: sack.price,
-        stock: sack.stock,
+        stock: parseStock(sack.stock),
         isPerKilo: false,
       });
     });
@@ -64,7 +82,7 @@ export default function StocksTable({ products }: StocksTableProps) {
         rowSpan: rowCount,
         type: "PER_KILO",
         price: product.perKiloPrice.price,
-        stock: product.perKiloPrice.stock,
+        stock: parseStock(product.perKiloPrice.stock),
         isPerKilo: true,
       });
     }
@@ -124,7 +142,7 @@ export default function StocksTable({ products }: StocksTableProps) {
               </TableCell>
               <TableCell className="pl-1 pr-4">
                 <div className="font-semibold text-base">
-                  {row.stock} {row.isPerKilo ? "kg" : "sacks"}
+                  {formatStock(row.stock, row.isPerKilo)}
                 </div>
               </TableCell>
             </TableRow>
