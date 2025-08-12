@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Decimal } from "decimal.js";
 
 // Helper function to transform string to Decimal for validation
-const decimalSchema = z
+export const decimalSchema = z
   .union([z.number(), z.string(), z.instanceof(Decimal)])
   .transform((val) => {
     if (val instanceof Decimal) return val;
@@ -10,7 +10,7 @@ const decimalSchema = z
   });
 
 // Helper functions to create validated decimal parsers
-const createParseDecimal = (validation?: z.ZodNumber) => {
+export const createParseDecimal = (validation?: z.ZodNumber) => {
   const baseSchema = validation || z.number();
   return z
     .union([baseSchema, z.string(), z.instanceof(Decimal)])
@@ -22,14 +22,14 @@ const createParseDecimal = (validation?: z.ZodNumber) => {
 };
 
 // Base parseDecimal without validation
-const parseDecimal = createParseDecimal();
+export const parseDecimal = createParseDecimal();
 
 // Specific validation helpers
-const parseDecimalPositive = createParseDecimal(z.number().positive());
-const parseDecimalMin = (min: number) =>
+export const parseDecimalPositive = createParseDecimal(z.number().positive());
+export const parseDecimalMin = (min: number) =>
   createParseDecimal(z.number().min(min));
-const parseDecimalInt = createParseDecimal(z.number().int());
-const parseDecimalIntMin = (min: number) =>
+export const parseDecimalInt = createParseDecimal(z.number().int());
+export const parseDecimalIntMin = (min: number) =>
   createParseDecimal(z.number().int().min(min));
 
 export const CashierPermissionsEnum = z.enum([
