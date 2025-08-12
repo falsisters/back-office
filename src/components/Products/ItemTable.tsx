@@ -16,6 +16,7 @@ import ProductDetails from "./ProductDetails";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface ItemTableProps {
   products: ProductResponse[];
@@ -57,6 +58,44 @@ export default function ItemTable({
     setIsDetailsOpen(false);
     setSelectedProduct(null);
   };
+
+  // Helper function to safely parse API values (strings or numbers) to numbers
+  const parseApiValue = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    if (typeof value === "number") return value;
+    return 0;
+  };
+
+  // Helper function to safely format currency with proper decimal handling
+  const formatCurrency = (value: any): string => {
+    try {
+      const numValue = parseApiValue(value);
+      // Use CurrencyCalculator for consistent rounding
+      const roundedValue = CurrencyCalculator.round(numValue);
+      return roundedValue.toFixed(2);
+    } catch (error) {
+      console.error("Error formatting currency:", error);
+      return "0.00";
+    }
+  };
+
+  // Helper function to safely format stock numbers
+  const formatStock = (value: any): string => {
+    try {
+      const numValue = parseApiValue(value);
+      // Round to avoid floating point precision issues for display
+      const roundedValue = Math.round(numValue * 100) / 100;
+      return roundedValue.toString();
+    } catch (error) {
+      console.error("Error formatting stock:", error);
+      return "0";
+    }
+  };
+
   if (safeProducts.length === 0) {
     return (
       <div className="text-center py-8 border rounded-md bg-muted/20">
@@ -79,7 +118,7 @@ export default function ItemTable({
               <TableHead className="font-semibold">Per Kilo Price</TableHead>
               <TableHead className="text-right w-[120px] font-semibold">
                 Actions
-              </TableHead>{" "}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -93,7 +132,6 @@ export default function ItemTable({
                   onClick={() => handleRowClick(product)}
                 >
                   <div className="flex items-center gap-3">
-                    {" "}
                     <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 border">
                       <Image
                         src={product.picture || "/placeholder.svg"}
@@ -129,10 +167,10 @@ export default function ItemTable({
                             {parseProductType(sackPrice.type)}
                           </Badge>
                           <span className="font-medium text-secondary">
-                            ₱{sackPrice.price.toFixed(2)}
+                            ₱{formatCurrency(sackPrice.price)}
                           </span>
                           <span className="text-muted-foreground text-xs">
-                            (Stock: {sackPrice.stock})
+                            (Stock: {formatStock(sackPrice.stock)})
                           </span>
                         </div>
                       ))}
@@ -153,10 +191,10 @@ export default function ItemTable({
                         Per Kilo
                       </Badge>
                       <span className="font-medium text-secondary">
-                        ₱{product.perKiloPrice.price.toFixed(2)}
+                        ₱{formatCurrency(product.perKiloPrice.price)}
                       </span>
                       <span className="text-muted-foreground text-xs">
-                        (Stock: {product.perKiloPrice.stock} kg)
+                        (Stock: {formatStock(product.perKiloPrice.stock)} kg)
                       </span>
                     </div>
                   ) : (

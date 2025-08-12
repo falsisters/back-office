@@ -1,4 +1,36 @@
 import { z } from "zod";
+import { Decimal } from "decimal.js";
+
+// Helper function to transform string to Decimal for validation
+const decimalSchema = z
+  .union([z.number(), z.string(), z.instanceof(Decimal)])
+  .transform((val) => {
+    if (val instanceof Decimal) return val;
+    return new Decimal(val);
+  });
+
+// Helper functions to create validated decimal parsers
+const createParseDecimal = (validation?: z.ZodNumber) => {
+  const baseSchema = validation || z.number();
+  return z
+    .union([baseSchema, z.string(), z.instanceof(Decimal)])
+    .transform((val) => {
+      if (typeof val === "string") return parseFloat(val);
+      if (val instanceof Decimal) return val.toNumber();
+      return val;
+    });
+};
+
+// Base parseDecimal without validation
+const parseDecimal = createParseDecimal();
+
+// Specific validation helpers
+const parseDecimalPositive = createParseDecimal(z.number().positive());
+const parseDecimalMin = (min: number) =>
+  createParseDecimal(z.number().min(min));
+const parseDecimalInt = createParseDecimal(z.number().int());
+const parseDecimalIntMin = (min: number) =>
+  createParseDecimal(z.number().int().min(min));
 
 export const CashierPermissionsEnum = z.enum([
   "SALES",
@@ -114,10 +146,10 @@ export type Product = z.infer<typeof ProductSchema>;
 
 export const SackPriceSchema = z.object({
   id: z.string().cuid(),
-  price: z.number().positive(),
-  stock: z.number().int().min(0),
+  price: parseDecimalPositive,
+  stock: parseDecimalIntMin(0),
   type: SackTypeEnum,
-  profit: z.number().min(0).nullable().optional(),
+  profit: parseDecimalMin(0).nullable().optional(),
   productId: z.string(),
   specialPriceId: z.string().nullable().optional(),
   createdAt: z.date().default(() => new Date()),
@@ -127,9 +159,9 @@ export type SackPrice = z.infer<typeof SackPriceSchema>;
 
 export const SpecialPriceSchema = z.object({
   id: z.string().cuid(),
-  price: z.number().positive(),
+  price: parseDecimalPositive,
   minimumQty: z.number().int().positive(),
-  profit: z.number().min(0).nullable().optional(),
+  profit: parseDecimalMin(0).nullable().optional(),
   sackPriceId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -138,9 +170,9 @@ export type SpecialPrice = z.infer<typeof SpecialPriceSchema>;
 
 export const PerKiloPriceSchema = z.object({
   id: z.string().cuid(),
-  price: z.number().positive(),
-  stock: z.number().min(0), // Changed from int to allow decimal values
-  profit: z.number().min(0).nullable().optional(),
+  price: parseDecimalPositive,
+  stock: parseDecimalMin(0), // Changed from int to allow decimal values
+  profit: parseDecimalMin(0).nullable().optional(),
   productId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -150,7 +182,7 @@ export type PerKiloPrice = z.infer<typeof PerKiloPriceSchema>;
 export const SaleSchema = z.object({
   id: z.string().cuid(),
   cashierId: z.string(),
-  totalAmount: z.number().positive(),
+  totalAmount: parseDecimalPositive,
   paymentMethod: PaymentMethodEnum,
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -159,8 +191,8 @@ export type Sale = z.infer<typeof SaleSchema>;
 
 export const SaleItemSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(), // Changed to allow decimal quantities
-  discountedPrice: z.number().positive().nullable().optional(),
+  quantity: parseDecimalPositive, // Changed to allow decimal quantities
+  discountedPrice: parseDecimalPositive.nullable().optional(),
   isDiscounted: z.boolean().default(false),
   productId: z.string(),
   sackPriceId: z.string().nullable().optional(),
@@ -186,7 +218,7 @@ export type Delivery = z.infer<typeof DeliverySchema>;
 
 export const DeliveryItemSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(), // Changed to allow decimal quantities
+  quantity: parseDecimalPositive, // Changed to allow decimal quantities
   productId: z.string(),
   sackPriceId: z.string().nullable().optional(),
   sackType: SackTypeEnum.nullable().optional(),
@@ -199,7 +231,7 @@ export type DeliveryItem = z.infer<typeof DeliveryItemSchema>;
 
 export const TransferSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(),
+  quantity: parseDecimalPositive,
   name: z.string(),
   type: TransferTypeEnum,
   cashierId: z.string(),
@@ -229,7 +261,7 @@ export type Inventory = z.infer<typeof InventorySchema>;
 export const KahonItemSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  quantity: z.number().positive(),
+  quantity: parseDecimalPositive,
   kahonId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -320,7 +352,7 @@ export const BillCountSchema = z.object({
   id: z.string().cuid(),
   userId: z.string().nullable().optional(),
   cashierId: z.string().nullable().optional(),
-  beginningBalance: z.number().min(0),
+  beginningBalance: parseDecimalMin(0),
   showBeginningBalance: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),
@@ -351,7 +383,7 @@ export type Customer = z.infer<typeof CustomerSchema>;
 
 export const OrderSchema = z.object({
   id: z.string().cuid(),
-  totalPrice: z.number().positive(),
+  totalPrice: parseDecimalPositive,
   userId: z.string(),
   customerId: z.string(),
   status: OrderStatusEnum.default("PENDING"),
@@ -363,7 +395,7 @@ export type Order = z.infer<typeof OrderSchema>;
 
 export const OrderItemSchema = z.object({
   id: z.string().cuid(),
-  quantity: z.number().positive(), // Changed to allow decimal quantities
+  quantity: parseDecimalPositive, // Changed to allow decimal quantities
   productId: z.string(),
   sackPriceId: z.string().nullable().optional(),
   sackType: SackTypeEnum.nullable().optional(),
@@ -388,7 +420,7 @@ export type ExpenseList = z.infer<typeof ExpenseListSchema>;
 export const ExpenseItemsSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  amount: z.number().positive(),
+  amount: parseDecimalPositive,
   expenseListId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),

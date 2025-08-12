@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface BasicProductInfoProps {
   product: ProductResponse;
@@ -13,6 +14,20 @@ export default function BasicProductInfo({
   product,
   isLoading = false,
 }: BasicProductInfoProps) {
+  // Helper function to safely parse and format price values from API
+  const parseApiPrice = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "string") return parseFloat(value) || 0;
+    if (typeof value === "number") return value;
+    return 0;
+  };
+
+  // Helper function to format currency display
+  const formatCurrency = (value: any): string => {
+    const numValue = parseApiPrice(value);
+    return CurrencyCalculator.round(numValue).toFixed(2);
+  };
+
   if (isLoading) {
     return <ProductSkeleton />;
   }
@@ -55,7 +70,7 @@ export default function BasicProductInfo({
                     {formatSackType(sackPrice.type)}
                   </span>
                   <span className="font-semibold text-secondary">
-                    ₱{sackPrice.price.toFixed(2)}
+                    ₱{formatCurrency(sackPrice.price)}
                   </span>
                 </div>
               ))}
@@ -71,7 +86,7 @@ export default function BasicProductInfo({
                 <div className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors">
                   <span className="font-medium">Price per Kilo</span>
                   <span className="font-semibold text-secondary">
-                    ₱{product.perKiloPrice.price.toFixed(2)}
+                    ₱{formatCurrency(product.perKiloPrice.price)}
                   </span>
                 </div>
               </div>

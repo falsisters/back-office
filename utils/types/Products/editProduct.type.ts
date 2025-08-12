@@ -1,5 +1,6 @@
 // types/editProduct.type.ts
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 import {
   ProductSchema,
   SackPriceSchema,
@@ -7,26 +8,63 @@ import {
   SpecialPriceSchema,
 } from "../schema.type";
 
+// Helper function for decimal validation in forms
+const decimalInput = z
+  .union([z.number(), z.string()])
+  .transform((val) => {
+    const decimal = new Decimal(val);
+    return decimal.toNumber();
+  })
+  .refine((val) => val > 0, { message: "Value must be positive" });
+
+const decimalStock = z
+  .union([z.number(), z.string()])
+  .transform((val) => {
+    const decimal = new Decimal(val);
+    return decimal.toNumber();
+  })
+  .refine((val) => val >= 0, { message: "Stock cannot be negative" });
+
+const optionalDecimalInput = z
+  .union([z.number(), z.string(), z.undefined()])
+  .optional()
+  .transform((val) => {
+    if (val === undefined || val === null) return undefined;
+    const decimal = new Decimal(val);
+    return decimal.toNumber();
+  });
+
 export const EditProductFormDataSchema = ProductSchema.extend({
   picture: z.instanceof(File).optional(),
   sackPrices: z
     .array(
-      SackPriceSchema.extend({
-        id: z.string(),
-        profit: z.number().min(0).optional(),
-        specialPrice: SpecialPriceSchema.pick({
-          id: true,
-          price: true,
-          minimumQty: true,
-          profit: true,
-        }).partial(),
-      }).partial()
+      z
+        .object({
+          id: z.string(),
+          price: decimalInput,
+          stock: decimalStock,
+          type: z.string(),
+          profit: optionalDecimalInput,
+          specialPrice: z
+            .object({
+              id: z.string().optional(),
+              price: decimalInput,
+              minimumQty: z.number().int().positive(),
+              profit: optionalDecimalInput,
+            })
+            .partial()
+            .optional(),
+        })
+        .partial()
     )
     .optional(),
-  perKiloPrice: PerKiloPriceSchema.extend({
-    id: z.string(),
-    profit: z.number().min(0).optional(),
-  })
+  perKiloPrice: z
+    .object({
+      id: z.string(),
+      price: decimalInput,
+      stock: decimalStock,
+      profit: optionalDecimalInput,
+    })
     .partial()
     .optional(),
 })

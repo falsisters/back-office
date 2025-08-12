@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -65,6 +65,19 @@ export default function CreateProduct({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Helper function to safely parse decimal values
+  const parseDecimalValue = (value: string): number => {
+    if (!value || value === "") return 0;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Helper function to format decimal values for input display
+  const formatDecimalForInput = (value: number | undefined): string => {
+    if (value === undefined) return "";
+    return value.toString();
+  };
+
   const resetForm = () => {
     setName("");
     setPicture(null);
@@ -101,12 +114,16 @@ export default function CreateProduct({
     }
 
     sackPrices.forEach((sack, index) => {
-      if (!sack.price)
-        newErrors[`sackPrice_${index}_price`] = "Price is required";
+      if (!sack.price || sack.price <= 0)
+        newErrors[`sackPrice_${index}_price`] = "Price must be greater than 0";
       if (sack.stock === undefined || sack.stock === null || sack.stock < 0)
         newErrors[`sackPrice_${index}_stock`] = "Stock must be 0 or greater";
 
-      if (sack.specialPrice?.price && !sack.specialPrice?.minimumQty) {
+      if (
+        sack.specialPrice?.price &&
+        sack.specialPrice.price > 0 &&
+        !sack.specialPrice?.minimumQty
+      ) {
         newErrors[`sackPrice_${index}_specialPrice_minimumQty`] =
           "Minimum quantity is required for special price";
       }
@@ -131,11 +148,15 @@ export default function CreateProduct({
       const formData = new FormData();
       if (picture) formData.append("picture", picture);
       formData.append("name", name);
+
+      // Process sack prices with proper decimal handling
       formData.append(
         "sackPrice",
         JSON.stringify(
           sackPrices.map((sack) => ({
             ...sack,
+            price: CurrencyCalculator.round(sack.price),
+            stock: sack.stock,
             profit:
               sack.profit !== undefined
                 ? CurrencyCalculator.round(sack.profit)
@@ -143,6 +164,8 @@ export default function CreateProduct({
             specialPrice: sack.specialPrice
               ? {
                   ...sack.specialPrice,
+                  price: CurrencyCalculator.round(sack.specialPrice.price),
+                  minimumQty: sack.specialPrice.minimumQty,
                   profit:
                     sack.specialPrice.profit !== undefined
                       ? CurrencyCalculator.round(sack.specialPrice.profit)
@@ -152,11 +175,14 @@ export default function CreateProduct({
           }))
         )
       );
+
       if (perKiloPrice) {
         formData.append(
           "perKiloPrice",
           JSON.stringify({
             ...perKiloPrice,
+            price: CurrencyCalculator.round(perKiloPrice.price),
+            stock: perKiloPrice.stock,
             profit:
               perKiloPrice.profit !== undefined
                 ? CurrencyCalculator.round(perKiloPrice.profit)
@@ -242,7 +268,6 @@ export default function CreateProduct({
         type: availableTypes[0],
         price: 0,
         stock: 0,
-        profit: 0,
       },
     ]);
   };
@@ -255,6 +280,84 @@ export default function CreateProduct({
 
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
+  };
+
+  // Helper function to update sack prices with proper decimal handling
+  const updateSackPrice = (index: number, field: string, value: any) => {
+    setSackPrices((prev) => {
+      const newSackPrices = [...prev];
+
+      if (field === "price" || field === "stock") {
+        const numValue = parseDecimalValue(value);
+        newSackPrices[index] = { ...newSackPrices[index], [field]: numValue };
+      } else if (field === "profit") {
+        if (value === "") {
+          newSackPrices[index] = { ...newSackPrices[index], profit: undefined };
+        } else {
+          const numValue = parseDecimalValue(value);
+          newSackPrices[index] = {
+            ...newSackPrices[index],
+            profit: CurrencyCalculator.round(numValue),
+          };
+        }
+      } else {
+        newSackPrices[index] = { ...newSackPrices[index], [field]: value };
+      }
+
+      return newSackPrices;
+    });
+  };
+
+  // Helper function to update special prices with proper decimal handling
+  const updateSpecialPrice = (index: number, field: string, value: any) => {
+    setSackPrices((prev) => {
+      const newSackPrices = [...prev];
+      if (!newSackPrices[index].specialPrice) {
+        newSackPrices[index].specialPrice = {
+          price: 0,
+          minimumQty: 0,
+        };
+      }
+
+      if (field === "price") {
+        const numValue = parseDecimalValue(value);
+        newSackPrices[index].specialPrice!.price = numValue;
+      } else if (field === "minimumQty") {
+        const intValue = parseInt(value) || 0;
+        newSackPrices[index].specialPrice!.minimumQty = intValue;
+      } else if (field === "profit") {
+        if (value === "") {
+          newSackPrices[index].specialPrice!.profit = undefined;
+        } else {
+          const numValue = parseDecimalValue(value);
+          newSackPrices[index].specialPrice!.profit =
+            CurrencyCalculator.round(numValue);
+        }
+      }
+
+      return newSackPrices;
+    });
+  };
+
+  // Helper function to update per kilo price with proper decimal handling
+  const updatePerKiloPrice = (field: string, value: string) => {
+    setPerKiloPrice((prev) => {
+      const basePrice = prev || { price: 0, stock: 0 };
+
+      if (field === "price" || field === "stock") {
+        const numValue = parseDecimalValue(value);
+        return { ...basePrice, [field]: numValue };
+      } else if (field === "profit") {
+        if (value === "") {
+          return { ...basePrice, profit: undefined };
+        } else {
+          const numValue = parseDecimalValue(value);
+          return { ...basePrice, profit: CurrencyCalculator.round(numValue) };
+        }
+      }
+
+      return basePrice;
+    });
   };
 
   return (
@@ -350,6 +453,7 @@ export default function CreateProduct({
 
             <Separator />
 
+            {/* Sack Prices Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Sack Prices</Label>
@@ -410,11 +514,9 @@ export default function CreateProduct({
                           <Label className="text-xs">Type</Label>
                           <Select
                             value={sack.type}
-                            onValueChange={(value) => {
-                              const newSackPrices = [...sackPrices];
-                              newSackPrices[index].type = value as SackType;
-                              setSackPrices(newSackPrices);
-                            }}
+                            onValueChange={(value) =>
+                              updateSackPrice(index, "type", value as SackType)
+                            }
                           >
                             <SelectTrigger className="focus:ring-primary">
                               <SelectValue placeholder="Sack Type" />
@@ -447,14 +549,10 @@ export default function CreateProduct({
                           <Input
                             type="number"
                             placeholder="Price"
-                            value={sack.price || ""}
-                            onChange={(e) => {
-                              const newSackPrices = [...sackPrices];
-                              newSackPrices[index].price = Number(
-                                e.target.value
-                              );
-                              setSackPrices(newSackPrices);
-                            }}
+                            value={formatDecimalForInput(sack.price)}
+                            onChange={(e) =>
+                              updateSackPrice(index, "price", e.target.value)
+                            }
                             onWheel={preventWheelChange}
                             min="0"
                             step="0.01"
@@ -478,18 +576,10 @@ export default function CreateProduct({
                           <Input
                             type="number"
                             placeholder="Stock"
-                            value={
-                              sack.stock !== undefined && sack.stock !== null
-                                ? sack.stock.toString()
-                                : ""
+                            value={formatDecimalForInput(sack.stock)}
+                            onChange={(e) =>
+                              updateSackPrice(index, "stock", e.target.value)
                             }
-                            onChange={(e) => {
-                              const newSackPrices = [...sackPrices];
-                              newSackPrices[index].stock = Number(
-                                e.target.value
-                              );
-                              setSackPrices(newSackPrices);
-                            }}
                             onWheel={preventWheelChange}
                             min="0"
                             className={
@@ -509,25 +599,10 @@ export default function CreateProduct({
                           <Input
                             type="number"
                             placeholder="Profit (optional)"
-                            value={
-                              sack.profit !== undefined
-                                ? sack.profit.toString()
-                                : ""
+                            value={formatDecimalForInput(sack.profit)}
+                            onChange={(e) =>
+                              updateSackPrice(index, "profit", e.target.value)
                             }
-                            onChange={(e) => {
-                              const newSackPrices = [...sackPrices];
-                              const value = e.target.value;
-                              if (value === "") {
-                                newSackPrices[index].profit = undefined;
-                              } else {
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue)) {
-                                  newSackPrices[index].profit =
-                                    CurrencyCalculator.round(numValue);
-                                }
-                              }
-                              setSackPrices(newSackPrices);
-                            }}
                             onWheel={preventWheelChange}
                             min="0"
                             step="1"
@@ -548,20 +623,16 @@ export default function CreateProduct({
                             <Input
                               type="number"
                               placeholder="Special Price"
-                              value={sack.specialPrice?.price || ""}
-                              onChange={(e) => {
-                                const newSackPrices = [...sackPrices];
-                                if (!newSackPrices[index].specialPrice) {
-                                  newSackPrices[index].specialPrice = {
-                                    price: 0,
-                                    minimumQty: 0,
-                                    profit: 0,
-                                  };
-                                }
-                                newSackPrices[index].specialPrice!.price =
-                                  Number(e.target.value);
-                                setSackPrices(newSackPrices);
-                              }}
+                              value={formatDecimalForInput(
+                                sack.specialPrice?.price
+                              )}
+                              onChange={(e) =>
+                                updateSpecialPrice(
+                                  index,
+                                  "price",
+                                  e.target.value
+                                )
+                              }
                               onWheel={preventWheelChange}
                               min="0"
                               step="0.01"
@@ -577,23 +648,16 @@ export default function CreateProduct({
                               <Input
                                 type="number"
                                 placeholder="Min Qty"
-                                value={sack.specialPrice?.minimumQty || ""}
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  if (!newSackPrices[index].specialPrice) {
-                                    newSackPrices[index].specialPrice = {
-                                      price: 0,
-                                      minimumQty: 0,
-                                      profit: 0,
-                                    };
-                                  }
-                                  newSackPrices[
-                                    index
-                                  ].specialPrice!.minimumQty = Number(
+                                value={formatDecimalForInput(
+                                  sack.specialPrice?.minimumQty
+                                )}
+                                onChange={(e) =>
+                                  updateSpecialPrice(
+                                    index,
+                                    "minimumQty",
                                     e.target.value
-                                  );
-                                  setSackPrices(newSackPrices);
-                                }}
+                                  )
+                                }
                                 onWheel={preventWheelChange}
                                 min="0"
                                 className={
@@ -621,35 +685,16 @@ export default function CreateProduct({
                               <Input
                                 type="number"
                                 placeholder="Profit (optional)"
-                                value={
-                                  sack.specialPrice?.profit !== undefined
-                                    ? sack.specialPrice.profit.toString()
-                                    : ""
+                                value={formatDecimalForInput(
+                                  sack.specialPrice?.profit
+                                )}
+                                onChange={(e) =>
+                                  updateSpecialPrice(
+                                    index,
+                                    "profit",
+                                    e.target.value
+                                  )
                                 }
-                                onChange={(e) => {
-                                  const newSackPrices = [...sackPrices];
-                                  if (!newSackPrices[index].specialPrice) {
-                                    newSackPrices[index].specialPrice = {
-                                      price: 0,
-                                      minimumQty: 0,
-                                      profit: 0,
-                                    };
-                                  }
-                                  const value = e.target.value;
-                                  if (value === "") {
-                                    newSackPrices[index].specialPrice!.profit =
-                                      undefined;
-                                  } else {
-                                    const numValue = parseFloat(value);
-                                    if (!isNaN(numValue)) {
-                                      newSackPrices[
-                                        index
-                                      ].specialPrice!.profit =
-                                        CurrencyCalculator.round(numValue);
-                                    }
-                                  }
-                                  setSackPrices(newSackPrices);
-                                }}
                                 onWheel={preventWheelChange}
                                 min="0"
                                 step="1"
@@ -667,6 +712,7 @@ export default function CreateProduct({
 
             <Separator />
 
+            {/* Per Kilo Price Section */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">
                 Per Kilo Price (Optional)
@@ -677,12 +723,9 @@ export default function CreateProduct({
                   <Input
                     type="number"
                     placeholder="Price per Kilo"
-                    value={perKiloPrice?.price || ""}
+                    value={formatDecimalForInput(perKiloPrice?.price)}
                     onChange={(e) =>
-                      setPerKiloPrice({
-                        ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
-                        price: Number(e.target.value),
-                      })
+                      updatePerKiloPrice("price", e.target.value)
                     }
                     onWheel={preventWheelChange}
                     min="0"
@@ -696,17 +739,9 @@ export default function CreateProduct({
                   <Input
                     type="number"
                     placeholder="Stock"
-                    value={
-                      perKiloPrice?.stock !== undefined &&
-                      perKiloPrice?.stock !== null
-                        ? perKiloPrice.stock.toString()
-                        : ""
-                    }
+                    value={formatDecimalForInput(perKiloPrice?.stock)}
                     onChange={(e) =>
-                      setPerKiloPrice({
-                        ...(perKiloPrice || { price: 0, stock: 0, profit: 0 }),
-                        stock: Number(e.target.value),
-                      })
+                      updatePerKiloPrice("stock", e.target.value)
                     }
                     onWheel={preventWheelChange}
                     min="0"
@@ -720,28 +755,10 @@ export default function CreateProduct({
                   <Input
                     type="number"
                     placeholder="Profit (optional)"
-                    value={
-                      perKiloPrice?.profit !== undefined
-                        ? perKiloPrice.profit.toString()
-                        : ""
+                    value={formatDecimalForInput(perKiloPrice?.profit)}
+                    onChange={(e) =>
+                      updatePerKiloPrice("profit", e.target.value)
                     }
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "") {
-                        setPerKiloPrice({
-                          ...(perKiloPrice || { price: 0, stock: 0 }),
-                          profit: undefined,
-                        });
-                      } else {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                          setPerKiloPrice({
-                            ...(perKiloPrice || { price: 0, stock: 0 }),
-                            profit: CurrencyCalculator.round(numValue),
-                          });
-                        }
-                      }
-                    }}
                     onWheel={preventWheelChange}
                     min="0"
                     step="1"

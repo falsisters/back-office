@@ -19,6 +19,7 @@ import type { ProductResponse } from "../../../utils/types/Products/getAllProduc
 import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 import { AlertTriangle, Users, Package } from "lucide-react";
 import Image from "next/image";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface UnassignedProductsManagerProps {
   onProductsUpdated: () => void;
@@ -37,6 +38,20 @@ export default function UnassignedProductsManager({
   >({});
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState<Set<string>>(new Set());
+
+  // Helper function to safely parse price values from API
+  const parseApiPrice = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "string") return parseFloat(value) || 0;
+    if (typeof value === "number") return value;
+    return 0;
+  };
+
+  // Helper function to format currency display
+  const formatCurrency = (value: any): string => {
+    const numValue = parseApiPrice(value);
+    return CurrencyCalculator.round(numValue).toFixed(2);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -172,6 +187,19 @@ export default function UnassignedProductsManager({
                     {product.SackPrice.length !== 1 ? "s" : ""}
                     {product.perKiloPrice && ", Per kilo pricing"}
                   </span>
+                </div>
+                {/* Show pricing preview */}
+                <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                  {product.SackPrice.length > 0 && (
+                    <span>
+                      Sack: ₱{formatCurrency(product.SackPrice[0]?.price)}
+                    </span>
+                  )}
+                  {product.perKiloPrice && (
+                    <span>
+                      Per kg: ₱{formatCurrency(product.perKiloPrice.price)}
+                    </span>
+                  )}
                 </div>
               </div>
 

@@ -68,39 +68,76 @@ export default function SackPricesManager({
 
   const removeSackPrice = (index: number) => {
     // Simply remove from the array - backend will detect missing IDs and delete them
-    setSackPrices(prev => prev.filter((_, i) => i !== index));
+    setSackPrices((prev) => prev.filter((_, i) => i !== index));
   };
 
   const removeSpecialPrice = (index: number) => {
     // Simply remove special price - backend will detect missing ID and delete it
-    setSackPrices(prev => {
+    setSackPrices((prev) => {
       const newPrices = [...prev];
       newPrices[index] = {
         ...newPrices[index],
-        specialPrice: null
+        specialPrice: null,
       };
       return newPrices;
     });
   };
 
-  // Utility function to prevent wheel events on number inputs 
+  // Utility function to prevent wheel events on number inputs
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
 
-  const updateSackPrice = (index: number, field: keyof EditableSackPrice, value: any) => {
-    setSackPrices(prev => {
+  // Helper function to safely parse decimal values
+  const parseDecimalValue = (value: string): number => {
+    if (!value || value === "") return 0;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Helper function to format decimal values for input display
+  const formatDecimalForInput = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return "";
+    return value.toString();
+  };
+
+  const updateSackPrice = (
+    index: number,
+    field: keyof EditableSackPrice,
+    value: any
+  ) => {
+    setSackPrices((prev) => {
       const newPrices = [...prev];
-      newPrices[index] = {
-        ...newPrices[index],
-        [field]: value
-      };
+
+      // Handle decimal conversion for price and stock fields
+      if (field === "price" || field === "stock") {
+        const decimalValue = parseDecimalValue(value);
+        newPrices[index] = {
+          ...newPrices[index],
+          [field]: decimalValue,
+        };
+      } else if (field === "profit") {
+        const decimalValue =
+          value === "" ? undefined : parseDecimalValue(value);
+        newPrices[index] = {
+          ...newPrices[index],
+          [field]:
+            decimalValue !== undefined
+              ? CurrencyCalculator.round(decimalValue)
+              : undefined,
+        };
+      } else {
+        newPrices[index] = {
+          ...newPrices[index],
+          [field]: value,
+        };
+      }
       return newPrices;
     });
   };
 
   const updateSpecialPrice = (index: number, field: string, value: any) => {
-    setSackPrices(prev => {
+    setSackPrices((prev) => {
       const newPrices = [...prev];
       if (!newPrices[index].specialPrice) {
         newPrices[index].specialPrice = {
@@ -108,10 +145,36 @@ export default function SackPricesManager({
           minimumQty: 0,
         };
       }
-      newPrices[index].specialPrice = {
-        ...newPrices[index].specialPrice!,
-        [field]: value
-      };
+
+      // Handle decimal conversion for special price fields
+      if (field === "price") {
+        const decimalValue = parseDecimalValue(value);
+        newPrices[index].specialPrice = {
+          ...newPrices[index].specialPrice!,
+          [field]: decimalValue,
+        };
+      } else if (field === "minimumQty") {
+        const intValue = parseInt(value) || 0;
+        newPrices[index].specialPrice = {
+          ...newPrices[index].specialPrice!,
+          [field]: intValue,
+        };
+      } else if (field === "profit") {
+        const decimalValue =
+          value === "" ? undefined : parseDecimalValue(value);
+        newPrices[index].specialPrice = {
+          ...newPrices[index].specialPrice!,
+          [field]:
+            decimalValue !== undefined
+              ? CurrencyCalculator.round(decimalValue)
+              : undefined,
+        };
+      } else {
+        newPrices[index].specialPrice = {
+          ...newPrices[index].specialPrice!,
+          [field]: value,
+        };
+      }
       return newPrices;
     });
   };
@@ -177,7 +240,9 @@ export default function SackPricesManager({
                   <Label className="text-xs">Type</Label>
                   <Select
                     value={sack.type as string}
-                    onValueChange={(value) => updateSackPrice(index, 'type', value as SackType)}
+                    onValueChange={(value) =>
+                      updateSackPrice(index, "type", value as SackType)
+                    }
                   >
                     <SelectTrigger className="focus:ring-primary">
                       <SelectValue placeholder="Sack Type" />
@@ -188,11 +253,7 @@ export default function SackPricesManager({
                           (sp, i) => i !== index && sp.type === type
                         );
                         return (
-                          <SelectItem
-                            key={type}
-                            value={type}
-                            disabled={isUsed}
-                          >
+                          <SelectItem key={type} value={type} disabled={isUsed}>
                             {type === "FIFTY_KG"
                               ? "50 KG"
                               : type === "TWENTY_FIVE_KG"
@@ -210,8 +271,10 @@ export default function SackPricesManager({
                   <Input
                     type="number"
                     placeholder="Price"
-                    value={sack.price || ""}
-                    onChange={(e) => updateSackPrice(index, 'price', Number(e.target.value))}
+                    value={formatDecimalForInput(sack.price)}
+                    onChange={(e) =>
+                      updateSackPrice(index, "price", e.target.value)
+                    }
                     onWheel={preventWheelChange}
                     min="0"
                     step="0.01"
@@ -235,12 +298,10 @@ export default function SackPricesManager({
                   <Input
                     type="number"
                     placeholder="Stock"
-                    value={
-                      sack.stock !== undefined && sack.stock !== null
-                        ? String(sack.stock)
-                        : ""
+                    value={formatDecimalForInput(sack.stock)}
+                    onChange={(e) =>
+                      updateSackPrice(index, "stock", e.target.value)
                     }
-                    onChange={(e) => updateSackPrice(index, 'stock', Number(e.target.value))}
                     onWheel={preventWheelChange}
                     min="0"
                     className={
@@ -260,22 +321,10 @@ export default function SackPricesManager({
                   <Input
                     type="number"
                     placeholder="Profit (optional)"
-                    value={
-                      sack.profit !== undefined && sack.profit !== null
-                        ? String(sack.profit)
-                        : ""
+                    value={formatDecimalForInput(sack.profit)}
+                    onChange={(e) =>
+                      updateSackPrice(index, "profit", e.target.value)
                     }
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "") {
-                        updateSackPrice(index, 'profit', undefined);
-                      } else {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                          updateSackPrice(index, 'profit', CurrencyCalculator.round(numValue));
-                        }
-                      }
-                    }}
                     onWheel={preventWheelChange}
                     min="0"
                     step="1"
@@ -291,18 +340,17 @@ export default function SackPricesManager({
                   <Label className="text-xs text-muted-foreground">
                     Special Price (Optional)
                   </Label>
-                  {sack.specialPrice &&
-                    (sack.specialPrice.price ?? 0) > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSpecialPrice(index)}
-                        className="h-6 text-xs text-destructive hover:bg-destructive/10"
-                      >
-                        Remove Special Price
-                      </Button>
-                    )}
+                  {sack.specialPrice && (sack.specialPrice.price ?? 0) > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeSpecialPrice(index)}
+                      className="h-6 text-xs text-destructive hover:bg-destructive/10"
+                    >
+                      Remove Special Price
+                    </Button>
+                  )}
                 </div>
                 {sack.specialPrice ? (
                   <div className="grid grid-cols-2 gap-3">
@@ -311,8 +359,10 @@ export default function SackPricesManager({
                       <Input
                         type="number"
                         placeholder="Special Price"
-                        value={sack.specialPrice?.price || ""}
-                        onChange={(e) => updateSpecialPrice(index, 'price', Number(e.target.value))}
+                        value={formatDecimalForInput(sack.specialPrice?.price)}
+                        onChange={(e) =>
+                          updateSpecialPrice(index, "price", e.target.value)
+                        }
                         onWheel={preventWheelChange}
                         min="0"
                         step="0.01"
@@ -326,14 +376,20 @@ export default function SackPricesManager({
                         <Input
                           type="number"
                           placeholder="Min Qty"
-                          value={sack.specialPrice?.minimumQty || ""}
-                          onChange={(e) => updateSpecialPrice(index, 'minimumQty', Number(e.target.value))}
+                          value={formatDecimalForInput(
+                            sack.specialPrice?.minimumQty
+                          )}
+                          onChange={(e) =>
+                            updateSpecialPrice(
+                              index,
+                              "minimumQty",
+                              e.target.value
+                            )
+                          }
                           onWheel={preventWheelChange}
                           min="0"
                           className={
-                            errors[
-                              `sackPrice_${index}_specialPrice_minimumQty`
-                            ]
+                            errors[`sackPrice_${index}_specialPrice_minimumQty`]
                               ? "border-destructive"
                               : "focus-visible:ring-secondary"
                           }
@@ -355,23 +411,12 @@ export default function SackPricesManager({
                         <Input
                           type="number"
                           placeholder="Profit (optional)"
-                          value={
-                            sack.specialPrice?.profit !== undefined &&
-                            sack.specialPrice?.profit !== null
-                              ? String(sack.specialPrice.profit)
-                              : ""
+                          value={formatDecimalForInput(
+                            sack.specialPrice?.profit
+                          )}
+                          onChange={(e) =>
+                            updateSpecialPrice(index, "profit", e.target.value)
                           }
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "") {
-                              updateSpecialPrice(index, 'profit', undefined);
-                            } else {
-                              const numValue = parseFloat(value);
-                              if (!isNaN(numValue)) {
-                                updateSpecialPrice(index, 'profit', CurrencyCalculator.round(numValue));
-                              }
-                            }
-                          }}
                           onWheel={preventWheelChange}
                           min="0"
                           step="1"
@@ -386,8 +431,8 @@ export default function SackPricesManager({
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      updateSpecialPrice(index, 'price', 0);
-                      updateSpecialPrice(index, 'minimumQty', 0);
+                      updateSpecialPrice(index, "price", "0");
+                      updateSpecialPrice(index, "minimumQty", "0");
                     }}
                     className="w-full h-8 text-xs text-secondary hover:text-secondary/80 hover:bg-secondary/10"
                   >

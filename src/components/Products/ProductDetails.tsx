@@ -14,6 +14,7 @@ import { parseProductType } from "../../../utils/parsers/productType.parser";
 import { Button } from "../ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Package, Scale, Tag } from "lucide-react";
+import { CurrencyCalculator } from "../../../utils/currencyCalculator";
 
 interface ProductDetailsProps {
   product: ProductResponse | null;
@@ -28,6 +29,43 @@ export default function ProductDetails({
 }: ProductDetailsProps) {
   if (!product) return null;
 
+  // Helper function to safely parse API values (strings or numbers) to numbers
+  const parseApiValue = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "string") {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    if (typeof value === "number") return value;
+    return 0;
+  };
+
+  // Helper function to safely format currency with proper decimal handling
+  const formatCurrency = (value: any): string => {
+    try {
+      const numValue = parseApiValue(value);
+      // Use CurrencyCalculator for consistent rounding
+      const roundedValue = CurrencyCalculator.round(numValue);
+      return roundedValue.toFixed(2);
+    } catch (error) {
+      console.error("Error formatting currency:", error);
+      return "0.00";
+    }
+  };
+
+  // Helper function to safely format stock numbers
+  const formatStock = (value: any, unit: string): string => {
+    try {
+      const numValue = parseApiValue(value);
+      // Round to avoid floating point precision issues for display
+      const roundedValue = Math.round(numValue * 100) / 100;
+      return `${roundedValue} ${unit}`;
+    } catch (error) {
+      console.error("Error formatting stock:", error);
+      return `0 ${unit}`;
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -37,7 +75,8 @@ export default function ProductDetails({
     >
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <div className="flex items-center gap-4">            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border">
+          <div className="flex items-center gap-4">
+            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border">
               <Image
                 src={product.picture || "/placeholder.svg"}
                 alt={product.name || "Product image"}
@@ -45,7 +84,10 @@ export default function ProductDetails({
                 sizes="64px"
                 className="object-cover"
                 onError={(e) => {
-                  console.warn("Product image failed to load:", product.picture);
+                  console.warn(
+                    "Product image failed to load:",
+                    product.picture
+                  );
                   (e.target as HTMLImageElement).src = "/placeholder.svg";
                 }}
               />
@@ -98,7 +140,7 @@ export default function ProductDetails({
                           {parseProductType(sackPrice.type)}
                         </Badge>
                         <span className="font-bold text-xl text-primary">
-                          ₱{sackPrice.price.toFixed(2)}
+                          ₱{formatCurrency(sackPrice.price)}
                         </span>
                       </div>
 
@@ -108,7 +150,7 @@ export default function ProductDetails({
                           <p className="font-medium">
                             Stock:{" "}
                             <span className="text-lg font-bold text-secondary">
-                              {sackPrice.stock} Sacks
+                              {formatStock(sackPrice.stock, "Sacks")}
                             </span>
                           </p>
                         </div>
@@ -142,7 +184,7 @@ export default function ProductDetails({
                     Per Kilo
                   </Badge>
                   <span className="font-bold text-xl text-primary">
-                    ₱{product.perKiloPrice.price.toFixed(2)}
+                    ₱{formatCurrency(product.perKiloPrice.price)}
                   </span>
                 </div>
 
@@ -151,7 +193,7 @@ export default function ProductDetails({
                   <p className="font-medium">
                     Stock:{" "}
                     <span className="text-lg font-bold text-secondary">
-                      {product.perKiloPrice.stock} kg
+                      {formatStock(product.perKiloPrice.stock, "kg")}
                     </span>
                   </p>
                 </div>

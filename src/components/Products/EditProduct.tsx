@@ -68,12 +68,30 @@ export default function EditProduct({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
-  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(null);
+  const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
+    null
+  );
   const [isLoadingCashiers, setIsLoadingCashiers] = useState(false);
-  
+
   // Track deleted IDs for proper backend deletion
   const [deletedSackPriceIds, setDeletedSackPriceIds] = useState<string[]>([]);
-  const [deletedSpecialPriceIds, setDeletedSpecialPriceIds] = useState<string[]>([]);
+  const [deletedSpecialPriceIds, setDeletedSpecialPriceIds] = useState<
+    string[]
+  >([]);
+
+  // Helper function to safely parse decimal values from API
+  const parseApiDecimal = (value: any): number => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "string") return parseFloat(value) || 0;
+    if (typeof value === "number") return value;
+    return 0;
+  };
+
+  // Helper function to format decimal values for input display
+  const formatDecimalForInput = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return "";
+    return value.toString();
+  };
 
   const loadProduct = useCallback(async () => {
     setIsLoading(true);
@@ -86,32 +104,36 @@ export default function EditProduct({
         setPicturePreview(fetchedProduct.picture);
         setSelectedCashierId(fetchedProduct.cashier?.id || null);
 
-        // Handle SackPrice array
+        // Handle SackPrice array with proper decimal parsing
         setSackPrices(
           fetchedProduct.SackPrice.map((sp: any) => ({
             id: sp?.id,
             type: sp?.type || "FIFTY_KG",
-            price: sp?.price ?? 0,
-            stock: sp?.stock ?? 0,
-            profit: sp?.profit,
+            price: parseApiDecimal(sp?.price),
+            stock: parseApiDecimal(sp?.stock),
+            profit: sp?.profit ? parseApiDecimal(sp.profit) : undefined,
             specialPrice: sp?.specialPrice
               ? {
                   id: sp.specialPrice?.id,
-                  price: sp.specialPrice?.price ?? 0,
-                  minimumQty: sp.specialPrice?.minimumQty ?? 0,
-                  profit: sp.specialPrice?.profit,
+                  price: parseApiDecimal(sp.specialPrice?.price),
+                  minimumQty: sp.specialPrice?.minimumQty || 0,
+                  profit: sp.specialPrice?.profit
+                    ? parseApiDecimal(sp.specialPrice.profit)
+                    : undefined,
                 }
               : null,
           }))
         );
 
-        // Handle per kilo price
+        // Handle per kilo price with proper decimal parsing
         if (fetchedProduct.perKiloPrice) {
           setPerKiloPrice({
             id: fetchedProduct.perKiloPrice.id,
-            price: fetchedProduct.perKiloPrice.price ?? 0,
-            stock: fetchedProduct.perKiloPrice.stock ?? 0,
-            profit: fetchedProduct.perKiloPrice.profit,
+            price: parseApiDecimal(fetchedProduct.perKiloPrice.price),
+            stock: parseApiDecimal(fetchedProduct.perKiloPrice.stock),
+            profit: fetchedProduct.perKiloPrice.profit
+              ? parseApiDecimal(fetchedProduct.perKiloPrice.profit)
+              : undefined,
           });
         } else {
           setPerKiloPrice(null);
@@ -189,22 +211,28 @@ export default function EditProduct({
     const newErrors: Record<string, string> = {};
 
     if (!name.trim()) newErrors.name = "Product name is required";
-    
+
     // Only consider active sack prices for validation
     const hasSackPrices = sackPrices.length > 0;
-    const hasPerKiloPrice = perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
+    const hasPerKiloPrice =
+      perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
 
     if (!hasSackPrices && !hasPerKiloPrice) {
-      newErrors.pricing = "At least one pricing option (sack prices or per kilo price) is required";
+      newErrors.pricing =
+        "At least one pricing option (sack prices or per kilo price) is required";
     }
 
     sackPrices.forEach((sack, index) => {
-      if (!sack.price)
-        newErrors[`sackPrice_${index}_price`] = "Price is required";
+      if (!sack.price || sack.price <= 0)
+        newErrors[`sackPrice_${index}_price`] = "Price must be greater than 0";
       if (sack.stock === undefined || sack.stock === null || sack.stock < 0)
         newErrors[`sackPrice_${index}_stock`] = "Stock must be 0 or greater";
 
-      if (sack.specialPrice?.price && !sack.specialPrice?.minimumQty) {
+      if (
+        sack.specialPrice?.price &&
+        sack.specialPrice.price > 0 &&
+        !sack.specialPrice?.minimumQty
+      ) {
         newErrors[`sackPrice_${index}_specialPrice_minimumQty`] =
           "Minimum quantity is required for special price";
       }
@@ -233,34 +261,46 @@ export default function EditProduct({
         formData.append("cashierId", selectedCashierId);
       }
 
-      // Process sack prices - send clean data without deletion flags
+      // Process sack prices with proper decimal handling
       const sackPricesData = sackPrices.map((sp) => ({
         id: sp.id,
-        price: sp.price,
-        stock: sp.stock,
+        price: sp.price ? CurrencyCalculator.round(sp.price) : 0,
+        stock: sp.stock || 0,
         type: sp.type,
-        profit: sp.profit !== undefined ? CurrencyCalculator.round(sp.profit) : undefined,
+        profit:
+          sp.profit !== undefined
+            ? CurrencyCalculator.round(sp.profit)
+            : undefined,
         specialPrice: sp.specialPrice
           ? {
               id: sp.specialPrice.id,
-              price: sp.specialPrice.price,
-              minimumQty: sp.specialPrice.minimumQty,
-              profit: sp.specialPrice.profit !== undefined
-                ? CurrencyCalculator.round(sp.specialPrice.profit)
-                : undefined,
+              price: sp.specialPrice.price
+                ? CurrencyCalculator.round(sp.specialPrice.price)
+                : 0,
+              minimumQty: sp.specialPrice.minimumQty || 0,
+              profit:
+                sp.specialPrice.profit !== undefined
+                  ? CurrencyCalculator.round(sp.specialPrice.profit)
+                  : undefined,
             }
           : null,
       }));
 
       formData.append("sackPrice", JSON.stringify(sackPricesData));
-      
+
       // Send deleted IDs separately
       if (deletedSackPriceIds.length > 0) {
-        formData.append("deletedSackPriceIds", JSON.stringify(deletedSackPriceIds));
+        formData.append(
+          "deletedSackPriceIds",
+          JSON.stringify(deletedSackPriceIds)
+        );
       }
-      
+
       if (deletedSpecialPriceIds.length > 0) {
-        formData.append("deletedSpecialPriceIds", JSON.stringify(deletedSpecialPriceIds));
+        formData.append(
+          "deletedSpecialPriceIds",
+          JSON.stringify(deletedSpecialPriceIds)
+        );
       }
 
       if (perKiloPrice) {
@@ -268,11 +308,14 @@ export default function EditProduct({
           "perKiloPrice",
           JSON.stringify({
             id: perKiloPrice.id,
-            price: perKiloPrice.price,
-            stock: perKiloPrice.stock,
-            profit: perKiloPrice.profit !== undefined
-              ? CurrencyCalculator.round(perKiloPrice.profit)
-              : undefined,
+            price: perKiloPrice.price
+              ? CurrencyCalculator.round(perKiloPrice.price)
+              : 0,
+            stock: perKiloPrice.stock || 0,
+            profit:
+              perKiloPrice.profit !== undefined
+                ? CurrencyCalculator.round(perKiloPrice.profit)
+                : undefined,
           })
         );
       } else {
@@ -288,7 +331,7 @@ export default function EditProduct({
 
       onProductUpdated?.();
       setIsDialogOpen(false);
-      
+
       // Reset deletion tracking
       setDeletedSackPriceIds([]);
       setDeletedSpecialPriceIds([]);
@@ -305,6 +348,32 @@ export default function EditProduct({
 
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
+  };
+
+  // Helper function to safely update per kilo price
+  const updatePerKiloPrice = (field: string, value: string) => {
+    setPerKiloPrice((prev) => {
+      const basePrice = prev || { price: 0, stock: 0 };
+
+      if (field === "price" || field === "stock") {
+        const numValue = parseFloat(value) || 0;
+        return { ...basePrice, [field]: numValue };
+      } else if (field === "profit") {
+        if (value === "") {
+          return { ...basePrice, profit: undefined };
+        } else {
+          const numValue = parseFloat(value);
+          return {
+            ...basePrice,
+            profit: !isNaN(numValue)
+              ? CurrencyCalculator.round(numValue)
+              : undefined,
+          };
+        }
+      }
+
+      return basePrice;
+    });
   };
 
   return (
@@ -432,11 +501,14 @@ export default function EditProduct({
 
               {/* Sack Prices Manager */}
               <SackPricesManager
-                  sackPrices={sackPrices}
-                  setSackPrices={setSackPrices}
-                  errors={errors}
-                  setDeletedSackPriceIds={setDeletedSackPriceIds}
-                  setDeletedSpecialPriceIds={setDeletedSpecialPriceIds} deletedSackPriceIds={[]} deletedSpecialPriceIds={[]}              />
+                sackPrices={sackPrices}
+                setSackPrices={setSackPrices}
+                errors={errors}
+                deletedSackPriceIds={deletedSackPriceIds}
+                setDeletedSackPriceIds={setDeletedSackPriceIds}
+                deletedSpecialPriceIds={deletedSpecialPriceIds}
+                setDeletedSpecialPriceIds={setDeletedSpecialPriceIds}
+              />
 
               <Separator />
 
@@ -451,12 +523,9 @@ export default function EditProduct({
                     <Input
                       type="number"
                       placeholder="Price per Kilo"
-                      value={perKiloPrice?.price || ""}
+                      value={formatDecimalForInput(perKiloPrice?.price)}
                       onChange={(e) =>
-                        setPerKiloPrice({
-                          ...(perKiloPrice || { price: 0, stock: 0 }),
-                          price: Number(e.target.value),
-                        })
+                        updatePerKiloPrice("price", e.target.value)
                       }
                       onWheel={preventWheelChange}
                       min="0"
@@ -470,21 +539,9 @@ export default function EditProduct({
                     <Input
                       type="number"
                       placeholder="Stock"
-                      value={
-                        perKiloPrice?.stock !== undefined &&
-                        perKiloPrice?.stock !== null
-                          ? String(perKiloPrice.stock)
-                          : ""
-                      }
+                      value={formatDecimalForInput(perKiloPrice?.stock)}
                       onChange={(e) =>
-                        setPerKiloPrice({
-                          ...(perKiloPrice || {
-                            price: 0,
-                            stock: 0,
-                            profit: 0,
-                          }),
-                          stock: Number(e.target.value),
-                        })
+                        updatePerKiloPrice("stock", e.target.value)
                       }
                       onWheel={preventWheelChange}
                       min="0"
@@ -498,29 +555,10 @@ export default function EditProduct({
                     <Input
                       type="number"
                       placeholder="Profit (optional)"
-                      value={
-                        perKiloPrice?.profit !== undefined &&
-                        perKiloPrice?.profit !== null
-                          ? String(perKiloPrice.profit)
-                          : ""
+                      value={formatDecimalForInput(perKiloPrice?.profit)}
+                      onChange={(e) =>
+                        updatePerKiloPrice("profit", e.target.value)
                       }
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          setPerKiloPrice({
-                            ...(perKiloPrice || { price: 0, stock: 0 }),
-                            profit: undefined,
-                          });
-                        } else {
-                          const numValue = parseFloat(value);
-                          if (!isNaN(numValue)) {
-                            setPerKiloPrice({
-                              ...(perKiloPrice || { price: 0, stock: 0 }),
-                              profit: CurrencyCalculator.round(numValue),
-                            });
-                          }
-                        }
-                      }}
                       onWheel={preventWheelChange}
                       min="0"
                       step="1"

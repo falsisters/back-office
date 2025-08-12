@@ -1,11 +1,38 @@
 // types/createProduct.type.ts
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 import {
   SackPriceSchema,
   PerKiloPriceSchema,
   SpecialPriceSchema,
   SackTypeEnum,
 } from "../schema.type";
+
+// Helper function for decimal validation in forms
+const decimalInput = z
+  .union([z.number(), z.string()])
+  .transform((val) => {
+    const decimal = new Decimal(val);
+    return decimal.toNumber();
+  })
+  .refine((val) => val > 0, { message: "Value must be positive" });
+
+const decimalStock = z
+  .union([z.number(), z.string()])
+  .transform((val) => {
+    const decimal = new Decimal(val);
+    return decimal.toNumber();
+  })
+  .refine((val) => val >= 0, { message: "Stock cannot be negative" });
+
+const optionalDecimalInput = z
+  .union([z.number(), z.string(), z.undefined()])
+  .optional()
+  .transform((val) => {
+    if (val === undefined || val === null) return undefined;
+    const decimal = new Decimal(val);
+    return decimal.toNumber();
+  });
 
 // Enhanced file validation for products
 const ProductImageSchema = z
@@ -45,23 +72,31 @@ export const CreateProductFormDataSchema = z
     picture: ProductImageSchema,
     sackPrices: z
       .array(
-        SackPriceSchema.extend({
+        z.object({
+          price: decimalInput,
+          stock: decimalStock,
           type: SackTypeEnum,
-          profit: z.number().min(0).optional(),
-          specialPrice: SpecialPriceSchema.pick({
-            price: true,
-            minimumQty: true,
-            profit: true,
-          }).partial(),
-        }).pick({ price: true, stock: true, type: true, profit: true })
+          profit: optionalDecimalInput,
+          specialPrice: z
+            .object({
+              price: decimalInput,
+              minimumQty: z.number().int().positive(),
+              profit: optionalDecimalInput,
+            })
+            .partial()
+            .optional(),
+        })
       )
       .optional()
       .default([]),
-    perKiloPrice: PerKiloPriceSchema.pick({
-      price: true,
-      stock: true,
-      profit: true,
-    }).partial(),
+    perKiloPrice: z
+      .object({
+        price: decimalInput,
+        stock: decimalStock,
+        profit: optionalDecimalInput,
+      })
+      .partial()
+      .optional(),
   })
   .refine(
     (data) => {
