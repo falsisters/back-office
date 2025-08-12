@@ -115,7 +115,7 @@ export function ExpenseList() {
 
   const totalAmount =
     expense?.ExpenseItems.reduce(
-      (sum: any, item: any) => sum + item.amount,
+      (sum: number, item: any) => sum + Number(item.amount), // Ensure proper number conversion
       0
     ) || 0;
 

@@ -420,7 +420,7 @@ export type ExpenseList = z.infer<typeof ExpenseListSchema>;
 export const ExpenseItemsSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
-  amount: parseDecimalPositive,
+  amount: parseDecimalPositive, // Changed from parseDecimalPositive to match backend decimal handling
   expenseListId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),

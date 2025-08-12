@@ -14,7 +14,7 @@ interface ExpenseItemProps {
 
 export function ExpenseItem({ expense, onDelete }: ExpenseItemProps) {
   const totalAmount = expense.ExpenseItems.reduce(
-    (sum: any, item: any) => sum + item.amount,
+    (sum: number, item: any) => sum + Number(item.amount), // Ensure proper number conversion
     0
   );
 
@@ -40,7 +40,7 @@ export function ExpenseItem({ expense, onDelete }: ExpenseItemProps) {
         <TableRow key={item.id} className="hover:bg-gray-50 transition-colors">
           <TableCell className="font-medium">{item.name}</TableCell>
           <TableCell className="text-right">
-            ₱{item.amount.toFixed(2)}
+            ₱{Number(item.amount).toFixed(2)}
           </TableCell>
           <TableCell></TableCell>
         </TableRow>

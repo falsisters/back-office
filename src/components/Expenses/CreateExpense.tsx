@@ -126,7 +126,15 @@ export function CreateExpense({
     value: string | number
   ) => {
     const newItems = [...expenseItems];
-    newItems[index] = { ...newItems[index], [field]: value };
+    if (field === "amount") {
+      // Handle decimal conversion properly for amount field
+      const numericValue =
+        typeof value === "string" ? parseFloat(value) || 0 : value;
+      newItems[index] = { ...newItems[index], [field]: numericValue };
+    } else {
+      // For non-amount fields (like name), ensure we pass the correct type
+      newItems[index] = { ...newItems[index], [field]: value as string };
+    }
     setExpenseItems(newItems);
   };
 
@@ -209,7 +217,7 @@ export function CreateExpense({
                             updateExpenseItem(
                               index,
                               "amount",
-                              Number.parseFloat(e.target.value) || 0
+                              e.target.value // Pass string value to be converted in updateExpenseItem
                             )
                           }
                           required
