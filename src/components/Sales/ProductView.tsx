@@ -3,12 +3,7 @@
 import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
-
-const sackTypeLabels = {
-  FIFTY_KG: "50KG",
-  TWENTY_FIVE_KG: "25KG",
-  FIVE_KG: "5KG",
-};
+import { parseProductType } from "../../../utils/parsers/productType.parser";
 
 export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
   // Group sale items by product
@@ -26,13 +21,11 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         saleId: string;
         saleDate: Date;
         isDiscounted: boolean;
-        // isSpecialPrice: boolean; // Commented out
       }[];
       totalQuantity: number;
       totalAmount: number;
       originalAmount: number;
       hasDiscounts: boolean;
-      // hasSpecialPrices: boolean; // Commented out
     }
   >();
 
@@ -42,7 +35,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       const isPerKiloItem = item.perKiloPriceId && !item.sackPriceId;
 
       const sackType = item.sackType;
-      const sackTypeLabel = sackType ? sackTypeLabels[sackType] : "";
+      const sackTypeLabel = sackType ? parseProductType(sackType) : "";
 
       let basePrice = 0;
 
@@ -57,12 +50,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           );
         }
 
-        // Commented out special price implementation
-        // if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
-        //   basePrice = matchingSackPrice.specialPrice.price;
-        // } else {
         basePrice = matchingSackPrice?.price || 0;
-        // }
       } else if (isPerKiloItem) {
         basePrice = item.product.perKiloPrice?.price || 0;
       }
@@ -74,7 +62,6 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
 
       const isDiscounted =
         item.isDiscounted && item.discountedPrice !== basePrice;
-      // const isSpecialPrice = item.isSpecialPrice; // Commented out
 
       const key = `${item.product.name}-${
         isSackPriceItem ? sackType : "per-kilo"
@@ -93,7 +80,6 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           totalAmount: 0,
           originalAmount: 0,
           hasDiscounts: false,
-          // hasSpecialPrices: false, // Commented out
         });
       }
 
@@ -105,14 +91,12 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         saleId: sale.id,
         saleDate: sale.createdAt,
         isDiscounted,
-        // isSpecialPrice, // Commented out
       });
       productGroup.totalQuantity += item.quantity;
       productGroup.totalAmount += price * item.quantity;
       productGroup.originalAmount += basePrice * item.quantity;
 
       if (isDiscounted) productGroup.hasDiscounts = true;
-      // if (isSpecialPrice) productGroup.hasSpecialPrices = true; // Commented out
     });
   });
 
@@ -125,7 +109,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               <CardTitle className="text-lg">
                 {product.priceType === "sack" ? (
                   <>
-                    {product.productName.replace(` ${product.sackType}`, "")} <strong>{product.sackType}</strong>
+                    {product.productName.replace(` ${product.sackType}`, "")}{" "}
+                    <strong>{product.sackType}</strong>
                   </>
                 ) : (
                   product.productName
@@ -135,11 +120,11 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                 <Badge variant="outline">
                   {product.priceType === "sack"
                     ? `${product.sackType} Sack`
-                    : "Per Kilo"}
+                    : parseProductType("PER_KILO")}
                 </Badge>
-                {product.isGantang && <Badge variant="outline">Gantang</Badge>}
-                {/* Commented out special price badge */}
-                {/* {product.hasSpecialPrices && <Badge variant="secondary">Has Special Prices</Badge>} */}
+                {product.isGantang && (
+                  <Badge variant="outline">{parseProductType("GANTANG")}</Badge>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -152,9 +137,14 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">
-                          {item.quantity} {product.priceType === "sack" ? (
+                          {item.quantity}{" "}
+                          {product.priceType === "sack" ? (
                             <>
-                              {product.productName.replace(` ${product.sackType}`, "")} <strong>{product.sackType}</strong>
+                              {product.productName.replace(
+                                ` ${product.sackType}`,
+                                ""
+                              )}{" "}
+                              <strong>{product.sackType}</strong>
                             </>
                           ) : (
                             product.productName
@@ -165,12 +155,6 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                             Discounted
                           </Badge>
                         )}
-                        {/* Commented out special price badge */}
-                        {/* {item.isSpecialPrice && (
-                          <Badge variant="secondary" className="text-xs">
-                            Special Price
-                          </Badge>
-                        )} */}
                       </div>
                     </div>
                     <div className="text-right">

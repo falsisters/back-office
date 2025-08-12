@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, DollarSign } from "lucide-react";
 import type { SackType } from "../../../utils/types/schema.type";
+import { parseProductType } from "../../../utils/parsers/productType.parser";
 
 const sackTypeLabels = {
   FIFTY_KG: "50KG",
@@ -49,7 +50,7 @@ export default function ProfitTracker({
   const filteredSalesData = salesData.filter(
     (item) => item.priceType === "sack"
   );
-  
+
   // Group sales data with proper type separation
   const productGroups = filteredSalesData.reduce((acc, item) => {
     const key = `${item.productName}-${item.sackType || ""}`;
@@ -76,7 +77,7 @@ export default function ProfitTracker({
   const groupedProducts = Object.values(productGroups);
   const asinProducts = groupedProducts.filter((p) => p.isAsin);
   const otherProducts = groupedProducts.filter((p) => !p.isAsin);
-  
+
   const calculateTotalProfits = useCallback((products: ProfitItem[]) => {
     return products.reduce((total, item) => {
       const normalProfit = item.normalProfit * item.normalQty;
@@ -133,7 +134,7 @@ export default function ProfitTracker({
     }
     return acc;
   }, {} as Record<string, ProfitItem>);
-  
+
   const previousDayGroupedProducts = Object.values(previousDayProductGroups);
   const previousDayAsinProducts = previousDayGroupedProducts.filter(
     (p) => p.isAsin
@@ -174,7 +175,9 @@ export default function ProfitTracker({
         rows.push({
           key: `${item.productKey}-normal`,
           product: item.productName,
-          sackType: item.sackType ? sackTypeLabels[item.sackType] : "Per Kilo",
+          sackType: item.sackType
+            ? parseProductType(item.sackType)
+            : parseProductType("PER_KILO"),
           quantity: item.normalQty,
           profit: item.normalProfit,
           total: item.normalProfit * item.normalQty,
@@ -185,7 +188,9 @@ export default function ProfitTracker({
         rows.push({
           key: `${item.productKey}-special`,
           product: item.productName,
-          sackType: item.sackType ? sackTypeLabels[item.sackType] : "Per Kilo",
+          sackType: item.sackType
+            ? parseProductType(item.sackType)
+            : parseProductType("PER_KILO"),
           quantity: item.specialQty,
           profit: item.specialProfit || 0,
           total: (item.specialProfit || 0) * item.specialQty,
@@ -195,7 +200,7 @@ export default function ProfitTracker({
 
     return rows;
   };
-  
+
   const renderProductTable = (products: ProfitItem[], title: string) => {
     const productRows = createProductRows(products);
     const totalQuantity =
@@ -279,9 +284,13 @@ export default function ProfitTracker({
     );
   };
 
-  const totalOverallProfit = dateFilterMode === "day" 
-    ? asinTotalProfit + otherTotalProfit + previousDayAsinTotalProfit + previousDayOtherTotalProfit
-    : asinTotalProfit + otherTotalProfit;
+  const totalOverallProfit =
+    dateFilterMode === "day"
+      ? asinTotalProfit +
+        otherTotalProfit +
+        previousDayAsinTotalProfit +
+        previousDayOtherTotalProfit
+      : asinTotalProfit + otherTotalProfit;
 
   return (
     <Card className="shadow-md border-t-4 border-t-primary">
@@ -296,7 +305,7 @@ export default function ProfitTracker({
           {renderProductTable(otherProducts, "RICE AND OTHER PRODUCTS PROFITS")}
           {renderProductTable(asinProducts, "ASIN PROFITS")}
         </div>
-        
+
         {/* Split Overall Total into Two Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="shadow-md border-t-4 border-t-secondary">
@@ -326,7 +335,10 @@ export default function ProfitTracker({
                         Total Profit:
                       </span>
                       <span className="font-bold text-secondary">
-                        ₱{(otherTotalProfit + previousDayOtherTotalProfit).toLocaleString()}
+                        ₱
+                        {(
+                          otherTotalProfit + previousDayOtherTotalProfit
+                        ).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -371,7 +383,10 @@ export default function ProfitTracker({
                         Total Profit:
                       </span>
                       <span className="font-bold text-secondary">
-                        ₱{(asinTotalProfit + previousDayAsinTotalProfit).toLocaleString()}
+                        ₱
+                        {(
+                          asinTotalProfit + previousDayAsinTotalProfit
+                        ).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -389,7 +404,7 @@ export default function ProfitTracker({
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Total Profit Overall Card - Now consistent with other cards */}
         <Card className="shadow-md border-t-4 border-t-primary">
           <CardHeader className="pb-2 bg-gradient-to-r from-accent/5 to-transparent">
@@ -399,9 +414,7 @@ export default function ProfitTracker({
           </CardHeader>
           <CardContent>
             <div className="flex justify-between text-xl">
-              <span className="font-bold text-primary">
-                Grand Total:
-              </span>
+              <span className="font-bold text-primary">Grand Total:</span>
               <span className="font-bold text-primary">
                 ₱{totalOverallProfit.toLocaleString()}
               </span>

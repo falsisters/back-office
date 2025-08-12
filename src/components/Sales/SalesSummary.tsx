@@ -4,6 +4,8 @@ import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getA
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { ShoppingBag, CreditCard, Banknote, DollarSign } from "lucide-react";
+import { parseProductType } from "../../../utils/parsers/productType.parser";
+import Decimal from "decimal.js";
 
 interface CategoryTotals {
   sales: number;
@@ -35,11 +37,6 @@ export default function SalesSummary({
         const matchingSackPrice = item.product.SackPrice.find(
           (sp) => sp.type === item.sackType
         );
-        // Commented out special price implementation
-        // const sackPrice =
-        //   item.isSpecialPrice && item.product.SackPrice[0]?.specialPrice?.price
-        //     ? item.product.SackPrice[0]?.specialPrice?.price
-        //     : item.product.SackPrice[0]?.price || 0
 
         // Get the correct sack price based on type
         const sackPrice = matchingSackPrice?.price || 0;
@@ -131,7 +128,7 @@ export default function SalesSummary({
                   Total Quantity:
                 </TableCell>
                 <TableCell className="text-right font-semibold">
-                  {grandTotal.quantity}
+                  {new Decimal(grandTotal.quantity).toFixed(2)}
                 </TableCell>
               </TableRow>
               <TableRow>

@@ -6,6 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { parseProductType } from "../../../utils/parsers/productType.parser";
+import { Decimal } from "decimal.js";
 
 const sackTypeLabels = {
   FIFTY_KG: "50KG",
@@ -66,10 +68,16 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
   };
 
   const calculateTotalQuantity = (items: typeof perKiloPriceItems) => {
-    return items.reduce((total, { item }) => total + item.quantity, 0);
+    const total = items.reduce((total, { item }) => {
+      return total.plus(item.quantity);
+    }, new Decimal(0));
+    return total.toFixed(2);
   };
 
-  const getPaginatedItems = (items: typeof perKiloPriceItems, currentPage: number) => {
+  const getPaginatedItems = (
+    items: typeof perKiloPriceItems,
+    currentPage: number
+  ) => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return items.slice(startIndex, endIndex);
@@ -79,13 +87,13 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
     return Math.ceil(items.length / ITEMS_PER_PAGE);
   };
 
-  const PaginationControls = ({ 
-    currentPage, 
-    totalPages, 
-    onPageChange 
-  }: { 
-    currentPage: number; 
-    totalPages: number; 
+  const PaginationControls = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    currentPage: number;
+    totalPages: number;
     onPageChange: (page: number) => void;
   }) => {
     if (totalPages <= 1) return null;
@@ -123,82 +131,82 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           <CardTitle>Asin Sack Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {getPaginatedItems(asinSackItems, asinCurrentPage).map(({ item, sale }) => {
-            const sackType = item.sackType;
-            const sackTypeLabel = sackType ? sackTypeLabels[sackType] : "";
+          {getPaginatedItems(asinSackItems, asinCurrentPage).map(
+            ({ item, sale }) => {
+              const sackType = item.sackType;
+              const sackTypeLabel = sackType ? parseProductType(sackType) : "";
 
-            const matchingSackPrice = item.product.SackPrice.find(
-              (sp) => sp.type === sackType
-            );
+              const matchingSackPrice = item.product.SackPrice.find(
+                (sp) => sp.type === sackType
+              );
 
-            let price = 0;
-            // Commented out special price implementation
-            // if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
-            //   price = matchingSackPrice.specialPrice.price;
-            // } else {
-            price = matchingSackPrice?.price || 0;
-            // }
+              let price = 0;
+              price = matchingSackPrice?.price || 0;
 
-            const displayPrice =
-              item.isDiscounted && item.discountedPrice
-                ? item.discountedPrice
-                : price;
+              const displayPrice =
+                item.isDiscounted && item.discountedPrice
+                  ? item.discountedPrice
+                  : price;
 
-            const totalPrice = Math.floor(displayPrice * item.quantity);
-            const paymentInfo =
-              sale.paymentMethod !== "CASH"
-                ? sale.paymentMethod.replace("_", " ")
-                : "";
-            const gantangInfo = item.isGantang ? " (gantang)" : "";
+              const totalPrice = Math.floor(displayPrice * item.quantity);
+              const paymentInfo =
+                sale.paymentMethod !== "CASH"
+                  ? sale.paymentMethod.replace("_", " ")
+                  : "";
+              const gantangInfo = item.isGantang ? " (gantang)" : "";
 
-            return (
-              <div
-                key={`${item.id}-${sale.id}`}
-                className="py-2 border-b hover:bg-muted/20 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="font-medium">
-                      {item.quantity} {item.product.name} <strong>{sackTypeLabel}</strong>
-                      {gantangInfo}
-                    </span>
-                    {item.isDiscounted && (
-                      <Badge variant="destructive" className="text-xs">
-                        Discounted
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-right flex flex-col">
-                    <span className="font-mono font-semibold text-secondary">
-                      ₱{totalPrice.toLocaleString()}
-                    </span>
-                    {paymentInfo && (
-                      <span className="text-xs text-muted-foreground">
-                        {paymentInfo}
+              return (
+                <div
+                  key={`${item.id}-${sale.id}`}
+                  className="py-2 border-b hover:bg-muted/20 transition-colors"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="font-medium">
+                        {new Decimal(item.quantity).toFixed(2)}{" "}
+                        {item.product.name} <strong>{sackTypeLabel}</strong>
+                        {gantangInfo}
                       </span>
-                    )}
-                    {item.isDiscounted && item.discountedPrice && (
-                      <span className="text-xs text-muted-foreground">
-                        Original: ₱
-                        {Math.floor(price * item.quantity).toLocaleString()}
+                      {item.isDiscounted && (
+                        <Badge variant="destructive" className="text-xs">
+                          Discounted
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-right flex flex-col">
+                      <span className="font-mono font-semibold text-secondary">
+                        ₱{totalPrice.toLocaleString()}
                       </span>
-                    )}
+                      {paymentInfo && (
+                        <span className="text-xs text-muted-foreground">
+                          {paymentInfo}
+                        </span>
+                      )}
+                      {item.isDiscounted && item.discountedPrice && (
+                        <span className="text-xs text-muted-foreground">
+                          Original: ₱
+                          {Math.floor(price * item.quantity).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          
-          <PaginationControls 
+              );
+            }
+          )}
+
+          <PaginationControls
             currentPage={asinCurrentPage}
             totalPages={getTotalPages(asinSackItems)}
             onPageChange={setAsinCurrentPage}
           />
-          
+
           {asinSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-bold text-xl text-primary">{calculateTotalQuantity(asinSackItems)}</span>
+                <span className="font-bold text-xl text-primary">
+                  {calculateTotalQuantity(asinSackItems)}
+                </span>
                 <span className="font-mono font-bold text-2xl text-primary">
                   ₱
                   {Math.floor(
@@ -217,82 +225,82 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           <CardTitle>Rice & Other Sack Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {getPaginatedItems(otherSackItems, otherCurrentPage).map(({ item, sale }) => {
-            const sackType = item.sackType;
-            const sackTypeLabel = sackType ? sackTypeLabels[sackType] : "";
+          {getPaginatedItems(otherSackItems, otherCurrentPage).map(
+            ({ item, sale }) => {
+              const sackType = item.sackType;
+              const sackTypeLabel = sackType ? parseProductType(sackType) : "";
 
-            const matchingSackPrice = item.product.SackPrice.find(
-              (sp) => sp.type === sackType
-            );
+              const matchingSackPrice = item.product.SackPrice.find(
+                (sp) => sp.type === sackType
+              );
 
-            let price = 0;
-            // Commented out special price implementation
-            // if (item.isSpecialPrice && matchingSackPrice?.specialPrice?.price) {
-            //   price = matchingSackPrice.specialPrice.price;
-            // } else {
-            price = matchingSackPrice?.price || 0;
-            // }
+              let price = 0;
+              price = matchingSackPrice?.price || 0;
 
-            const displayPrice =
-              item.isDiscounted && item.discountedPrice
-                ? item.discountedPrice
-                : price;
+              const displayPrice =
+                item.isDiscounted && item.discountedPrice
+                  ? item.discountedPrice
+                  : price;
 
-            const totalPrice = Math.floor(displayPrice * item.quantity);
-            const paymentInfo =
-              sale.paymentMethod !== "CASH"
-                ? sale.paymentMethod.replace("_", " ")
-                : "";
-            const gantangInfo = item.isGantang ? " (gantang)" : "";
+              const totalPrice = Math.floor(displayPrice * item.quantity);
+              const paymentInfo =
+                sale.paymentMethod !== "CASH"
+                  ? sale.paymentMethod.replace("_", " ")
+                  : "";
+              const gantangInfo = item.isGantang ? " (gantang)" : "";
 
-            return (
-              <div
-                key={`${item.id}-${sale.id}`}
-                className="py-2 border-b hover:bg-muted/20 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="font-medium">
-                      {item.quantity} {item.product.name} <strong>{sackTypeLabel}</strong>
-                      {gantangInfo}
-                    </span>
-                    {item.isDiscounted && (
-                      <Badge variant="destructive" className="text-xs">
-                        Discounted
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-right flex flex-col">
-                    <span className="font-mono font-semibold text-secondary">
-                      ₱{totalPrice.toLocaleString()}
-                    </span>
-                    {paymentInfo && (
-                      <span className="text-xs text-muted-foreground">
-                        {paymentInfo}
+              return (
+                <div
+                  key={`${item.id}-${sale.id}`}
+                  className="py-2 border-b hover:bg-muted/20 transition-colors"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="font-medium">
+                        {new Decimal(item.quantity).toFixed(0)}{" "}
+                        {item.product.name} <strong>{sackTypeLabel}</strong>
+                        {gantangInfo}
                       </span>
-                    )}
-                    {item.isDiscounted && item.discountedPrice && (
-                      <span className="text-xs text-muted-foreground">
-                        Original: ₱
-                        {Math.floor(price * item.quantity).toLocaleString()}
+                      {item.isDiscounted && (
+                        <Badge variant="destructive" className="text-xs">
+                          Discounted
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-right flex flex-col">
+                      <span className="font-mono font-semibold text-secondary">
+                        ₱{totalPrice.toLocaleString()}
                       </span>
-                    )}
+                      {paymentInfo && (
+                        <span className="text-xs text-muted-foreground">
+                          {paymentInfo}
+                        </span>
+                      )}
+                      {item.isDiscounted && item.discountedPrice && (
+                        <span className="text-xs text-muted-foreground">
+                          Original: ₱
+                          {Math.floor(price * item.quantity).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          
-          <PaginationControls 
+              );
+            }
+          )}
+
+          <PaginationControls
             currentPage={otherCurrentPage}
             totalPages={getTotalPages(otherSackItems)}
             onPageChange={setOtherCurrentPage}
           />
-          
+
           {otherSackItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-bold text-xl text-primary">{calculateTotalQuantity(otherSackItems)}</span>
+                <span className="font-bold text-xl text-primary">
+                  {calculateTotalQuantity(otherSackItems)}
+                </span>
                 <span className="font-mono font-bold text-2xl text-primary">
                   ₱
                   {Math.floor(
@@ -311,70 +319,74 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
           <CardTitle>Per Kilo Price Items</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {getPaginatedItems(perKiloPriceItems, perKiloCurrentPage).map(({ item, sale }) => {
-            const price = item.product.perKiloPrice?.price || 0;
+          {getPaginatedItems(perKiloPriceItems, perKiloCurrentPage).map(
+            ({ item, sale }) => {
+              const price = item.product.perKiloPrice?.price || 0;
 
-            const displayPrice =
-              item.isDiscounted && item.discountedPrice
-                ? item.discountedPrice
-                : price;
+              const displayPrice =
+                item.isDiscounted && item.discountedPrice
+                  ? item.discountedPrice
+                  : price;
 
-            const totalPrice = Math.floor(displayPrice * item.quantity);
-            const paymentInfo =
-              sale.paymentMethod !== "CASH"
-                ? sale.paymentMethod.replace("_", " ")
-                : "";
-            const gantangInfo = item.isGantang ? " (gantang)" : "";
+              const totalPrice = Math.floor(displayPrice * item.quantity);
+              const paymentInfo =
+                sale.paymentMethod !== "CASH"
+                  ? sale.paymentMethod.replace("_", " ")
+                  : "";
+              const gantangInfo = item.isGantang ? " (gantang)" : "";
 
-            return (
-              <div
-                key={`${item.id}-${sale.id}`}
-                className="py-2 border-b hover:bg-muted/20 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 flex items-center gap-2">
-                    <span className="font-medium">
-                      {item.quantity} {item.product.name}
-                      {/* {specialPriceInfo} */}
-                      {gantangInfo}
-                    </span>
-                    {item.isDiscounted && (
-                      <Badge variant="destructive" className="text-xs">
-                        Discounted
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-right flex flex-col">
-                    <span className="font-mono font-semibold text-secondary">
-                      ₱{totalPrice.toLocaleString()}
-                    </span>
-                    {paymentInfo && (
-                      <span className="text-xs text-muted-foreground">
-                        {paymentInfo}
+              return (
+                <div
+                  key={`${item.id}-${sale.id}`}
+                  className="py-2 border-b hover:bg-muted/20 transition-colors"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1 flex items-center gap-2">
+                      <span className="font-medium">
+                        {new Decimal(item.quantity).toFixed(2)}{" "}
+                        {item.product.name}
+                        {gantangInfo}
                       </span>
-                    )}
-                    {item.isDiscounted && item.discountedPrice && (
-                      <span className="text-xs text-muted-foreground">
-                        Original: ₱
-                        {Math.floor(price * item.quantity).toLocaleString()}
+                      {item.isDiscounted && (
+                        <Badge variant="destructive" className="text-xs">
+                          Discounted
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-right flex flex-col">
+                      <span className="font-mono font-semibold text-secondary">
+                        ₱{totalPrice.toLocaleString()}
                       </span>
-                    )}
+                      {paymentInfo && (
+                        <span className="text-xs text-muted-foreground">
+                          {paymentInfo}
+                        </span>
+                      )}
+                      {item.isDiscounted && item.discountedPrice && (
+                        <span className="text-xs text-muted-foreground">
+                          Original: ₱
+                          {Math.floor(price * item.quantity).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          
-          <PaginationControls 
+              );
+            }
+          )}
+
+          <PaginationControls
             currentPage={perKiloCurrentPage}
             totalPages={getTotalPages(perKiloPriceItems)}
             onPageChange={setPerKiloCurrentPage}
           />
-          
+
           {perKiloPriceItems.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
-                <span className="font-bold text-xl text-primary">{calculateTotalQuantity(perKiloPriceItems)}</span>
+                <span className="font-bold text-xl text-primary">
+                  {calculateTotalQuantity(perKiloPriceItems)}
+                </span>
                 <span className="font-mono font-bold text-2xl text-primary">
                   ₱
                   {Math.floor(

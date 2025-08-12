@@ -1,7 +1,10 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { GetAllSalesByUserIdPayload } from "../../../../utils/types/Sales/getAllSalesByUserId.type";
+import {
+  GetAllSalesByUserIdPayload,
+  GetAllSalesByUserIdPayloadSchema,
+} from "../../../../utils/types/Sales/getAllSalesByUserId.type";
 import { NestApiError } from "../../../../utils/types/error.type";
 
 export const getSalesByCashier = async (
@@ -46,21 +49,21 @@ export const getSalesByCashier = async (
     );
   }
 
-  const salesData = (await response.json()) as GetAllSalesByUserIdPayload;
-  
-  // Apply timezone correction to match profit data (UTC to PH time)
-  const correctedSalesData = salesData.map(sale => ({
-    ...sale,
-    createdAt: new Date(new Date(sale.createdAt).getTime() - 8 * 60 * 60 * 1000),
-    originalCreatedAt: sale.createdAt,
-  }));
+  const rawSalesData = await response.json();
 
-  console.log("🔄 SALES: Applied timezone correction to sales data");
-  console.log("🔄 SALES: Sample before/after:", salesData.slice(0, 2).map(sale => ({
-    id: sale.id,
-    original: sale.createdAt,
-    corrected: new Date(new Date(sale.createdAt).getTime() - 8 * 60 * 60 * 1000).toISOString()
-  })));
+  // Parse and validate the response data with decimal transformations
+  const salesData = GetAllSalesByUserIdPayloadSchema.parse(rawSalesData);
 
-  return correctedSalesData;
+  console.log(
+    "🔄 SALES: Loaded cashier sales data with backend date conversion"
+  );
+  console.log(
+    "🔄 SALES: Sample sales dates:",
+    salesData.slice(0, 2).map((sale) => ({
+      id: sale.id,
+      createdAt: sale.createdAt.toISOString(),
+    }))
+  );
+
+  return salesData;
 };
