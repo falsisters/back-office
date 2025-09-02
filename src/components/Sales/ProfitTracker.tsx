@@ -109,8 +109,23 @@ export default function ProfitTracker({
     [otherProducts, calculateTotalQuantity]
   );
 
-  // Previous day's data
-  const previousDayProducts = previousDaySalesData.filter(
+  // Previous day's data - Reset to empty if current date is 1st of month
+  const shouldResetPreviousDay = useMemo(() => {
+    if (dateFilterMode !== "day") return false;
+    
+    // Check if selected date is the first day of the month
+    return selectedDate.getDate() === 1;
+  }, [selectedDate, dateFilterMode]);
+
+  const effectivePreviousDayData = useMemo(() => {
+    if (shouldResetPreviousDay) {
+      console.log("⚠️ PROFIT TRACKER: Current date is the 1st of the month - resetting previous day profit to 0");
+      return [];
+    }
+    return previousDaySalesData;
+  }, [shouldResetPreviousDay, previousDaySalesData]);
+
+  const previousDayProducts = effectivePreviousDayData.filter(
     (item) => item.priceType === "sack"
   );
   const previousDayProductGroups = previousDayProducts.reduce((acc, item) => {

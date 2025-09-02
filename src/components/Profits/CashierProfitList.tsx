@@ -281,18 +281,25 @@ export default function CashierProfitList({
     return transformed;
   };
 
-  // Calculate previous day's profit data
   const getPreviousDayProfitData = () => {
     if (!allProfitData?.rawItems || dateFilterMode !== "day" || !date) {
       return [];
     }
 
-    console.log("🔄 PREVIOUS DAY: Calculating previous day profit data");
-    console.log("🔄 PREVIOUS DAY: Selected date:", date.toDateString());
+
+    // Check if current date is the first day of the month
+    if (date.getDate() === 1) {
+      return [];
+    }
 
     // Calculate previous day
     const previousDay = new Date(date);
     previousDay.setDate(previousDay.getDate() - 1);
+
+    // Double-check that previous day is in the same month
+    if (previousDay.getMonth() !== date.getMonth()) {
+      return [];
+    }
 
     console.log(
       "🔄 PREVIOUS DAY: Previous day date:",
