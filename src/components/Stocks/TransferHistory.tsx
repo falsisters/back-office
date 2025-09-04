@@ -153,14 +153,15 @@ export default function TransferHistory({
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
+                size="auto"
                 className={cn(
-                  "w-[240px] justify-start text-left font-normal",
+                  "w-full sm:w-auto justify-start text-left font-normal",
                   !date && "text-muted-foreground"
                 )}
                 disabled={!selectedCashierId}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                {date ? format(date, "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

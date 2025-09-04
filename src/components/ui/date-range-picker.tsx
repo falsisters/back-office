@@ -20,9 +20,10 @@ export function DateRangePicker({ date, setDate }: DateRangePickerProps) {
           <Button
             id="date"
             variant={"outline"}
-            className={cn("w-[300px] justify-start text-left font-normal", !date && "text-muted-foreground")}
+            size="auto"
+            className={cn("w-full sm:w-auto justify-start text-left font-normal", !date && "text-muted-foreground")}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
             {date?.from ? (
               date.to ? (
                 <>
@@ -32,7 +33,7 @@ export function DateRangePicker({ date, setDate }: DateRangePickerProps) {
                 format(date.from, "LLL dd, y")
               )
             ) : (
-              <span>Pick a date</span>
+              "Pick a date"
             )}
           </Button>
         </PopoverTrigger>
