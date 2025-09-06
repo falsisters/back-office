@@ -12,6 +12,7 @@ export const addInventoryCalculationRow = async (data: {
   inventoryId: string;
   rowIndex: number;
   description?: string;
+  date?: Date; // Add date parameter
 }) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -23,6 +24,7 @@ export const addInventoryCalculationRow = async (data: {
     inventoryId: data.inventoryId,
     rowIndex: data.rowIndex,
     description: data.description || "",
+    date: data.date, // Pass the date
   };
 
   console.log("Adding inventory calculation row with data:", requestData);
@@ -77,7 +79,7 @@ export const addInventoryCalculationRow = async (data: {
 };
 
 export const addInventoryCalculationRows = async (
-  data: AddCalculationRowsType
+  data: AddCalculationRowsType & { date?: Date } // Add date parameter
 ) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -88,6 +90,7 @@ export const addInventoryCalculationRows = async (
   const requestData = {
     inventoryId: data.inventoryId,
     rowIndexes: data.rowIndexes,
+    date: data.date, // Pass the date
   };
 
   const response = await fetch(
@@ -248,6 +251,7 @@ export const addInventoryCalculationRowBySheetId = async (data: {
   sheetId: string;
   rowIndex: number;
   description?: string;
+  date?: Date; // Add date parameter
 }) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -259,6 +263,7 @@ export const addInventoryCalculationRowBySheetId = async (data: {
     sheetId: data.sheetId,
     rowIndex: data.rowIndex,
     description: data.description || "",
+    date: data.date, // Pass the date
   };
 
   console.log(

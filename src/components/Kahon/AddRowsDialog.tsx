@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 interface AddRowsDialogProps {
   isOpen: boolean;
   maxRowIndex: number;
-  onAddRows: (count: number, startIndex?: number) => void;
+  onAddRows: (count: number, startIndex?: number, date?: Date) => void;
   onClose: () => void;
-  sheetType?: "kahon" | "inventory"; // Add sheet type prop
+  sheetType?: "kahon" | "inventory";
+  selectedDate?: string; // Add selected date prop
 }
 
 export default function AddRowsDialog({
@@ -16,7 +17,8 @@ export default function AddRowsDialog({
   maxRowIndex,
   onAddRows,
   onClose,
-  sheetType = "kahon", // Default to kahon for backward compatibility
+  sheetType = "kahon",
+  selectedDate, // Use the selected date from parent
 }: AddRowsDialogProps) {
   const [rowCount, setRowCount] = useState(1);
   const [insertPosition, setInsertPosition] = useState<"end" | "after">("end");
@@ -40,7 +42,12 @@ export default function AddRowsDialog({
       startIndex = afterRowIndex + 1;
     }
 
-    onAddRows(rowCount, startIndex);
+    // Convert selectedDate to Date object if provided
+    const dateForRows = selectedDate
+      ? new Date(selectedDate + "T00:00:00.000Z")
+      : new Date();
+
+    onAddRows(rowCount, startIndex, dateForRows);
   };
 
   const handleClose = () => {
@@ -72,6 +79,18 @@ export default function AddRowsDialog({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Show selected date info */}
+          {selectedDate && (
+            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Target Date:</strong> {selectedDate}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                New rows will be created with this date
+              </p>
+            </div>
+          )}
+
           {/* Number of rows */}
           <div>
             <label className="block text-sm font-medium mb-2">

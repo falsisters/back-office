@@ -77,7 +77,22 @@ export const UpdateCellsSchema = z.object({
   cells: z.array(UpdateCellSchema),
 });
 
-// Date range query schema
+// Date query schema - updated for single date
+export const DateQuerySchema = z
+  .object({
+    date: z.string().optional(),
+  })
+  .transform((data) => {
+    // Default to current day if no date provided
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    return {
+      date: data.date || todayStr,
+    };
+  });
+
+// Keep legacy DateRangeQuerySchema for backward compatibility
 export const DateRangeQuerySchema = z
   .object({
     startDate: z.string().optional(),
@@ -138,7 +153,8 @@ export type AddCellType = z.infer<typeof AddCellSchema>;
 export type UpdateCellType = z.infer<typeof UpdateCellSchema>;
 export type AddCellsType = z.infer<typeof AddCellsSchema>;
 export type UpdateCellsType = z.infer<typeof UpdateCellsSchema>;
-export type DateRangeQueryType = z.infer<typeof DateRangeQuerySchema>;
+export type DateQueryType = z.infer<typeof DateQuerySchema>;
+export type DateRangeQueryType = z.infer<typeof DateRangeQuerySchema>; // Keep for backward compatibility
 export type ColorPickerType = z.infer<typeof ColorPickerSchema>;
 export type PendingCellChange = z.infer<typeof PendingCellChangeSchema>;
 export type BatchUpdateRequest = z.infer<typeof BatchUpdateRequestSchema>;

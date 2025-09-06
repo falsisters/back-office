@@ -8,7 +8,9 @@ import {
   AddCalculationRowsType,
 } from "../../../../utils/types/kahon.type";
 
-export const addKahonCalculationRow = async (data: AddCalculationRowType) => {
+export const addKahonCalculationRow = async (
+  data: AddCalculationRowType & { date?: Date }
+) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
@@ -19,6 +21,7 @@ export const addKahonCalculationRow = async (data: AddCalculationRowType) => {
     sheetId: data.sheetId,
     rowIndex: data.rowIndex,
     description: data.description || "",
+    date: data.date, // Pass the date
   };
 
   const response = await fetch(
@@ -46,7 +49,9 @@ export const addKahonCalculationRow = async (data: AddCalculationRowType) => {
   return await response.json();
 };
 
-export const addKahonCalculationRows = async (data: AddCalculationRowsType) => {
+export const addKahonCalculationRows = async (
+  data: AddCalculationRowsType & { date?: Date }
+) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
@@ -56,6 +61,7 @@ export const addKahonCalculationRows = async (data: AddCalculationRowsType) => {
   const requestData = {
     sheetId: data.sheetId,
     rowIndexes: data.rowIndexes,
+    date: data.date, // Pass the date
   };
 
   const response = await fetch(

@@ -5,60 +5,42 @@ import { NestApiError } from "../../../../utils/types/error.type";
 import {
   CashierSheetResponse,
   SheetWithData,
-  DateRangeQueryType,
 } from "../../../../utils/types/kahon.type";
 
-export const getKahonSheetsByDateRange = async (
-  params?: DateRangeQueryType
+export const getKahonSheetsByDate = async (
+  date?: string
 ): Promise<CashierSheetResponse[]> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Default to current day if no params provided
+  // Default to current day if no date provided
   const getCurrentDateString = () => new Date().toISOString().split("T")[0];
-  const getNextDayString = (dateStr: string) => {
-    const date = new Date(dateStr + "T00:00:00.000Z");
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().split("T")[0];
-  };
+  const finalDate = date || getCurrentDateString();
 
-  const today = getCurrentDateString();
-  const defaultParams = {
-    startDate: today,
-    endDate: getNextDayString(today),
-  };
-
-  const finalParams = params || defaultParams;
-
-  console.log("getKahonSheetsByDateRange called with params:", finalParams);
+  console.log("getKahonSheetsByDate called with date:", finalDate);
 
   const searchParams = new URLSearchParams();
-  if (finalParams.startDate) {
-    searchParams.append("startDate", finalParams.startDate);
-  }
-  if (finalParams.endDate) {
-    searchParams.append("endDate", finalParams.endDate);
-  }
+  searchParams.append("date", finalDate);
 
   const url = `${
     process.env.API_URL
-  }/sheet/user/date?${searchParams.toString()}`;
+  }/sheet/user/one-date?${searchParams.toString()}`;
   console.log("Fetching from URL:", url);
 
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
-    cache: "no-store", // Disable caching
+    cache: "no-store",
   });
 
   console.log("Response status:", response.status);
 
   if (!response.ok) {
     if (response.status === 404) {
-      console.log("No sheets found for date range");
+      console.log("No sheets found for date");
       return [];
     }
 
@@ -139,4 +121,14 @@ export const getKahonSheetByCashierId = async (
 
   const payload: CashierSheetResponse = await response.json();
   return payload;
+};
+
+// Legacy function for backward compatibility
+export const getKahonSheetsByDateRange = async (params?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<CashierSheetResponse[]> => {
+  // Convert to single date - use startDate if provided, otherwise current date
+  const date = params?.startDate || new Date().toISOString().split("T")[0];
+  return getKahonSheetsByDate(date);
 };

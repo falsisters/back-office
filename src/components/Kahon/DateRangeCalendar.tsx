@@ -4,17 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface DateRangeCalendarProps {
-  startDate?: string;
-  endDate?: string;
-  onDateRangeChange: (startDate: string, endDate: string) => void;
+  selectedDate?: string;
+  onDateChange: (date: string) => void;
   onApply: () => void;
   className?: string;
 }
 
 export default function DateRangeCalendar({
-  startDate = "",
-  endDate = "",
-  onDateRangeChange,
+  selectedDate = "",
+  onDateChange,
   onApply,
   className = "",
 }: DateRangeCalendarProps) {
@@ -24,16 +22,9 @@ export default function DateRangeCalendar({
     return now.toISOString().split("T")[0];
   };
 
-  const [selectedDate, setSelectedDate] = useState(
-    startDate || getCurrentDateString()
+  const [internalSelectedDate, setInternalSelectedDate] = useState(
+    selectedDate || getCurrentDateString()
   );
-
-  // Helper function to get next day in YYYY-MM-DD format
-  const getNextDay = (dateStr: string): string => {
-    const date = new Date(dateStr + "T00:00:00.000Z"); // Ensure UTC parsing
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().split("T")[0];
-  };
 
   const handleDateChange = (date: string) => {
     // Validate the date format
@@ -42,10 +33,9 @@ export default function DateRangeCalendar({
       return;
     }
 
-    setSelectedDate(date);
-    const nextDay = getNextDay(date);
-    console.log("Date range changed:", { start: date, end: nextDay });
-    onDateRangeChange(date, nextDay);
+    setInternalSelectedDate(date);
+    console.log("Date changed:", date);
+    onDateChange(date);
   };
 
   const handleTodayClick = () => {
@@ -75,8 +65,6 @@ export default function DateRangeCalendar({
     handleDateChange(startStr);
   };
 
-  const nextDayDate = getNextDay(selectedDate);
-
   return (
     <div
       className={`bg-white border border-gray-300 rounded-lg p-4 space-y-4 ${className}`}
@@ -103,13 +91,12 @@ export default function DateRangeCalendar({
         </label>
         <input
           type="date"
-          value={selectedDate}
+          value={internalSelectedDate}
           onChange={(e) => handleDateChange(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Format: YYYY-MM-DD. This will show data for the selected day until the
-          next day.
+          Format: YYYY-MM-DD. This will show data for the selected day only.
         </p>
       </div>
 
@@ -151,14 +138,12 @@ export default function DateRangeCalendar({
         </Button>
       </div>
 
-      {/* Date Range Display */}
+      {/* Selected Date Display */}
       <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-        <strong>Date Range:</strong>{" "}
-        <span className="font-mono">
-          {selectedDate} to {nextDayDate}
-        </span>
+        <strong>Selected Date:</strong>{" "}
+        <span className="font-mono">{internalSelectedDate}</span>
         <div className="text-xs text-gray-500 mt-1">
-          Backend will receive: startDate={selectedDate}, endDate={nextDayDate}
+          Backend will receive: date={internalSelectedDate}
         </div>
       </div>
     </div>
