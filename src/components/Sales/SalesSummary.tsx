@@ -34,18 +34,14 @@ export default function SalesSummary({
       let category: keyof typeof totals;
 
       if (item.sackPriceId && !item.perKiloPriceId) {
-        const matchingSackPrice = item.product.SackPrice.find(
-          (sp) => sp.type === item.sackType
-        );
-
-        // Get the correct sack price based on type
-        const sackPrice = matchingSackPrice?.price || 0;
+        // Use saleItem.price directly from the database (already the total price)
+        const sackPrice = item.price || 0;
         const displayPrice =
           item.isDiscounted && item.discountedPrice
             ? item.discountedPrice
             : sackPrice;
 
-        const itemTotal = Math.ceil(displayPrice * item.quantity);
+        const itemTotal = Math.ceil(displayPrice);
 
         category = isAsin ? "asinSack" : "otherSack";
 
@@ -58,14 +54,15 @@ export default function SalesSummary({
           totals[category].bankTransfer += itemTotal;
         }
       } else if (item.perKiloPriceId && !item.sackPriceId) {
-        const kiloPrice = item.product.perKiloPrice?.price || 0;
+        // Use saleItem.price directly from the database (already the total price)
+        const kiloPrice = item.price || 0;
 
         const displayPrice =
           item.isDiscounted && item.discountedPrice
             ? item.discountedPrice
             : kiloPrice;
 
-        const itemTotal = Math.ceil(displayPrice * item.quantity);
+        const itemTotal = Math.ceil(displayPrice);
 
         category = isAsin ? "asinKilo" : "otherKilo";
 

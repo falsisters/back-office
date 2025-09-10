@@ -48,22 +48,14 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
 
   const calculateTotalSales = (items: typeof perKiloPriceItems) => {
     return items.reduce((total, { item }) => {
-      let price = 0;
-
-      if (item.sackPriceId) {
-        const matchingSackPrice = item.product.SackPrice.find(
-          (sp) => sp.type === item.sackType
-        );
-        price = matchingSackPrice?.price || 0;
-      } else if (item.perKiloPriceId) {
-        price = item.product.perKiloPrice?.price || 0;
-      }
+      // Use saleItem.price directly from the database (already the total price)
+      const price = item.price || 0;
 
       const displayPrice =
         item.isDiscounted && item.discountedPrice
           ? item.discountedPrice
           : price;
-      return total + Math.ceil(displayPrice * item.quantity);
+      return total + Math.ceil(displayPrice);
     }, 0);
   };
 
@@ -136,19 +128,15 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               const sackType = item.sackType;
               const sackTypeLabel = sackType ? parseProductType(sackType) : "";
 
-              const matchingSackPrice = item.product.SackPrice.find(
-                (sp) => sp.type === sackType
-              );
-
-              let price = 0;
-              price = matchingSackPrice?.price || 0;
+              // Use saleItem.price directly from the database (already the total price)
+              const price = item.price || 0;
 
               const displayPrice =
                 item.isDiscounted && item.discountedPrice
                   ? item.discountedPrice
                   : price;
 
-              const totalPrice = Math.ceil(displayPrice * item.quantity);
+              const totalPrice = Math.ceil(displayPrice);
               const paymentInfo =
                 sale.paymentMethod !== "CASH"
                   ? sale.paymentMethod.replace("_", " ")
@@ -184,8 +172,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                       )}
                       {item.isDiscounted && item.discountedPrice && (
                         <span className="text-xs text-muted-foreground">
-                          Original: ₱
-                          {Math.floor(price * item.quantity).toLocaleString()}
+                          Original: ₱{Math.floor(price).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -227,19 +214,15 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               const sackType = item.sackType;
               const sackTypeLabel = sackType ? parseProductType(sackType) : "";
 
-              const matchingSackPrice = item.product.SackPrice.find(
-                (sp) => sp.type === sackType
-              );
-
-              let price = 0;
-              price = matchingSackPrice?.price || 0;
+              // Use saleItem.price directly from the database (already the total price)
+              const price = item.price || 0;
 
               const displayPrice =
                 item.isDiscounted && item.discountedPrice
                   ? item.discountedPrice
                   : price;
 
-              const totalPrice = Math.ceil(displayPrice * item.quantity);
+              const totalPrice = Math.ceil(displayPrice);
               const paymentInfo =
                 sale.paymentMethod !== "CASH"
                   ? sale.paymentMethod.replace("_", " ")
@@ -275,8 +258,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                       )}
                       {item.isDiscounted && item.discountedPrice && (
                         <span className="text-xs text-muted-foreground">
-                          Original: ₱
-                          {Math.floor(price * item.quantity).toLocaleString()}
+                          Original: ₱{Math.floor(price).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -315,14 +297,15 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         <CardContent className="space-y-4">
           {getPaginatedItems(perKiloPriceItems, perKiloCurrentPage).map(
             ({ item, sale }) => {
-              const price = item.product.perKiloPrice?.price || 0;
+              // Use saleItem.price directly from the database (already the total price)
+              const price = item.price || 0;
 
               const displayPrice =
                 item.isDiscounted && item.discountedPrice
                   ? item.discountedPrice
                   : price;
 
-              const totalPrice = Math.ceil(displayPrice * item.quantity);
+              const totalPrice = Math.ceil(displayPrice);
               const paymentInfo =
                 sale.paymentMethod !== "CASH"
                   ? sale.paymentMethod.replace("_", " ")
@@ -358,8 +341,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                       )}
                       {item.isDiscounted && item.discountedPrice && (
                         <span className="text-xs text-muted-foreground">
-                          Original: ₱
-                          {Math.floor(price * item.quantity).toLocaleString()}
+                          Original: ₱{Math.floor(price).toLocaleString()}
                         </span>
                       )}
                     </div>
