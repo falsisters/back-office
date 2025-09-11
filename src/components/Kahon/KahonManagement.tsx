@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
-import { getKahonSheetsByDate } from "@/lib/server/Kahon/getKahonSheets";
-import { getInventorySheetsByDate } from "@/lib/server/Kahon/getInventorySheets";
+import { getKahonSheetsByDateRange } from "@/lib/server/Kahon/getKahonSheets";
+import { getInventorySheetsByDateRange } from "@/lib/server/Kahon/getInventorySheets";
 import DateRangeCalendar from "./DateRangeCalendar";
 import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 import type {
   CashierSheetResponse,
   CashierInventorySheetResponse,
+  DateRangeQueryType,
 } from "../../../utils/types/kahon.type";
 import KahonAgGrid from "./KahonAgGrid";
 import InventoryAgGrid from "./InventoryAgGrid";
@@ -24,9 +25,16 @@ export default function KahonManagement() {
   const [activeTab, setActiveTab] = useState<"kahon" | "inventory">("kahon");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+  const [dateRange, setDateRange] = useState<DateRangeQueryType>(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+    return {
+      startDate: today,
+      endDate: tomorrowStr,
+    };
   });
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -61,17 +69,17 @@ export default function KahonManagement() {
     if (selectedCashier) {
       loadSheets();
     }
-  }, [selectedCashier, selectedDate]);
+  }, [selectedCashier, dateRange]);
 
   const loadSheets = async () => {
     if (!selectedCashier) return;
 
-    console.log("Loading sheets with date:", selectedDate);
+    console.log("Loading sheets with date range:", dateRange);
     setLoading(true);
     try {
       const [kahonData, inventoryData] = await Promise.all([
-        getKahonSheetsByDate(selectedDate),
-        getInventorySheetsByDate(selectedDate),
+        getKahonSheetsByDateRange(dateRange),
+        getInventorySheetsByDateRange(dateRange),
       ]);
 
       console.log("Received kahon data:", kahonData);
@@ -103,9 +111,12 @@ export default function KahonManagement() {
     }
   };
 
-  const handleDateChange = (date: string) => {
-    console.log("Date changed in KahonManagement:", date);
-    setSelectedDate(date);
+  const handleDateRangeChange = (startDate: string, endDate: string) => {
+    console.log("Date range changed in KahonManagement:", {
+      startDate,
+      endDate,
+    });
+    setDateRange({ startDate, endDate });
   };
 
   const handleApplyDateFilter = () => {
@@ -188,7 +199,7 @@ export default function KahonManagement() {
               </p>
             </div>
 
-            {/* Date Filter */}
+            {/* Date Range Filter */}
             <div className="mb-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -197,7 +208,11 @@ export default function KahonManagement() {
                     <span>Selected Date:</span>
                   </span>
                   <span className="text-sm text-gray-600">
-                    {new Date(selectedDate).toLocaleDateString()}
+                    {new Date(dateRange.startDate).toLocaleDateString()}
+                    <span className="text-xs text-gray-500 ml-2">
+                      (shows data until{" "}
+                      {new Date(dateRange.endDate).toLocaleDateString()})
+                    </span>
                   </span>
                 </div>
                 <Button
@@ -213,8 +228,9 @@ export default function KahonManagement() {
 
               {showCalendar && (
                 <DateRangeCalendar
-                  selectedDate={selectedDate}
-                  onDateChange={handleDateChange}
+                  startDate={dateRange.startDate}
+                  endDate={dateRange.endDate}
+                  onDateRangeChange={handleDateRangeChange}
                   onApply={handleApplyDateFilter}
                   className="mt-2"
                 />

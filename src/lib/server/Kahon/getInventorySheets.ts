@@ -5,42 +5,60 @@ import { NestApiError } from "../../../../utils/types/error.type";
 import {
   CashierInventorySheetResponse,
   InventorySheetWithData,
+  DateRangeQueryType,
 } from "../../../../utils/types/kahon.type";
 
-export const getInventorySheetsByDate = async (
-  date?: string
+export const getInventorySheetsByDateRange = async (
+  params?: DateRangeQueryType
 ): Promise<CashierInventorySheetResponse[]> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Default to current day if no date provided
+  // Default to current day if no params provided
   const getCurrentDateString = () => new Date().toISOString().split("T")[0];
-  const finalDate = date || getCurrentDateString();
+  const getNextDayString = (dateStr: string) => {
+    const date = new Date(dateStr + "T00:00:00.000Z");
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date.toISOString().split("T")[0];
+  };
 
-  console.log("getInventorySheetsByDate called with date:", finalDate);
+  const today = getCurrentDateString();
+  const defaultParams = {
+    startDate: today,
+    endDate: getNextDayString(today),
+  };
+
+  const finalParams = params || defaultParams;
+
+  console.log("getInventorySheetsByDateRange called with params:", finalParams);
 
   const searchParams = new URLSearchParams();
-  searchParams.append("date", finalDate);
+  if (finalParams.startDate) {
+    searchParams.append("startDate", finalParams.startDate);
+  }
+  if (finalParams.endDate) {
+    searchParams.append("endDate", finalParams.endDate);
+  }
 
   const url = `${
     process.env.API_URL
-  }/inventory/user/one-date?${searchParams.toString()}`;
+  }/inventory/user/date?${searchParams.toString()}`;
   console.log("Fetching inventory from URL:", url);
 
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
-    cache: "no-store",
+    cache: "no-store", // Disable caching
   });
 
   console.log("Inventory response status:", response.status);
 
   if (!response.ok) {
     if (response.status === 404) {
-      console.log("No inventory sheets found for date");
+      console.log("No inventory sheets found for date range");
       return [];
     }
 
@@ -64,30 +82,37 @@ export const getInventorySheetsByDate = async (
   return payload;
 };
 
-export const getExpensesSheetsByDate = async (
-  date?: string
+export const getExpensesSheetsByDateRange = async (
+  params?: DateRangeQueryType
 ): Promise<CashierInventorySheetResponse[]> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  // Default to current day if no date provided
-  const getCurrentDateString = () => new Date().toISOString().split("T")[0];
-  const finalDate = date || getCurrentDateString();
+  // Default to current day if no params provided
+  const today = new Date().toISOString().split("T")[0];
+  const defaultParams = {
+    startDate: today,
+    endDate: today,
+  };
+
+  const finalParams = params || defaultParams;
 
   const searchParams = new URLSearchParams();
-  searchParams.append("date", finalDate);
+  if (finalParams.startDate)
+    searchParams.append("startDate", finalParams.startDate);
+  if (finalParams.endDate) searchParams.append("endDate", finalParams.endDate);
 
   const response = await fetch(
     `${
       process.env.API_URL
-    }/inventory/user/expenses/one-date?${searchParams.toString()}`,
+    }/inventory/user/expenses/date?${searchParams.toString()}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken.value}`,
       },
-      cache: "no-store",
+      cache: "no-store", // Disable caching
     }
   );
 
@@ -170,21 +195,4 @@ export const getInventorySheetByCashierId = async (
 
   const payload: CashierInventorySheetResponse = await response.json();
   return payload;
-};
-
-// Legacy functions for backward compatibility
-export const getInventorySheetsByDateRange = async (params?: {
-  startDate?: string;
-  endDate?: string;
-}): Promise<CashierInventorySheetResponse[]> => {
-  const date = params?.startDate || new Date().toISOString().split("T")[0];
-  return getInventorySheetsByDate(date);
-};
-
-export const getExpensesSheetsByDateRange = async (params?: {
-  startDate?: string;
-  endDate?: string;
-}): Promise<CashierInventorySheetResponse[]> => {
-  const date = params?.startDate || new Date().toISOString().split("T")[0];
-  return getExpensesSheetsByDate(date);
 };
