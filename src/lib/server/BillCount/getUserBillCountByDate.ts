@@ -15,6 +15,8 @@ export const getUserBillCountForDate = async (
   const url = new URL(`${process.env.API_URL}/bills/user`);
   if (date) url.searchParams.append("date", date);
 
+  
+
   const response = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,

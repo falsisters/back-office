@@ -37,23 +37,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       const sackType = item.sackType;
       const sackTypeLabel = sackType ? parseProductType(sackType) : "";
 
-      let basePrice = 0;
-
-      if (isSackPriceItem) {
-        const matchingSackPrice = item.product.SackPrice.find(
-          (sp) => sp.type === sackType
-        );
-
-        if (!matchingSackPrice) {
-          console.warn(
-            `Missing sack price for type ${sackType} in product ${item.product.name}`
-          );
-        }
-
-        basePrice = matchingSackPrice?.price || 0;
-      } else if (isPerKiloItem) {
-        basePrice = item.product.perKiloPrice?.price || 0;
-      }
+      // Use saleItem.price directly from the database
+      const basePrice = item.price || 0;
 
       const price =
         item.isDiscounted && item.discountedPrice
@@ -93,8 +78,8 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
         isDiscounted,
       });
       productGroup.totalQuantity += item.quantity;
-      productGroup.totalAmount += Math.ceil(price * item.quantity);
-      productGroup.originalAmount += Math.ceil(basePrice * item.quantity);
+      productGroup.totalAmount += Math.ceil(price);
+      productGroup.originalAmount += Math.ceil(basePrice);
 
       if (isDiscounted) productGroup.hasDiscounts = true;
     });
@@ -159,15 +144,11 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                     </div>
                     <div className="text-right">
                       <p className="font-mono font-semibold">
-                        ₱
-                        {Math.ceil(item.price * item.quantity).toLocaleString()}
+                        ₱{Math.ceil(item.price).toLocaleString()}
                       </p>
                       {item.isDiscounted && (
                         <p className="text-xs text-muted-foreground line-through">
-                          ₱
-                          {Math.ceil(
-                            item.originalPrice * item.quantity
-                          ).toLocaleString()}
+                          ₱{Math.ceil(item.originalPrice).toLocaleString()}
                         </p>
                       )}
                     </div>
