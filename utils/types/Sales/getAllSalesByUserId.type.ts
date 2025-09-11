@@ -56,6 +56,7 @@ export const GetAllSalesByUserIdPayloadSchema = z.array(
       z.object({
         id: z.string().cuid(),
         quantity: parseDecimal,
+        price: parseOptionalDecimal,
         discountedPrice: parseOptionalDecimal,
         isDiscounted: z.boolean().default(false),
         productId: z.string(),

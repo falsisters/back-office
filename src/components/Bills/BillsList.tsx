@@ -48,7 +48,10 @@ export function BillCountList() {
 
     setLoading(true);
     try {
-      const formattedDate = format(date, "yyyy-MM-dd");
+      // Offset the date by one day behind for server timezone correction
+      const offsetDate = new Date(date);
+      offsetDate.setDate(offsetDate.getDate() - 1);
+      const formattedDate = format(offsetDate, "yyyy-MM-dd");
       const data = await getCashierBillCountForDate(
         selectedCashierId,
         formattedDate
