@@ -48,10 +48,7 @@ export function BillCountList() {
 
     setLoading(true);
     try {
-      // Offset the date by one day behind for server timezone correction
-      const offsetDate = new Date(date);
-      offsetDate.setDate(offsetDate.getDate() - 1);
-      const formattedDate = format(offsetDate, "yyyy-MM-dd");
+      const formattedDate = format(date, "yyyy-MM-dd");
       const data = await getCashierBillCountForDate(
         selectedCashierId,
         formattedDate
@@ -76,6 +73,14 @@ export function BillCountList() {
 
   // Check if we have data and if the bills array exists and has items
   const hasData = billCount && billCount.bills && billCount.bills.length > 0;
+
+  // Helper function to get display date (one day behind the selected date)
+  const getDisplayDate = (selectedDate: Date | undefined) => {
+    if (!selectedDate) return null;
+    const displayDate = new Date(selectedDate);
+    displayDate.setDate(displayDate.getDate() - 1);
+    return displayDate;
+  };
 
   return (
     <Card className="shadow-md">
@@ -147,7 +152,8 @@ export function BillCountList() {
             <div className="bg-primary/5 p-4 rounded-lg">
               <h3 className="font-medium text-primary mb-2">
                 Bill Count for {selectedCashierName} -{" "}
-                {date && format(date, "MMMM d, yyyy")}
+                {getDisplayDate(date) &&
+                  format(getDisplayDate(date)!, "MMMM d, yyyy")}
               </h3>
             </div>
 
@@ -314,7 +320,9 @@ export function BillCountList() {
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-4">
               No bill count found for {selectedCashierName} on{" "}
-              {date && format(date, "MMM dd, yyyy")}.
+              {getDisplayDate(date) &&
+                format(getDisplayDate(date)!, "MMM dd, yyyy")}
+              .
             </p>
             <Button onClick={() => setShowCreateModal(true)}>
               Create Bill Count
