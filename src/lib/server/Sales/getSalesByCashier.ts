@@ -72,7 +72,6 @@ export const getSalesByCashier = async (
     salesData.slice(0, 2).map((sale) => ({
       id: sale.id,
       createdAt: sale.createdAt.toISOString(),
-      originalCreatedAt: sale.originalCreatedAt?.toISOString(),
     }))
   );
 

@@ -53,7 +53,6 @@ export const getAllSalesByUserId = async () => {
     salesData.slice(0, 3).map((sale) => ({
       id: sale.id,
       createdAt: sale.createdAt.toISOString(),
-      originalCreatedAt: sale.originalCreatedAt?.toISOString(),
     }))
   );
 
