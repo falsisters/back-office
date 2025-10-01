@@ -160,11 +160,18 @@ export const getTotalSalesByCashier = async (
 
   const data = await response.json();
 
-  // Parse dates in the items
-  data.items = data.items.map((item: any) => ({
-    ...item,
-    saleDate: new Date(item.saleDate),
-  }));
+  // Parse dates in the items and apply Manila timezone correction (UTC-8)
+  data.items = data.items.map((item: any) => {
+    const originalDate = new Date(item.saleDate);
+    const correctedDate = new Date(
+      originalDate.getTime() - 8 * 60 * 60 * 1000 // Subtract 8 hours for Manila time
+    );
+    return {
+      ...item,
+      saleDate: correctedDate,
+      originalSaleDate: item.saleDate, // Keep original for debugging
+    };
+  });
 
   return data;
 };

@@ -33,11 +33,19 @@ export const getAllSalesByUserId = async () => {
   // Parse and validate the response data with decimal transformations
   const salesData = GetAllSalesByUserIdPayloadSchema.parse(rawSalesData);
 
-  // Apply timezone correction to match profits data (subtract 8 hours for Philippine timezone)
-  const correctedSalesData = salesData.map((sale) => ({
-    ...sale,
-    createdAt: new Date(sale.createdAt.getTime() - 8 * 60 * 60 * 1000),
-  }));
+  // Apply Manila timezone correction (UTC-8) to match profits implementation
+  const correctedSalesData = salesData.map((sale) => {
+    const originalDate = new Date(sale.createdAt);
+    const correctedDate = new Date(
+      originalDate.getTime() - 8 * 60 * 60 * 1000 // Subtract 8 hours for Manila time
+    );
+    return {
+      ...sale,
+      createdAt: correctedDate,
+      originalCreatedAt: sale.createdAt, // Keep original for debugging
+    };
+  });
+
 
   console.log("🔄 SALES: Loaded sales data with Philippine timezone correction");
   console.log(
@@ -45,8 +53,10 @@ export const getAllSalesByUserId = async () => {
     correctedSalesData.slice(0, 3).map((sale) => ({
       id: sale.id,
       createdAt: sale.createdAt.toISOString(),
+      originalCreatedAt: sale.originalCreatedAt?.toISOString(),
     }))
   );
 
+  return correctedSalesData;
   return correctedSalesData;
 };
