@@ -49,8 +49,8 @@ export const getAllSalesByUserId = async () => {
 
   console.log("🔄 SALES: Loaded sales data with Philippine timezone correction");
   console.log(
-    "🔄 SALES: Sample sales dates (corrected):",
-    correctedSalesData.slice(0, 3).map((sale) => ({
+    "🔄 SALES: Sample sales dates:",
+    salesData.slice(0, 3).map((sale) => ({
       id: sale.id,
       createdAt: sale.createdAt.toISOString(),
       originalCreatedAt: sale.originalCreatedAt?.toISOString(),

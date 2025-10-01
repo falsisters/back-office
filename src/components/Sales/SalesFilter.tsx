@@ -82,9 +82,9 @@ export function SalesFilters({
         <h3 className="text-lg font-semibold">{title}</h3>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">View by:</span>
+      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-medium whitespace-nowrap">View by:</span>
           <Select
             value={dateFilterMode}
             onValueChange={(value) => setDateFilterMode(value as DateFilterMode)}
@@ -104,17 +104,18 @@ export function SalesFilters({
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
-                className="w-[180px] justify-start text-left font-normal"
+                size="auto"
+                className="w-full sm:w-auto justify-start text-left font-normal"
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                 {date ? (
                   format(date, "MMMM do, yyyy")
                 ) : (
-                  <span>Pick a date</span>
+                  "Pick a date"
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={date}
@@ -124,49 +125,52 @@ export function SalesFilters({
             </PopoverContent>
           </Popover>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
             <Button
               variant={"outline"}
-              className="w-[180px] justify-start text-left font-normal"
+              size="auto"
+              className="w-full sm:w-auto justify-start text-left font-normal"
             >
-              <CalendarIcon2 className="mr-2 h-4 w-4" />
+              <CalendarIcon2 className="mr-2 h-4 w-4 flex-shrink-0" />
               {getMonthAndYearTitle()}
             </Button>
             
-            <Select
-              value={selectedYear.toString()}
-              onValueChange={(value) => setSelectedYear(Number(value))}
-            >
-              <SelectTrigger className="w-[120px] focus:ring-primary">
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {[...Array(5)].map((_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(Number(value))}
+              >
+                <SelectTrigger className="flex-1 sm:w-[120px] focus:ring-primary">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...Array(5)].map((_, i) => {
+                    const year = new Date().getFullYear() - i;
+                    return (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
 
-            <Select
-              value={selectedMonth.toString()}
-              onValueChange={(value) => setSelectedMonth(Number(value))}
-            >
-              <SelectTrigger className="w-[140px] focus:ring-primary">
-                <SelectValue placeholder="Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month, index) => (
-                  <SelectItem key={index} value={(index + 1).toString()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select
+                value={selectedMonth.toString()}
+                onValueChange={(value) => setSelectedMonth(Number(value))}
+              >
+                <SelectTrigger className="flex-1 sm:w-[140px] focus:ring-primary">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month, index) => (
+                    <SelectItem key={index} value={(index + 1).toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
       </div>

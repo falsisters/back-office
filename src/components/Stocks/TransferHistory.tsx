@@ -58,28 +58,49 @@ export default function TransferHistory({
       return;
     }
 
+    console.log("Fetching transfers for cashier:", selectedCashierId);
     setLoading(true);
+    setError(null);
+    
     try {
-      let result;
-      if (date) {
-        result = await getTransfersByCashierWithDate(
-          selectedCashierId,
-          date.toISOString()
-        );
-      } else {
-        result = await getTransfersByCashier(selectedCashierId);
-      }
+      console.log("Fetching all transfers without date filter");
+      const result = await getTransfersByCashier(selectedCashierId);
+
+      console.log("Transfer fetch result:", result);
 
       if (result.data) {
+        console.log("Setting transfers data:", result.data);
         setTransfers(result.data);
-        setFilteredTransfers(result.data);
+        
+        if (date) {
+          const selectedDateString = date.toISOString().split('T')[0];
+          const filtered = result.data.filter(transfer => {
+            const transferDate = new Date(transfer.createdAt).toISOString().split('T')[0];
+            return transferDate === selectedDateString;
+          });
+          console.log(`Filtered transfers for date ${selectedDateString}:`, filtered.length);
+          setFilteredTransfers(filtered);
+        } else {
+          setFilteredTransfers(result.data);
+        }
         setError(null);
       } else if (result.error) {
+        console.error("Transfer fetch error:", result.error);
         setError(result.error);
+        setTransfers([]);
+        setFilteredTransfers([]);
+      } else {
+        console.error("Unexpected result format:", result);
+        setError("Unexpected response format");
+        setTransfers([]);
+        setFilteredTransfers([]);
       }
     } catch (err) {
-      setError("Failed to fetch transfers");
-      console.error("Error: ", err);
+      console.error("Transfer fetch exception:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch transfers";
+      setError(errorMessage);
+      setTransfers([]);
+      setFilteredTransfers([]);
     } finally {
       setLoading(false);
     }
@@ -132,14 +153,15 @@ export default function TransferHistory({
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
+                size="auto"
                 className={cn(
-                  "w-[240px] justify-start text-left font-normal",
+                  "w-full sm:w-auto justify-start text-left font-normal",
                   !date && "text-muted-foreground"
                 )}
                 disabled={!selectedCashierId}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                {date ? format(date, "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

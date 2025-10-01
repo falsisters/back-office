@@ -139,18 +139,19 @@ export function DeliveryList() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-[180px] justify-start text-left font-normal"
+                    size="auto"
+                    className="w-full sm:w-auto justify-start text-left font-normal"
                     disabled={isLoadingDeliveries}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                     {date ? (
                       format(date, "MMMM do, yyyy")
                     ) : (
-                      <span>Pick a date</span>
+                      "Pick a date"
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={date}

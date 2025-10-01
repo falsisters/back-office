@@ -68,11 +68,8 @@ export const getSalesByCashier = async (
   });
 
   console.log(
-    "🔄 SALES: Loaded cashier sales data with Philippine timezone correction"
-  );
-  console.log(
-    "🔄 SALES: Sample sales dates (corrected):",
-    correctedSalesData.slice(0, 2).map((sale) => ({
+    "🔄 SALES: Sample sales dates:",
+    salesData.slice(0, 2).map((sale) => ({
       id: sale.id,
       createdAt: sale.createdAt.toISOString(),
       originalCreatedAt: sale.originalCreatedAt?.toISOString(),
