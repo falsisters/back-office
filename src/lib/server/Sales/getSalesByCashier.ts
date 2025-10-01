@@ -76,5 +76,4 @@ export const getSalesByCashier = async (
   );
 
   return correctedSalesData;
-  return correctedSalesData;
 };

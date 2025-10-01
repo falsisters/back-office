@@ -57,5 +57,4 @@ export const getAllSalesByUserId = async () => {
   );
 
   return correctedSalesData;
-  return correctedSalesData;
 };
