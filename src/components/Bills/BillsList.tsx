@@ -302,6 +302,13 @@ export function BillCountList() {
                       </span>
                     </div>
 
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-gray-600">- Expenses</span>
+                      <span className="font-medium text-green-600">
+                        - ₱{billCount.beginningBalance.toLocaleString()}
+                      </span>
+                    </div>
+
                     {/* Final Summary Total */}
                     <div className="flex justify-between items-center py-2 border-t-2 border-primary mt-3 pt-3">
                       <span className="text-base font-semibold text-gray-800">
