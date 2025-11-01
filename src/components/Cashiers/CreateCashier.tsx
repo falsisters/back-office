@@ -30,6 +30,7 @@ const permissionTypes: CashierPermissions[] = [
   "BILLS",
   "ATTACHMENTS",
   "SALES_HISTORY",
+  "VOID",
 ];
 
 export function CreateCashier({

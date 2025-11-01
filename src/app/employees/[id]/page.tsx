@@ -61,6 +61,11 @@ const EmployeeDetailPage = async ({
               </div>
               <div className="space-y-1">
                 <CardTitle className="text-2xl">{employee.name}</CardTitle>
+                {employee.branch && (
+                  <p className="text-lg text-muted-foreground">
+                    Branch: {employee.branch}
+                  </p>
+                )}
                 <p className="text-muted-foreground">
                   Employee ID: {employee.id}
                 </p>

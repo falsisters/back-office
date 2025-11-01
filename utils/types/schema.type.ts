@@ -41,6 +41,7 @@ export const CashierPermissionsEnum = z.enum([
   "BILLS",
   "ATTACHMENTS",
   "SALES_HISTORY",
+  "VOID",
 ]);
 export type CashierPermissions = z.infer<typeof CashierPermissionsEnum>;
 
@@ -127,6 +128,7 @@ export type ShiftEmployee = z.infer<typeof ShiftEmployeeSchema>;
 export const EmployeeSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
+  branch: z.string().optional(),
   userId: z.string(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date(),

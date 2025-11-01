@@ -6,7 +6,9 @@ import type { PaymentMethodEnum } from "../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
 import { CashierSelector } from "../Cashier/CashierSelector";
 import CashierSalesList from "./CashierSalesList";
+import VoidList from "./VoidList";
 import { supabase } from "@/lib/supabase";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const months = [
   "January",
@@ -253,10 +255,23 @@ export default function SalesList() {
       />
 
       {selectedCashierId ? (
-        <CashierSalesList
-          cashierId={selectedCashierId}
-          refreshTrigger={refreshTrigger}
-        />
+        <Tabs defaultValue="sales" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="sales">Sales</TabsTrigger>
+            <TabsTrigger value="voided">Voided Sales</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="sales" className="mt-6">
+            <CashierSalesList
+              cashierId={selectedCashierId}
+              refreshTrigger={refreshTrigger}
+            />
+          </TabsContent>
+          
+          <TabsContent value="voided" className="mt-6">
+            <VoidList />
+          </TabsContent>
+        </Tabs>
       ) : (
         <div className="text-center py-8">
           <p className="text-muted-foreground">

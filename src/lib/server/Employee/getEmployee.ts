@@ -6,14 +6,23 @@ import {
   GetAllEmployeesResponse,
   EmployeeWithShiftsResponse,
 } from "../../../../utils/types/Employee/getEmployee.type";
+import { EmployeeFilter } from "../../../../utils/types/Employee/filter.type";
 
-export const getAllEmployees = async (): Promise<GetAllEmployeesResponse> => {
+export const getAllEmployees = async (
+  filters?: EmployeeFilter
+): Promise<GetAllEmployeesResponse> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
 
-  const response = await fetch(`${process.env.API_URL}/employee/user`, {
+  const url = new URL(`${process.env.API_URL}/employee/user`);
+
+  if (filters?.branch) {
+    url.searchParams.append("branch", filters.branch);
+  }
+
+  const response = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${accessToken.value}`,
     },
