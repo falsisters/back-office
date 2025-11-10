@@ -8,6 +8,7 @@ export const EmployeeAttendanceFilterSchema = z.object({
 export const AttendanceEmployeeSchema = z.object({
   id: z.string(),
   name: z.string(),
+  branch: z.string().optional(),
   joinedAt: z.string(),
 });
 

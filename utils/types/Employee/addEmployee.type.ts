@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const CreateEmployeeSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  branch: z.string().optional(),
 });
 
 export type CreateEmployeeType = z.infer<typeof CreateEmployeeSchema>;
@@ -9,6 +10,7 @@ export type CreateEmployeeType = z.infer<typeof CreateEmployeeSchema>;
 export const EmployeeResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
+  branch: z.string().optional(),
   userId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),

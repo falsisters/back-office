@@ -114,6 +114,11 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
             </div>
             <div>
               <h3 className="font-semibold text-lg">{employee.name}</h3>
+              {employee.branch && (
+                <p className="text-sm text-muted-foreground">
+                  {employee.branch}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 ID: {employee.id.slice(0, 8)}...
               </p>

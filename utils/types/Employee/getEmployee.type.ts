@@ -21,6 +21,7 @@ export const ShiftEmployeeSchema = z.object({
 export const EmployeeWithShiftsSchema = z.object({
   id: z.string(),
   name: z.string(),
+  branch: z.string().optional(),
   userId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -39,6 +39,7 @@ const CreateNewEmployee = ({
     resolver: zodResolver(CreateEmployeeSchema),
     defaultValues: {
       name: initialData?.name || "",
+      branch: initialData?.branch || "",
     },
     mode: "onChange",
   });
@@ -47,6 +48,7 @@ const CreateNewEmployee = ({
   useEffect(() => {
     if (initialData) {
       setValue("name", initialData.name);
+      setValue("branch", initialData.branch || "");
     } else {
       reset();
     }
@@ -93,6 +95,20 @@ const CreateNewEmployee = ({
         />
         {errors.name && (
           <p className="text-sm text-destructive">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="branch">Branch (Optional)</Label>
+        <Input
+          id="branch"
+          placeholder="Enter branch name"
+          {...register("branch")}
+          className={errors.branch ? "border-destructive" : ""}
+          disabled={isSubmitting}
+        />
+        {errors.branch && (
+          <p className="text-sm text-destructive">{errors.branch.message}</p>
         )}
       </div>
 
