@@ -15,6 +15,13 @@ export const editCashierBillCount = async (
 
   if (!accessToken) throw new Error("Unauthorized");
 
+  console.log("🔄 BILL COUNT EDIT - Sending data to backend:", {
+    cashierId,
+    billCountId,
+    formData,
+    apiUrl: `${process.env.API_URL}/bills/cashier/${cashierId}/${billCountId}`
+  });
+
   const response = await fetch(
     `${process.env.API_URL}/bills/cashier/${cashierId}/${billCountId}`,
     {
@@ -29,9 +36,18 @@ export const editCashierBillCount = async (
 
   if (!response.ok) {
     const error: NestApiError = await response.json();
+    console.error("❌ BILL COUNT EDIT - Backend error:", error);
     throw new Error(error.message?.toString() || "Failed to update bill count");
   }
 
+  const result = await response.json();
+  console.log("✅ BILL COUNT EDIT - Backend response:", {
+    summaryStep1: result?.summaryStep1,
+    summaryFinal: result?.summaryFinal,
+    beginningBalance: result?.beginningBalance,
+    showBeginningBalance: result?.showBeginningBalance
+  });
+
   revalidatePath("/");
-  return await response.json();
+  return result;
 };

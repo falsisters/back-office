@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { NestApiError } from "../../../../utils/types/error.type";
 import { GetAllTransfersResponse } from "../../../../utils/types/Transfers/getAllTransfers.type";
+import { convertToPhilippineTimeISO } from "../../utils/timezone";
 
 export const getAllTransfers = async (): Promise<{
   data?: GetAllTransfersResponse;
@@ -45,7 +46,16 @@ export const getAllTransfers = async (): Promise<{
     }
 
     const data: GetAllTransfersResponse = await response.json();
-    return { data };
+    
+    // TEMPORARILY: No timezone conversion - server may already be sending Philippine time
+    const correctedData = data.map((transfer) => {
+      return {
+        ...transfer,
+        createdAt: typeof transfer.createdAt === 'string' ? transfer.createdAt : transfer.createdAt,
+      };
+    });
+    
+    return { data: correctedData };
   } catch (error) {
     console.error("Get all transfers error:", error);
     const message =

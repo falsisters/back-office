@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { NestApiError } from "../../../../utils/types/error.type";
 
+
 // Helper function to convert decimal strings to numbers
 const parseDecimalString = (value: string | number): number => {
   if (typeof value === "number") return value;
@@ -155,22 +156,19 @@ export const getAllProfitsByCashier = async (cashierId: string) => {
 
     console.log("✅ Combined rawItems count:", allProfitItems.length);
 
+
     const correctedProfitItems = allProfitItems.map((item: any) => {
       if (item.saleDate) {
-        const originalDate = new Date(item.saleDate);
-        const correctedDate = new Date(
-          originalDate.getTime() - 8 * 60 * 60 * 1000
-        );
         return {
           ...item,
-          saleDate: correctedDate.toISOString(),
-          originalSaleDate: item.saleDate,
+          saleDate: typeof item.saleDate === 'string' ? item.saleDate : item.saleDate,
+          originalSaleDate: item.saleDate, // Keep original for debugging
         };
       }
       return item;
     });
 
-    console.log("✅ Date correction applied - Before/After comparison:");
+    console.log("✅ PROFITS: Raw server date data (no conversion applied):");
     console.log(
       "✅ Original profit items by date:",
       allProfitItems.reduce((acc: any, item: any) => {

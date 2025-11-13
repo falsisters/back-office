@@ -4,6 +4,19 @@ import { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSal
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
+import { format, parseISO } from "date-fns";
+
+// Format time using the same approach as TransferHistory
+function formatSaleTime(date: Date | string): string {
+  try {
+    // Handle both string (ISO string from server) and Date inputs
+    const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    return format(dateObj, "h:mm a");
+  } catch (error) {
+    console.error('Error formatting sale time:', error);
+    return 'Invalid time';
+  }
+}
 
 export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
   // Group sale items by product
@@ -119,7 +132,7 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
               {product.items.map((item, index) => (
                 <div key={`${key}-${index}`} className="p-4 hover:bg-muted/20">
                   <div className="flex justify-between items-center">
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium">
                           {item.quantity}{" "}
@@ -141,6 +154,9 @@ export function ProductView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
                           </Badge>
                         )}
                       </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {formatSaleTime(item.saleDate)}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="font-mono font-semibold">

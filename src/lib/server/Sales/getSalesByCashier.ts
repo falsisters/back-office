@@ -6,6 +6,7 @@ import {
   GetAllSalesByUserIdPayloadSchema,
 } from "../../../../utils/types/Sales/getAllSalesByUserId.type";
 import { NestApiError } from "../../../../utils/types/error.type";
+import { convertToPhilippineTimeISO, formatPhilippineTimeLog } from "../../utils/timezone";
 
 export const getSalesByCashier = async (
   cashierId: string,
@@ -54,14 +55,56 @@ export const getSalesByCashier = async (
   // Parse and validate the response data with decimal transformations
   const salesData = GetAllSalesByUserIdPayloadSchema.parse(rawSalesData);
 
-  console.log("🔄 SALES: Loaded cashier sales data from server");
+  // TEMPORARILY: No timezone conversion - server may already be sending Philippine time
+  const correctedSalesData = salesData.map((sale) => {
+    return {
+      ...sale,
+      // Keep createdAt as Date object to match TypeScript expectations
+      createdAt: typeof sale.createdAt === 'string' ? new Date(sale.createdAt) : sale.createdAt,
+      originalCreatedAt: sale.createdAt, // Keep original for debugging
+    };
+  });
+
   console.log(
-    "🔄 SALES: Sample sales dates:",
+    "🔄 SALES: Raw server data before conversion:",
     salesData.slice(0, 2).map((sale) => ({
       id: sale.id,
-      createdAt: sale.createdAt.toISOString(),
+      originalCreatedAt: sale.createdAt,
+      originalTime: new Date(sale.createdAt).toLocaleString('en-US', { 
+        timeZone: 'UTC',
+        hour12: true,
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      philippineTime: new Date(sale.createdAt).toLocaleString('en-US', {
+        timeZone: 'Asia/Manila',
+        hour12: true,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit', 
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }))
+  );
+  
+  console.log(
+    "🔄 SALES: After +8 hours conversion:",
+    correctedSalesData.slice(0, 2).map((sale) => ({
+      id: sale.id,
+      convertedTime: new Date(sale.createdAt).toLocaleString('en-US', {
+        hour12: true,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit', 
+        minute: '2-digit'
+      })
     }))
   );
 
-  return salesData;
+  return correctedSalesData;
 };

@@ -6,6 +6,7 @@ import {
   GetAllSalesByUserIdPayloadSchema,
 } from "../../../../utils/types/Sales/getAllSalesByUserId.type";
 import { NestApiError } from "../../../../utils/types/error.type";
+import { convertToPhilippineTimeISO, formatPhilippineTimeLog } from "../../utils/timezone";
 
 export const getAllSalesByUserId = async () => {
   const cookieStore = await cookies();
@@ -33,14 +34,25 @@ export const getAllSalesByUserId = async () => {
   // Parse and validate the response data with decimal transformations
   const salesData = GetAllSalesByUserIdPayloadSchema.parse(rawSalesData);
 
-  console.log("🔄 SALES: Loaded sales data from server");
+    // TEMPORARILY: No timezone conversion - server may already be sending Philippine time
+  const correctedSalesData = salesData.map((sale) => {
+    return {
+      ...sale,
+      // Keep createdAt as Date object to match TypeScript expectations
+      createdAt: typeof sale.createdAt === 'string' ? new Date(sale.createdAt) : sale.createdAt,
+      originalCreatedAt: sale.createdAt, // Keep original for debugging
+    };
+  });
+
+
+  console.log("🔄 SALES: Loaded sales data with Philippine timezone conversion (UTC+8)");
   console.log(
-    "🔄 SALES: Sample sales dates:",
+    "🔄 SALES: Sample sales timezone conversion:",
     salesData.slice(0, 3).map((sale) => ({
       id: sale.id,
-      createdAt: sale.createdAt.toISOString(),
+      conversion: formatPhilippineTimeLog(sale.createdAt),
     }))
   );
 
-  return salesData;
+  return correctedSalesData;
 };

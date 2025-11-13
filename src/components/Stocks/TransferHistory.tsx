@@ -73,9 +73,15 @@ export default function TransferHistory({
         setTransfers(result.data);
         
         if (date) {
-          const selectedDateString = date.toISOString().split('T')[0];
+          // Format selected date as YYYY-MM-DD in local time to match Manila timezone
+          const selectedYear = date.getFullYear();
+          const selectedMonth = String(date.getMonth() + 1).padStart(2, '0');
+          const selectedDay = String(date.getDate()).padStart(2, '0');
+          const selectedDateString = `${selectedYear}-${selectedMonth}-${selectedDay}`;
+          
           const filtered = result.data.filter(transfer => {
-            const transferDate = new Date(transfer.createdAt).toISOString().split('T')[0];
+            // Extract date part from Manila time transfer date
+            const transferDate = transfer.createdAt.split('T')[0];
             return transferDate === selectedDateString;
           });
           console.log(`Filtered transfers for date ${selectedDateString}:`, filtered.length);
@@ -277,6 +283,11 @@ export default function TransferHistory({
 }
 
 const formatTransferType = (type: string) => {
+  // Handle the old OWN_CONSUMPTION type that might still exist in the database
+  if (type === "OWN_CONSUMPTION") {
+    return "Out";
+  }
+  
   return type
     .split("_")
     .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
