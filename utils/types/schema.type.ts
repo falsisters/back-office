@@ -52,7 +52,7 @@ export const PaymentMethodEnum = z.enum(["CASH", "BANK_TRANSFER", "CHECK"]);
 export type PaymentMethod = z.infer<typeof PaymentMethodEnum>;
 
 export const TransferTypeEnum = z.enum([
-  "OWN_CONSUMPTION",
+  "OUT",
   "RETURN_TO_WAREHOUSE",
   "KAHON",
   "REPACK",

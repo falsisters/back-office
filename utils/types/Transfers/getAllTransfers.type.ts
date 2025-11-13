@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const TransferTypeEnum = z.enum([
-  "OWN_CONSUMPTION",
+  "OUT",
   "RETURN_TO_WAREHOUSE",
   "KAHON",
   "REPACK",

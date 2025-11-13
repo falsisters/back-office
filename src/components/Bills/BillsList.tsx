@@ -74,12 +74,10 @@ export function BillCountList() {
   // Check if we have data and if the bills array exists and has items
   const hasData = billCount && billCount.bills && billCount.bills.length > 0;
 
-  // Helper function to get display date (one day behind the selected date)
+  // Helper function to get display date (use the selected date directly)
   const getDisplayDate = (selectedDate: Date | undefined) => {
     if (!selectedDate) return null;
-    const displayDate = new Date(selectedDate);
-    displayDate.setDate(displayDate.getDate() - 1);
-    return displayDate;
+    return selectedDate;
   };
 
   return (
@@ -251,7 +249,7 @@ export function BillCountList() {
                     Summary Calculation
                   </h4>
                   <div className="bg-white/50 p-4 rounded border-l-4 border-l-primary">
-                    {/* Step 1: Total Cash from Bills */}
+                    {/* Step 1: Total Cash from Bills (after beginning balance adjustment) */}
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">
                         Total Cash from Bills
@@ -261,25 +259,13 @@ export function BillCountList() {
                       </span>
                     </div>
 
-                    {/* Step 2: Subtract Beginning Balance if shown */}
-                    {billCount.showBeginningBalance && (
-                      <div className="flex justify-between items-center py-1 text-sm">
-                        <span className="text-gray-600">
-                          - Beginning Balance
-                        </span>
-                        <span className="font-medium text-red-600">
-                          - ₱{billCount.beginningBalance.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-
                     {/* Step 1 Result */}
                     <div className="flex justify-between items-center py-1 text-sm border-t border-gray-200 mt-2 pt-2">
                       <span className="text-gray-700 font-medium">
                         Step 1 Result
                       </span>
                       <span className="font-semibold">
-                        ₱{billCount.summaryStep1.toLocaleString()}
+                        ₱{billCount.billsTotal.toLocaleString()}
                       </span>
                     </div>
 
@@ -290,7 +276,7 @@ export function BillCountList() {
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">Step 1 Result</span>
                       <span className="font-medium">
-                        ₱{billCount.summaryStep1.toLocaleString()}
+                        ₱{billCount.billsTotal.toLocaleString()}
                       </span>
                     </div>
 
@@ -316,9 +302,29 @@ export function BillCountList() {
                       </span>
                       <span className="text-xl font-bold text-primary">
                         ₱
-                        {Number(
-                          billCount.summaryFinal - billCount.beginningBalance
-                        ).toLocaleString()}
+                        {(() => {
+                          // Check if summaryStep1 already has beginning balance subtracted
+                          const step1HasBalanceSubtracted = billCount.showBeginningBalance && 
+                            (billCount.summaryStep1 === billCount.billsTotal - billCount.beginningBalance);
+                          
+                          const finalValue = step1HasBalanceSubtracted
+                            ? billCount.summaryFinal  // Use as-is
+                            : billCount.summaryFinal - billCount.beginningBalance; // Subtract beginning balance
+                          
+                          console.log("🧮 FINAL CALCULATION DEBUG:", {
+                            showBeginningBalance: billCount.showBeginningBalance,
+                            billsTotal: billCount.billsTotal,
+                            beginningBalance: billCount.beginningBalance,
+                            summaryStep1: billCount.summaryStep1,
+                            summaryFinal: billCount.summaryFinal,
+                            expectedStep1: billCount.billsTotal - billCount.beginningBalance,
+                            step1HasBalanceSubtracted,
+                            finalValue,
+                            calculation: step1HasBalanceSubtracted ? "Use summaryFinal as-is" : "Subtract beginning balance"
+                          });
+                          
+                          return Number(finalValue).toLocaleString();
+                        })()}
                       </span>
                     </div>
                   </div>

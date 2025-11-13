@@ -37,15 +37,11 @@ export const getUserBillCountForDate = async (
 
   if (!data) return null;
 
-  // Convert date strings to Date objects to match type expectations
+  // TEMPORARILY: No timezone conversion - testing if server already sends Philippine time
   return {
     ...data,
-    date: new Date(data.date),
-    updatedAt: new Date(data.updatedAt),
     bills: data.bills.map((bill: any) => ({
       ...bill,
-      createdAt: new Date(bill.createdAt),
-      updatedAt: new Date(bill.updatedAt),
     })),
   };
 };

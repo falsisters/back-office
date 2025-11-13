@@ -30,15 +30,29 @@ export const getBillCountById = async (
 
   const data = await response.json();
 
-  // Convert date strings to Date objects to match type expectations
+  // Convert date strings to Date objects and apply Manila timezone correction (UTC-8)
+  const correctedDate = new Date(data.date);
+  const manilaDate = new Date(correctedDate.getTime() - 8 * 60 * 60 * 1000);
+  
+  const correctedUpdatedAt = new Date(data.updatedAt);
+  const manilaUpdatedAt = new Date(correctedUpdatedAt.getTime() - 8 * 60 * 60 * 1000);
+
   return {
     ...data,
-    date: new Date(data.date),
-    updatedAt: new Date(data.updatedAt),
-    bills: data.bills.map((bill: any) => ({
-      ...bill,
-      createdAt: new Date(bill.createdAt),
-      updatedAt: new Date(bill.updatedAt),
-    })),
+    date: manilaDate,
+    updatedAt: manilaUpdatedAt,
+    bills: data.bills.map((bill: any) => {
+      const correctedCreatedAt = new Date(bill.createdAt);
+      const manilaCreatedAt = new Date(correctedCreatedAt.getTime() - 8 * 60 * 60 * 1000);
+      
+      const correctedBillUpdatedAt = new Date(bill.updatedAt);
+      const manillaBillUpdatedAt = new Date(correctedBillUpdatedAt.getTime() - 8 * 60 * 60 * 1000);
+      
+      return {
+        ...bill,
+        createdAt: manilaCreatedAt,
+        updatedAt: manillaBillUpdatedAt,
+      };
+    }),
   };
 };
