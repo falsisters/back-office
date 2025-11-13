@@ -59,7 +59,8 @@ export const getSalesByCashier = async (
   const correctedSalesData = salesData.map((sale) => {
     return {
       ...sale,
-      createdAt: typeof sale.createdAt === 'string' ? sale.createdAt : sale.createdAt.toISOString(),
+      // Keep createdAt as Date object to match TypeScript expectations
+      createdAt: typeof sale.createdAt === 'string' ? new Date(sale.createdAt) : sale.createdAt,
       originalCreatedAt: sale.createdAt, // Keep original for debugging
     };
   });
