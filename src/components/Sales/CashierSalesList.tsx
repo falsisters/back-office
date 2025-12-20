@@ -62,33 +62,29 @@ export default function CashierSalesList({
     selectedMonth
   ).padStart(2, "0")}`;
 
+  // Format date for API call (matches profit component pattern)
+  const formatDateForAPI = (inputDate?: Date) => {
+    if (!inputDate) return undefined;
+
+    if (dateFilterMode === "day") {
+      // Use local date components to avoid UTC conversion issues
+      return `${inputDate.getFullYear()}-${String(inputDate.getMonth() + 1).padStart(2, '0')}-${String(inputDate.getDate()).padStart(2, '0')}`;
+    } else {
+      return `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
+    }
+  };
+
   // Separate function to refresh data without loading state
   const refreshSalesData = async () => {
     if (!cashierId) return;
 
     try {
+      const apiDate = formatDateForAPI(date);
       // Bypass cache for real-time updates
-      const data = await getSalesByCashier(cashierId, true);
+      const data = await getSalesByCashier(cashierId, apiDate, true);
       setSales(data);
-
-      let filtered;
-      if (dateFilterMode === "day") {
-        const currentDate = date || new Date();
-        filtered = data.filter((sale) => {
-          const saleDate = new Date(sale.createdAt);
-          return saleDate.toDateString() === currentDate.toDateString();
-        });
-      } else {
-        const [year, month] = formattedSelectedMonth.split("-").map(Number);
-        filtered = data.filter((sale) => {
-          const saleDate = new Date(sale.createdAt);
-          return (
-            saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
-          );
-        });
-      }
-
-      setFilteredSales(filtered);
+      // No client-side filtering needed - backend already filters by date
+      setFilteredSales(data);
     } catch (error) {
       console.error("Error refreshing cashier sales:", error);
     }
@@ -100,47 +96,12 @@ export default function CashierSalesList({
 
       try {
         setIsLoading(true);
-        // Use cached version for initial load
-        const data = await getSalesByCashier(cashierId, false);
+        const apiDate = formatDateForAPI(date);
+        // Fetch sales for the specific date from backend
+        const data = await getSalesByCashier(cashierId, apiDate, false);
         setSales(data);
-
-        console.log("🔄 SALES: Loaded sales data from backend");
-        console.log(
-          "🔄 SALES: Sample sales dates:",
-          data.slice(0, 3).map((sale) => ({
-            id: sale.id,
-            createdAt: sale.createdAt.toDateString(),
-          }))
-        );
-
-        let filtered;
-        if (dateFilterMode === "day") {
-          const today = new Date();
-          console.log("🔍 SALES: Filtering for today:", today.toDateString());
-          filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            const match = saleDate.toDateString() === today.toDateString();
-            if (match) {
-              console.log(
-                "✅ SALES: Found matching sale for today:",
-                sale.id,
-                saleDate.toDateString()
-              );
-            }
-            return match;
-          });
-        } else {
-          const [year, month] = formattedSelectedMonth.split("-").map(Number);
-          filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return (
-              saleDate.getFullYear() === year &&
-              saleDate.getMonth() === month - 1
-            );
-          });
-        }
-
-        setFilteredSales(filtered);
+        // No client-side date filtering needed - backend already filters by date
+        setFilteredSales(data);
       } catch (error) {
         console.error("Error loading sales:", error);
       } finally {
@@ -149,7 +110,7 @@ export default function CashierSalesList({
     };
 
     loadSales();
-  }, [cashierId, dateFilterMode, formattedSelectedMonth]);
+  }, [cashierId, date, dateFilterMode, selectedYear, selectedMonth]);
 
   // Effect to handle refresh trigger from parent
   useEffect(() => {
@@ -159,22 +120,9 @@ export default function CashierSalesList({
   }, [refreshTrigger]);
 
   useEffect(() => {
+    // Date filtering is now handled by backend
+    // Only apply local filters: payment, product, sackKilo, asinOther
     let filtered = [...sales];
-
-    if (dateFilterMode === "day" && date) {
-      filtered = filtered.filter((sale) => {
-        const saleDate = new Date(sale.createdAt);
-        return saleDate.toDateString() === date.toDateString();
-      });
-    } else if (dateFilterMode === "month") {
-      const [year, month] = formattedSelectedMonth.split("-").map(Number);
-      filtered = filtered.filter((sale) => {
-        const saleDate = new Date(sale.createdAt);
-        return (
-          saleDate.getFullYear() === year && saleDate.getMonth() === month - 1
-        );
-      });
-    }
 
     if (paymentFilter !== "ALL") {
       filtered = filtered.filter(
@@ -230,10 +178,7 @@ export default function CashierSalesList({
     paymentFilter,
     sackKiloFilter,
     asinOtherFilter,
-    date,
     sales,
-    dateFilterMode,
-    formattedSelectedMonth,
   ]);
 
   const groupSalesByDate = () => {

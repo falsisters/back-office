@@ -6,10 +6,10 @@ import {
   GetAllSalesByUserIdPayloadSchema,
 } from "../../../../utils/types/Sales/getAllSalesByUserId.type";
 import { NestApiError } from "../../../../utils/types/error.type";
-import { convertToPhilippineTimeISO, formatPhilippineTimeLog } from "../../utils/timezone";
 
 export const getSalesByCashier = async (
   cashierId: string,
+  date?: string,
   bypassCache: boolean = false
 ) => {
   const cookieStore = await cookies();
@@ -21,12 +21,16 @@ export const getSalesByCashier = async (
     method: "GET",
   };
 
-  // Build URL with cache-busting parameter if bypassing cache
+  // Build URL with date parameter (required) and optional cache-busting
   let url = `${process.env.API_URL}/sale/cashier/${cashierId}`;
+  const params = new URLSearchParams();
+  
+  if (date) {
+    params.append("date", date);
+  }
 
   if (bypassCache) {
-    // Add cache-busting timestamp and disable all caching
-    url += `?_t=${Date.now()}`;
+    params.append("_t", Date.now().toString());
     fetchOptions.headers = {
       Authorization: `Bearer ${accessToken.value}`,
       "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -37,6 +41,10 @@ export const getSalesByCashier = async (
   } else {
     fetchOptions.headers = { Authorization: `Bearer ${accessToken.value}` };
     fetchOptions.cache = "no-cache";
+  }
+
+  if (params.toString()) {
+    url += `?${params.toString()}`;
   }
 
   const response = await fetch(url, fetchOptions);
@@ -55,56 +63,8 @@ export const getSalesByCashier = async (
   // Parse and validate the response data with decimal transformations
   const salesData = GetAllSalesByUserIdPayloadSchema.parse(rawSalesData);
 
-  // TEMPORARILY: No timezone conversion - server may already be sending Philippine time
-  const correctedSalesData = salesData.map((sale) => {
-    return {
-      ...sale,
-      // Keep createdAt as Date object to match TypeScript expectations
-      createdAt: typeof sale.createdAt === 'string' ? new Date(sale.createdAt) : sale.createdAt,
-      originalCreatedAt: sale.createdAt, // Keep original for debugging
-    };
-  });
+  // Backend now sends raw UTC - browser will auto-convert for display
+  console.log(`📊 SALES: Fetched ${salesData.length} sales for date: ${date || 'today'}`);
 
-  console.log(
-    "🔄 SALES: Raw server data before conversion:",
-    salesData.slice(0, 2).map((sale) => ({
-      id: sale.id,
-      originalCreatedAt: sale.createdAt,
-      originalTime: new Date(sale.createdAt).toLocaleString('en-US', { 
-        timeZone: 'UTC',
-        hour12: true,
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      philippineTime: new Date(sale.createdAt).toLocaleString('en-US', {
-        timeZone: 'Asia/Manila',
-        hour12: true,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit', 
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }))
-  );
-  
-  console.log(
-    "🔄 SALES: After +8 hours conversion:",
-    correctedSalesData.slice(0, 2).map((sale) => ({
-      id: sale.id,
-      convertedTime: new Date(sale.createdAt).toLocaleString('en-US', {
-        hour12: true,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit', 
-        minute: '2-digit'
-      })
-    }))
-  );
-
-  return correctedSalesData;
+  return salesData;
 };
