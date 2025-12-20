@@ -52,6 +52,36 @@ const processProfitData = (data: any) => {
   return processedData;
 };
 
+// Helper function to process dashboard summary data
+const processDashboardSummaryData = (data: any) => {
+  if (!data) return data;
+
+  const processRawItems = (items: any[]) =>
+    items?.map((item: any) => ({
+      ...item,
+      quantity: parseDecimalString(item.quantity || "0"),
+      profitPerUnit: parseDecimalString(item.profitPerUnit || "0"),
+      totalProfit: parseDecimalString(item.totalProfit || "0"),
+    })) || [];
+
+  return {
+    date: data.date,
+    previousDaysProfit: {
+      sackTotal: parseDecimalString(data.previousDaysProfit?.sackTotal || "0"),
+      asinTotal: parseDecimalString(data.previousDaysProfit?.asinTotal || "0"),
+      overallTotal: parseDecimalString(data.previousDaysProfit?.overallTotal || "0"),
+      rawItems: processRawItems(data.previousDaysProfit?.rawItems),
+    },
+    currentDayProfit: {
+      sackTotal: parseDecimalString(data.currentDayProfit?.sackTotal || "0"),
+      asinTotal: parseDecimalString(data.currentDayProfit?.asinTotal || "0"),
+      overallTotal: parseDecimalString(data.currentDayProfit?.overallTotal || "0"),
+      rawItems: processRawItems(data.currentDayProfit?.rawItems),
+    },
+    overallProfit: parseDecimalString(data.overallProfit || "0"),
+  };
+};
+
 export const getProfitsByCashier = async (cashierId: string, date?: string) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -108,28 +138,41 @@ export const getAllProfitsByCashier = async (cashierId: string) => {
   const accessToken = cookieStore.get("access_token");
 
   if (!accessToken) throw new Error("Unauthorized");
-  const today = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  // Use Manila time for date calculations
+  // Manila is UTC+8
+  const nowUTC = Date.now();
+  const nowInManila = new Date(nowUTC + 8 * 60 * 60 * 1000);
+  
+  // Get today's date in Manila
+  const todayYear = nowInManila.getUTCFullYear();
+  const todayMonth = nowInManila.getUTCMonth();
+  const todayDay = nowInManila.getUTCDate();
+  
+  // Calculate 30 days ago in Manila
+  const thirtyDaysAgoManila = new Date(Date.UTC(todayYear, todayMonth, todayDay - 30));
 
   const allProfitItems: any[] = [];
   let sackTotal = 0;
   let asinTotal = 0;
 
+  // Format dates for API (YYYY-MM-DD in Manila time)
+  const formatManilaDate = (date: Date) => {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  };
+
   console.log(
-    `🔄 Fetching profits from ${thirtyDaysAgo.toISOString().split("T")[0]} to ${
-      today.toISOString().split("T")[0]
-    }`
+    `🔄 Fetching profits from ${formatManilaDate(thirtyDaysAgoManila)} to ${formatManilaDate(nowInManila)} (Manila time)`
   );
 
   // Fetch data for each day in the range
   const promises = [];
   for (
-    let d = new Date(thirtyDaysAgo);
-    d <= today;
-    d.setDate(d.getDate() + 1)
+    let d = new Date(thirtyDaysAgoManila);
+    d <= nowInManila;
+    d.setUTCDate(d.getUTCDate() + 1)
   ) {
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = formatManilaDate(d);
     promises.push(
       getProfitsByCashier(cashierId, dateStr).catch((error) => {
         console.log(
@@ -208,4 +251,48 @@ export const getAllProfitsByCashier = async (cashierId: string) => {
     console.error("❌ Error fetching all profits:", error);
     throw error;
   }
+};
+
+/**
+ * NEW: Get profit dashboard summary with Previous Days (MTD) and Current Day breakdown
+ * This uses a single optimized backend query instead of looping through 30 days
+ */
+export const getProfitDashboardSummary = async (
+  cashierId: string,
+  date: string
+) => {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("access_token");
+
+  if (!accessToken) throw new Error("Unauthorized");
+
+  console.log("🔗 API CALL: getProfitDashboardSummary");
+  console.log(
+    "🔗 API URL:",
+    `${process.env.API_URL}/profit/cashier/${cashierId}/dashboard-summary?date=${date}`
+  );
+
+  const response = await fetch(
+    `${process.env.API_URL}/profit/cashier/${cashierId}/dashboard-summary?date=${date}`,
+    {
+      headers: { Authorization: `Bearer ${accessToken.value}` },
+      method: "GET",
+      cache: "no-store", // Always get fresh data
+    }
+  );
+
+  if (!response.ok) {
+    const data: NestApiError = await response.json();
+    console.error("❌ API ERROR:", data);
+    throw new Error(
+      Array.isArray(data.message)
+        ? data.message.join(", ")
+        : data.message || "Unexpected error occurred"
+    );
+  }
+
+  const result = await response.json();
+  console.log("✅ API RESPONSE (Dashboard Summary):", result);
+
+  return processDashboardSummaryData(result);
 };

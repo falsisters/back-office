@@ -54,7 +54,8 @@ export default function CashierSalesListNew({
     if (!inputDate) return undefined;
 
     if (dateFilterMode === "day") {
-      return inputDate.toISOString().split("T")[0]; // YYYY-MM-DD
+      // Use local date components to avoid UTC conversion issues (matches Profit component)
+      return `${inputDate.getFullYear()}-${String(inputDate.getMonth() + 1).padStart(2, '0')}-${String(inputDate.getDate()).padStart(2, '0')}`;
     } else {
       return `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
     }
