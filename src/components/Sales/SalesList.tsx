@@ -58,32 +58,21 @@ export default function SalesList() {
     selectedMonth
   ).padStart(2, "0")}`;
 
+  // Format date for API call - always use YYYY-MM-DD format
+  const formatDateForAPI = (inputDate?: Date) => {
+    const targetDate = inputDate || new Date();
+    return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     // Separate function to load sales without loading state for real-time updates
     const refreshSalesData = async () => {
       try {
-        const data = await getAllSalesByUserId();
+        const apiDate = formatDateForAPI(date);
+        const data = await getAllSalesByUserId(apiDate);
         setSales(data);
-
-        let filtered;
-        if (dateFilterMode === "day") {
-          const currentDate = date || new Date();
-          filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return saleDate.toDateString() === currentDate.toDateString();
-          });
-        } else {
-          const [year, month] = formattedSelectedMonth.split("-").map(Number);
-          filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return (
-              saleDate.getFullYear() === year &&
-              saleDate.getMonth() === month - 1
-            );
-          });
-        }
-
-        setFilteredSales(filtered);
+        // No client-side date filtering needed - backend already filters by date
+        setFilteredSales(data);
       } catch (error) {
         console.error("Error refreshing sales:", error);
       }
@@ -92,28 +81,11 @@ export default function SalesList() {
     const loadSales = async () => {
       try {
         setIsLoading(true);
-        const data = await getAllSalesByUserId();
+        const apiDate = formatDateForAPI(date);
+        const data = await getAllSalesByUserId(apiDate);
         setSales(data);
-
-        let filtered;
-        if (dateFilterMode === "day") {
-          const today = new Date();
-          filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return saleDate.toDateString() === today.toDateString();
-          });
-        } else {
-          const [year, month] = formattedSelectedMonth.split("-").map(Number);
-          filtered = data.filter((sale) => {
-            const saleDate = new Date(sale.createdAt);
-            return (
-              saleDate.getFullYear() === year &&
-              saleDate.getMonth() === month - 1
-            );
-          });
-        }
-
-        setFilteredSales(filtered);
+        // No client-side date filtering needed - backend already filters by date
+        setFilteredSales(data);
       } catch (error) {
         console.error("Error loading sales:", error);
       } finally {

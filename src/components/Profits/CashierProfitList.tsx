@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  getProfitsByCashier,
-  getAllProfitsByCashier,
   getProfitDashboardSummary,
 } from "@/lib/server/Profits/getProfitsByCashier";
 import ProfitTracker from "@/components/Sales/ProfitTracker";
@@ -52,7 +50,7 @@ export default function CashierProfitList({
     selectedMonth
   ).padStart(2, "0")}`;
 
-  // Initial data loading effect - matches Sales component pattern
+  // Initial data loading effect - uses single optimized dashboard summary endpoint
   useEffect(() => {
     const loadProfits = async () => {
       if (!cashierId) return;
@@ -61,82 +59,68 @@ export default function CashierProfitList({
         setIsLoading(true);
         console.log("🔄 PROFITS: Loading profits for cashier:", cashierId);
         console.log("🔄 PROFITS: dateFilterMode:", dateFilterMode);
-        console.log(
-          "🔄 PROFITS: formattedSelectedMonth:",
-          formattedSelectedMonth
-        );
+
+        // Determine the date to use for the dashboard summary
+        let dateStr: string;
 
         if (dateFilterMode === "day" && date) {
-          // NEW: Use the optimized dashboard summary endpoint for "day" mode
-          // Use local date components to avoid UTC conversion issues
-          const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-          console.log("🔄 PROFITS: Fetching dashboard summary for date:", dateStr);
-          
-          const summary = await getProfitDashboardSummary(cashierId, dateStr);
-          console.log("📊 PROFITS: Dashboard summary:", summary);
-          
-          setDashboardSummary(summary);
-          
-          // Set current day data as the main profit data for display
+          // Day mode: use the selected date
+          dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        } else {
+          // Month mode: use today's date if it's in the selected month, 
+          // otherwise use the last day of the selected month
+          const now = new Date();
+          const nowYear = now.getFullYear();
+          const nowMonth = now.getMonth() + 1;
+
+          if (selectedYear === nowYear && selectedMonth === nowMonth) {
+            // Current month - use today
+            dateStr = `${nowYear}-${String(nowMonth).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          } else {
+            // Past month - use the last day of that month
+            const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+            dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+          }
+        }
+
+        console.log("🔄 PROFITS: Fetching dashboard summary for date:", dateStr);
+        
+        // Single API call - dashboard summary contains all the data we need
+        const summary = await getProfitDashboardSummary(cashierId, dateStr);
+        console.log("📊 PROFITS: Dashboard summary:", summary);
+        
+        setDashboardSummary(summary);
+
+        if (dateFilterMode === "day") {
+          // Day mode: show only current day data
           setProfitData({
             rawItems: summary.currentDayProfit.rawItems,
             sacks: { totalProfit: summary.currentDayProfit.sackTotal },
             asin: { totalProfit: summary.currentDayProfit.asinTotal },
             overallTotal: summary.currentDayProfit.overallTotal,
           });
-          
-          // Also set allProfitData for month mode switching
-          setAllProfitData({
-            rawItems: [
-              ...summary.previousDaysProfit.rawItems,
-              ...summary.currentDayProfit.rawItems,
-            ],
-          });
         } else {
-          // For month mode, use the existing getAllProfitsByCashier
-          const data = await getAllProfitsByCashier(cashierId);
-
-          console.log("📊 PROFITS: Raw data from backend:", data);
-          console.log(
-            "📊 PROFITS: Raw items count:",
-            data?.rawItems?.length || 0
-          );
-
-          setAllProfitData(data);
-          setDashboardSummary(null);
-
-          // Filter for the selected month
-          if (data?.rawItems) {
-            const [year, month] = formattedSelectedMonth.split("-").map(Number);
-            console.log("🔍 PROFITS: Filtering for month:", year, month);
-            const filteredItems = data.rawItems.filter((item: any) => {
-              if (!item.saleDate) return false;
-              
-              // Convert UTC timestamp to Manila time for proper month comparison
-              // Manila is UTC+8
-              const utcDate = new Date(item.saleDate);
-              const manilaTime = new Date(utcDate.getTime() + 8 * 60 * 60 * 1000);
-              
-              const itemYear = manilaTime.getUTCFullYear();
-              const itemMonth = manilaTime.getUTCMonth() + 1; // 1-indexed
-              
-              const match = itemYear === year && itemMonth === month;
-              return match;
-            });
-
-            console.log(
-              "✅ PROFITS: Filtered items count:",
-              filteredItems.length
-            );
-
-            setProfitData({
-              ...data,
-              rawItems: filteredItems,
-            });
-          } else {
-            setProfitData(data);
-          }
+          // Month mode: show all items (previous + current day)
+          const allItems = [
+            ...summary.previousDaysProfit.rawItems,
+            ...summary.currentDayProfit.rawItems,
+          ];
+          
+          setProfitData({
+            rawItems: allItems,
+            sacks: { totalProfit: summary.previousDaysProfit.sackTotal + summary.currentDayProfit.sackTotal },
+            asin: { totalProfit: summary.previousDaysProfit.asinTotal + summary.currentDayProfit.asinTotal },
+            overallTotal: summary.overallProfit,
+          });
         }
+        
+        // Also set allProfitData for reference
+        setAllProfitData({
+          rawItems: [
+            ...summary.previousDaysProfit.rawItems,
+            ...summary.currentDayProfit.rawItems,
+          ],
+        });
       } catch (error) {
         console.error("❌ PROFITS: Error loading profits:", error);
       } finally {
@@ -145,7 +129,7 @@ export default function CashierProfitList({
     };
 
     loadProfits();
-  }, [cashierId, dateFilterMode, formattedSelectedMonth, date]);
+  }, [cashierId, dateFilterMode, selectedYear, selectedMonth, date]);
 
   // Transform profit data to match ProfitTracker expected format
   const transformProfitData = (data: any) => {
