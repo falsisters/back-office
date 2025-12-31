@@ -50,15 +50,12 @@ export default function CashierSalesListNew({
     () => new Date().getMonth() + 1
   );
 
+  // Format date for API call - always use YYYY-MM-DD format
+  // Backend filters by this date (defaults to today in Manila time if not provided)
   const formatDateForAPI = (inputDate?: Date) => {
-    if (!inputDate) return undefined;
-
-    if (dateFilterMode === "day") {
-      // Use local date components to avoid UTC conversion issues (matches Profit component)
-      return `${inputDate.getFullYear()}-${String(inputDate.getMonth() + 1).padStart(2, '0')}-${String(inputDate.getDate()).padStart(2, '0')}`;
-    } else {
-      return `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
-    }
+    // Always use YYYY-MM-DD format for API calls
+    const targetDate = inputDate || new Date();
+    return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
   };
 
   const refreshSalesData = async () => {

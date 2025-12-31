@@ -133,6 +133,7 @@ export const getProfitsByCashier = async (cashierId: string, date?: string) => {
 };
 
 // NEW: Function to get ALL profits by fetching multiple date ranges
+// Uses sequential requests to avoid exhausting database connection pool
 export const getAllProfitsByCashier = async (cashierId: string) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -165,29 +166,35 @@ export const getAllProfitsByCashier = async (cashierId: string) => {
     `🔄 Fetching profits from ${formatManilaDate(thirtyDaysAgoManila)} to ${formatManilaDate(nowInManila)} (Manila time)`
   );
 
-  // Fetch data for each day in the range
-  const promises = [];
+  // Collect all dates first
+  const dates: string[] = [];
   for (
     let d = new Date(thirtyDaysAgoManila);
     d <= nowInManila;
     d.setUTCDate(d.getUTCDate() + 1)
   ) {
-    const dateStr = formatManilaDate(d);
-    promises.push(
+    dates.push(formatManilaDate(d));
+  }
+
+  // Process dates sequentially to avoid connection pool exhaustion
+  // Using batch size of 3 for controlled parallelism
+  const BATCH_SIZE = 3;
+  
+  for (let i = 0; i < dates.length; i += BATCH_SIZE) {
+    const batch = dates.slice(i, i + BATCH_SIZE);
+    const batchPromises = batch.map(dateStr =>
       getProfitsByCashier(cashierId, dateStr).catch((error) => {
         console.log(
           `⚠️ Failed to fetch profits for ${dateStr}:`,
           error.message
         );
-        return null; // Return null for failed requests
+        return null;
       })
     );
-  }
-
-  try {
-    const results = await Promise.all(promises);
-
-    for (const result of results) {
+    
+    const batchResults = await Promise.all(batchPromises);
+    
+    for (const result of batchResults) {
       if (result && result.rawItems) {
         allProfitItems.push(...result.rawItems);
         if (result.sacks?.totalProfit)
@@ -196,61 +203,59 @@ export const getAllProfitsByCashier = async (cashierId: string) => {
           asinTotal += parseDecimalString(result.asin.totalProfit);
       }
     }
-
-    console.log("✅ Combined rawItems count:", allProfitItems.length);
-
-
-    const correctedProfitItems = allProfitItems.map((item: any) => {
-      if (item.saleDate) {
-        return {
-          ...item,
-          saleDate: typeof item.saleDate === 'string' ? item.saleDate : item.saleDate,
-          originalSaleDate: item.saleDate, // Keep original for debugging
-        };
-      }
-      return item;
-    });
-
-    console.log("✅ PROFITS: Raw server date data (no conversion applied):");
-    console.log(
-      "✅ Original profit items by date:",
-      allProfitItems.reduce((acc: any, item: any) => {
-        const date = item.saleDate
-          ? new Date(item.saleDate).toDateString()
-          : "Unknown";
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      }, {})
-    );
-    console.log(
-      "✅ Corrected profit items by date:",
-      correctedProfitItems.reduce((acc: any, item: any) => {
-        const date = item.saleDate
-          ? new Date(item.saleDate).toDateString()
-          : "Unknown";
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      }, {})
-    );
-
-    const processedResult = {
-      sacks: {
-        items: [],
-        totalProfit: sackTotal,
-      },
-      asin: {
-        items: [],
-        totalProfit: asinTotal,
-      },
-      overallTotal: sackTotal + asinTotal,
-      rawItems: correctedProfitItems,
-    };
-
-    return processProfitData(processedResult);
-  } catch (error) {
-    console.error("❌ Error fetching all profits:", error);
-    throw error;
+    
+    console.log(`🔄 Processed batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(dates.length / BATCH_SIZE)}`);
   }
+
+  console.log("✅ Combined rawItems count:", allProfitItems.length);
+
+  const correctedProfitItems = allProfitItems.map((item: any) => {
+    if (item.saleDate) {
+      return {
+        ...item,
+        saleDate: typeof item.saleDate === 'string' ? item.saleDate : item.saleDate,
+        originalSaleDate: item.saleDate, // Keep original for debugging
+      };
+    }
+    return item;
+  });
+
+  console.log("✅ PROFITS: Raw server date data (no conversion applied):");
+  console.log(
+    "✅ Original profit items by date:",
+    allProfitItems.reduce((acc: any, item: any) => {
+      const date = item.saleDate
+        ? new Date(item.saleDate).toDateString()
+        : "Unknown";
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {})
+  );
+  console.log(
+    "✅ Corrected profit items by date:",
+    correctedProfitItems.reduce((acc: any, item: any) => {
+      const date = item.saleDate
+        ? new Date(item.saleDate).toDateString()
+        : "Unknown";
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {})
+  );
+
+  const processedResult = {
+    sacks: {
+      items: [],
+      totalProfit: sackTotal,
+    },
+    asin: {
+      items: [],
+      totalProfit: asinTotal,
+    },
+    overallTotal: sackTotal + asinTotal,
+    rawItems: correctedProfitItems,
+  };
+
+  return processProfitData(processedResult);
 };
 
 /**
