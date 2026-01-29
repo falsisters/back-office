@@ -35,10 +35,10 @@ export default function CashierProfitList({
 }: CashierProfitListProps) {
   const [allProfitData, setAllProfitData] = useState<any>(null);
   const [profitData, setProfitData] = useState<any>(null);
-  // Cache for day mode data (keyed by date string)
+  // Cache for day mode data (keyed by cashierId-date string)
   const [daySummaryCache, setDaySummaryCache] = useState<Record<string, DashboardSummary>>({});
-  // Cache for month mode data (today's summary for current month total)
-  const [monthSummary, setMonthSummary] = useState<DashboardSummary | null>(null);
+  // Cache for month mode data (keyed by cashierId, today's summary for current month total)
+  const [monthSummaryCache, setMonthSummaryCache] = useState<Record<string, DashboardSummary>>({});
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
@@ -97,11 +97,12 @@ export default function CashierProfitList({
     if (dateFilterMode !== "day" || !cashierId || !date) return;
 
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const cacheKey = `${cashierId}-${dateStr}`;
     
-    // Check cache first - no async needed
-    if (daySummaryCache[dateStr]) {
-      console.log("🔄 PROFITS: Using cached day data for:", dateStr);
-      updateDayProfitData(daySummaryCache[dateStr]);
+    // Check cache first - no async needed (cache key includes cashierId)
+    if (daySummaryCache[cacheKey]) {
+      console.log("🔄 PROFITS: Using cached day data for:", cacheKey);
+      updateDayProfitData(daySummaryCache[cacheKey]);
       setIsLoading(false);
       return;
     }
@@ -126,12 +127,12 @@ export default function CashierProfitList({
           
           console.log("📊 PROFITS: Day summary (valid):", summary);
           
-          // Cache the result
-          setDaySummaryCache(prev => ({ ...prev, [dateStr]: summary }));
+          // Cache the result (with cashierId in key)
+          setDaySummaryCache(prev => ({ ...prev, [cacheKey]: summary }));
           
-          // If this is today, also cache it as month summary
+          // If this is today, also cache it as month summary for this cashier
           if (dateStr === getTodayDateStr()) {
-            setMonthSummary(summary);
+            setMonthSummaryCache(prev => ({ ...prev, [cashierId]: summary }));
           }
           
           updateDayProfitData(summary);
@@ -153,20 +154,21 @@ export default function CashierProfitList({
     if (dateFilterMode !== "month" || !cashierId) return;
 
     const todayStr = getTodayDateStr();
+    const dayCacheKey = `${cashierId}-${todayStr}`;
     
-    // Check if we have today's data cached (from day mode or previous month load)
-    if (monthSummary && monthSummary.date === todayStr) {
-      console.log("🔄 PROFITS: Using cached month data (no API call)");
-      updateMonthProfitData(monthSummary);
+    // Check if we have this cashier's data cached (from day mode or previous month load)
+    if (monthSummaryCache[cashierId] && monthSummaryCache[cashierId].date === todayStr) {
+      console.log("🔄 PROFITS: Using cached month data for cashier:", cashierId);
+      updateMonthProfitData(monthSummaryCache[cashierId]);
       setIsLoading(false);
       return;
     }
     
-    // Check if today's data is in day cache
-    if (daySummaryCache[todayStr]) {
-      console.log("🔄 PROFITS: Using today's day cache for month view");
-      const summary = daySummaryCache[todayStr];
-      setMonthSummary(summary);
+    // Check if today's data is in day cache for this cashier
+    if (daySummaryCache[dayCacheKey]) {
+      console.log("🔄 PROFITS: Using today's day cache for month view, cashier:", cashierId);
+      const summary = daySummaryCache[dayCacheKey];
+      setMonthSummaryCache(prev => ({ ...prev, [cashierId]: summary }));
       updateMonthProfitData(summary);
       setIsLoading(false);
       return;
@@ -192,9 +194,9 @@ export default function CashierProfitList({
           
           console.log("📊 PROFITS: Month summary (valid):", summary);
           
-          // Cache it
-          setMonthSummary(summary);
-          setDaySummaryCache(prev => ({ ...prev, [todayStr]: summary }));
+          // Cache it with cashierId in keys
+          setMonthSummaryCache(prev => ({ ...prev, [cashierId]: summary }));
+          setDaySummaryCache(prev => ({ ...prev, [dayCacheKey]: summary }));
           
           updateMonthProfitData(summary);
           setIsLoading(false);
@@ -286,12 +288,13 @@ export default function CashierProfitList({
   // NEW: Get previous days profit data from dashboard summary (MTD excluding current day)
   const getPreviousDaysProfitData = () => {
     // For day mode, use the cached day summary which has pre-calculated MTD data
-    if (dateFilterMode === "day" && date) {
+    if (dateFilterMode === "day" && date && cashierId) {
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const cachedSummary = daySummaryCache[dateStr];
+      const cacheKey = `${cashierId}-${dateStr}`;
+      const cachedSummary = daySummaryCache[cacheKey];
       if (cachedSummary) {
         console.log(
-          "🔄 PREVIOUS DAYS: Using cached day summary, items count:",
+          "🔄 PREVIOUS DAYS: Using cached day summary for cashier:", cashierId, "items count:",
           cachedSummary.previousDaysProfit.rawItems.length
         );
         return transformProfitData({
