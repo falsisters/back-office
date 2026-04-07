@@ -47,6 +47,9 @@ export default function CashierSalesList({
   const [asinOtherFilter, setAsinOtherFilter] = useState<
     "ALL" | "ASIN" | "OTHER"
   >("ALL");
+  const [discountFilter, setDiscountFilter] = useState<
+    "ALL" | "DISCOUNTED" | "NOT_DISCOUNTED"
+  >("ALL");
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"perSale" | "perProduct">("perSale");
@@ -168,12 +171,21 @@ export default function CashierSalesList({
       }))
       .filter((sale: (typeof sales)[number]) => sale.SaleItem.length > 0);
 
+    if (discountFilter !== "ALL") {
+      filtered = filtered.filter((sale) =>
+        discountFilter === "DISCOUNTED"
+          ? sale.SaleItem.some((item) => item.isDiscounted)
+          : sale.SaleItem.every((item) => !item.isDiscounted)
+      );
+    }
+
     setFilteredSales(filtered);
   }, [
     productFilter,
     paymentFilter,
     sackKiloFilter,
     asinOtherFilter,
+    discountFilter,
     sales,
   ]);
 
@@ -223,6 +235,8 @@ export default function CashierSalesList({
         setSackKiloFilter={setSackKiloFilter}
         asinOtherFilter={asinOtherFilter}
         setAsinOtherFilter={setAsinOtherFilter}
+        discountFilter={discountFilter}
+        setDiscountFilter={setDiscountFilter}
       />
 
       {isLoading ? (

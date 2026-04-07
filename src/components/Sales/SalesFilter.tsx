@@ -20,6 +20,7 @@ type ViewMode = "perSale" | "perProduct";
 type PaymentFilter = typeof PaymentMethodEnum._type | "ALL";
 type SackKiloFilter = "ALL" | "SACKS" | "PER_KILO";
 type AsinOtherFilter = "ALL" | "ASIN" | "OTHER";
+type DiscountFilter = "ALL" | "DISCOUNTED" | "NOT_DISCOUNTED";
 
 interface SalesFiltersProps {
   dateFilterMode: DateFilterMode;
@@ -40,6 +41,8 @@ interface SalesFiltersProps {
   setSackKiloFilter?: (filter: SackKiloFilter) => void;
   asinOtherFilter?: AsinOtherFilter;
   setAsinOtherFilter?: (filter: AsinOtherFilter) => void;
+  discountFilter?: DiscountFilter;
+  setDiscountFilter?: (filter: DiscountFilter) => void;
   hideExtraFilters?: boolean;
   title?: string;
 }
@@ -68,6 +71,8 @@ export function SalesFilters({
   setSackKiloFilter = () => {},
   asinOtherFilter = "ALL",
   setAsinOtherFilter = () => {},
+  discountFilter = "ALL",
+  setDiscountFilter = () => {},
   hideExtraFilters = false,
   title = "Sales Filters",
 }: SalesFiltersProps) {
@@ -243,6 +248,20 @@ export function SalesFilters({
               <SelectItem value="ALL">All Products</SelectItem>
               <SelectItem value="ASIN">Asin</SelectItem>
               <SelectItem value="OTHER">Rice & Other Products</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={discountFilter}
+            onValueChange={(value) => setDiscountFilter(value as DiscountFilter)}
+          >
+            <SelectTrigger className="w-[180px] focus:ring-primary">
+              <SelectValue placeholder="All Discounts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Discounts</SelectItem>
+              <SelectItem value="DISCOUNTED">Discounted</SelectItem>
+              <SelectItem value="NOT_DISCOUNTED">Not Discounted</SelectItem>
             </SelectContent>
           </Select>
         </div>
