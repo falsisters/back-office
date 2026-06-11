@@ -58,7 +58,8 @@ export interface TotalSalesResponse {
 export const getSalesCheckByCashier = async (
   cashierId: string,
   date?: string,
-  bypassCache: boolean = false
+  bypassCache: boolean = false,
+  asinType?: string
 ): Promise<SalesCheckItem[]> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -74,6 +75,9 @@ export const getSalesCheckByCashier = async (
 
   if (date) {
     params.append("date", date);
+  }
+  if (asinType) {
+    params.append("asinType", asinType);
   }
 
   if (bypassCache) {
@@ -111,7 +115,8 @@ export const getSalesCheckByCashier = async (
 export const getTotalSalesByCashier = async (
   cashierId: string,
   date?: string,
-  bypassCache: boolean = false
+  bypassCache: boolean = false,
+  asinType?: string
 ): Promise<TotalSalesResponse> => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -127,6 +132,9 @@ export const getTotalSalesByCashier = async (
 
   if (date) {
     params.append("date", date);
+  }
+  if (asinType) {
+    params.append("asinType", asinType);
   }
 
   if (bypassCache) {
@@ -172,7 +180,8 @@ export const getTotalSalesByCashier = async (
 
 export const getAllCashierSales = async (
   date?: string,
-  bypassCache: boolean = false
+  bypassCache: boolean = false,
+  asinType?: string
 ) => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("access_token");
@@ -188,6 +197,9 @@ export const getAllCashierSales = async (
 
   if (date) {
     params.append("date", date);
+  }
+  if (asinType) {
+    params.append("asinType", asinType);
   }
 
   if (bypassCache) {
