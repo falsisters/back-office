@@ -188,6 +188,14 @@ export function BillCountList() {
                   ₱{billCount.billsTotal.toLocaleString()}
                 </p>
               </div>
+              <div className="bg-muted/20 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                  Coins Total
+                </h3>
+                <p className="text-2xl font-bold text-amber-600">
+                  ₱{(billCount.coinsTotal ?? 0).toLocaleString()}
+                </p>
+              </div>
             </div>
 
             <Table>

@@ -25,6 +25,7 @@ export const GetBillCountForDatePayloadSchema = z
     bills: z.array(BillSchema),
     billsByType: BillsByTypeSchema,
     billsTotal: z.number().min(0),
+    coinsTotal: z.number().min(0),
     summaryStep1: z.number(), // Allow negative values
     summaryFinal: z.number(), // Allow negative values
   })
