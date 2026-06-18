@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { ShoppingBag, CreditCard, Banknote, DollarSign } from "lucide-react";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
-import { isAsinProduct } from "../../../utils/parsers/isAsinProduct";
 import Decimal from "decimal.js";
 
 interface CategoryTotals {
@@ -31,7 +30,7 @@ export default function SalesSummary({
 
   sales.forEach((sale) => {
     sale.SaleItem.forEach((item) => {
-      const isAsin = isAsinProduct(item.product.name);
+      const isAsin = item.product.name.toLowerCase().includes("asin");
       let category: keyof typeof totals;
 
       if (item.sackPriceId && !item.perKiloPriceId) {

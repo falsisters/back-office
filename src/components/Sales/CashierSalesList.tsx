@@ -8,7 +8,6 @@ import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getA
 import { SalesFilters } from "./SalesFilter";
 import { SalesDateGroup } from "./SalesDateGroup";
 import { NoSalesFound } from "./NoSalesFound";
-import { isAsinProduct } from "../../../utils/parsers/isAsinProduct";
 import { LoadingSales } from "./LoadingSales";
 
 const months = [
@@ -162,7 +161,7 @@ export default function CashierSalesList({
       .map((sale: (typeof sales)[number]) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
-          const isAsin = isAsinProduct(item.product.name);
+          const isAsin = item.product.name.toLowerCase().includes("asin");
           return (
             asinOtherFilter === "ALL" ||
             (asinOtherFilter === "ASIN" && isAsin) ||

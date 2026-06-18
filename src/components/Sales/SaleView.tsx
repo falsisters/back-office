@@ -7,7 +7,6 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseProductType } from "../../../utils/parsers/productType.parser";
-import { isAsinProduct } from "../../../utils/parsers/isAsinProduct";
 import { Decimal } from "decimal.js";
 
 const sackTypeLabels = {
@@ -28,7 +27,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       (item) =>
         item.sackPriceId &&
         !item.perKiloPriceId &&
-        isAsinProduct(item.product.name)
+        item.product.name.toLowerCase().includes("asin")
     ).map((item) => ({ item, sale }))
   );
 
@@ -37,7 +36,7 @@ export function SaleView({ sales }: { sales: GetAllSalesByUserIdPayload }) {
       (item) =>
         item.sackPriceId &&
         !item.perKiloPriceId &&
-        !isAsinProduct(item.product.name)
+        !item.product.name.toLowerCase().includes("asin")
     ).map((item) => ({ item, sale }))
   );
 
