@@ -1,40 +1,19 @@
-import { supabase } from "@/lib/supabase";
-import { getStorageUsage } from "@/lib/supabaseStorage";
+import { getStorageUsage, getDatabaseUsage } from "@/lib/server/Storage";
 import { UsageCard } from "@/components/Usage/UsageCard";
 import { ExportDatabase } from "@/components/Usage/ExportDatabase";
 import { ClearStorage } from "@/components/Usage/ClearStorage";
 import { Database, HardDrive } from "lucide-react";
 
 const UsagePage = async () => {
-  const { data, error } = await supabase.rpc("get_database_usage");
-
-  if (error) {
-    console.error("Error fetching usage data:", error);
-    return <div className="p-6">Error loading usage data</div>;
-  }
-
-  if (!data) {
-    return <div className="p-6">No usage data available</div>;
-  }
-
-  const usageData = data[0];
-  if (!usageData) {
-    return <div className="p-6">No usage data found</div>;
-  }
-
+  const dbUsage = await getDatabaseUsage();
   const storageUsage = await getStorageUsage();
-
-  if (storageUsage.error) {
-    console.error("Error fetching storage usage:", storageUsage.error);
-    return <div className="p-6">Error loading storage usage</div>;
-  }
 
   const {
     total_size_bytes: storage_total_size_bytes,
     total_size_readable: storage_total_size_readable,
   } = storageUsage;
 
-  const { total_size_bytes, total_size_readable } = usageData;
+  const { total_size_bytes, total_size_readable } = dbUsage;
 
   // Calculate percentages (assuming some limits)
   const dbLimit = 500 * 1024 * 1024; // 500MB limit

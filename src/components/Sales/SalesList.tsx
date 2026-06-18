@@ -7,7 +7,7 @@ import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getA
 import { CashierSelector } from "../Cashier/CashierSelector";
 import CashierSalesList from "./CashierSalesList";
 import VoidList from "./VoidList";
-import { supabase } from "@/lib/supabase";
+import { useSocket } from "@/hooks/useSocket";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const months = [
@@ -53,6 +53,7 @@ export default function SalesList() {
     null
   );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { on } = useSocket();
 
   const formattedSelectedMonth = `${selectedYear}-${String(
     selectedMonth
@@ -93,27 +94,25 @@ export default function SalesList() {
       }
     };
 
-    const channelA = supabase
-      .channel("schema-db-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-        },
-        () => {
-          setRefreshTrigger((prev) => prev + 1);
-        }
-      )
-      .subscribe();
-
     loadSales();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(channelA);
-    };
   }, [dateFilterMode, formattedSelectedMonth, date]);
+
+  useEffect(() => {
+    const cleanupCreated = on("sale:created", () => {
+      setRefreshTrigger((prev) => prev + 1);
+    });
+    const cleanupUpdated = on("sale:updated", () => {
+      setRefreshTrigger((prev) => prev + 1);
+    });
+    const cleanupVoided = on("sale:voided", () => {
+      setRefreshTrigger((prev) => prev + 1);
+    });
+    return () => {
+      cleanupCreated?.();
+      cleanupUpdated?.();
+      cleanupVoided?.();
+    };
+  }, []);
 
   useEffect(() => {
     let filtered = [...sales];

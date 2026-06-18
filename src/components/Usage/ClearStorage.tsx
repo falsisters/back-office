@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, Download } from "lucide-react";
 import { useState } from "react";
-import { exportStorage, clearStorage } from "@/lib/supabaseStorage";
+import { exportStorage, clearStorage } from "@/lib/server/Storage";
 
 export const ClearStorage = () => {
   const [isClearing, setIsClearing] = useState(false);
@@ -23,15 +23,11 @@ export const ClearStorage = () => {
   const handleExportStorage = async () => {
     setIsExporting(true);
     try {
-      const result = await exportStorage();
+      const base64 = await exportStorage();
+      const byteArray = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const blob = new Blob([byteArray], { type: "application/zip" });
 
-      if ("error" in result) {
-        console.error("Export failed:", result.error);
-        return;
-      }
-
-      // Create download link
-      const url = URL.createObjectURL(result);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `storage-export-${

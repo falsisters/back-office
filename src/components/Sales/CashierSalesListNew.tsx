@@ -27,7 +27,7 @@ import {
 import { SalesFilters } from "./SalesFilter";
 import { LoadingSales } from "./LoadingSales";
 import { NoSalesFound } from "./NoSalesFound";
-import { supabase } from "@/lib/supabase";
+import { useSocket } from "@/hooks/useSocket";
 
 interface CashierSalesListNewProps {
   cashierId: string;
@@ -49,6 +49,7 @@ export default function CashierSalesListNew({
   const [selectedMonth, setSelectedMonth] = useState<number>(
     () => new Date().getMonth() + 1
   );
+  const { on } = useSocket();
 
   // Format date for API call - always use YYYY-MM-DD format
   // Backend filters by this date (defaults to today in Manila time if not provided)
@@ -107,22 +108,13 @@ export default function CashierSalesListNew({
   }, [refreshTrigger]);
 
   useEffect(() => {
-    const channelA = supabase
-      .channel("schema-db-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-        },
-        () => {
-          refreshSalesData();
-        }
-      )
-      .subscribe();
-
+    const cleanupCreated = on("sale:created", () => refreshSalesData());
+    const cleanupUpdated = on("sale:updated", () => refreshSalesData());
+    const cleanupVoided = on("sale:voided", () => refreshSalesData());
     return () => {
-      supabase.removeChannel(channelA);
+      cleanupCreated?.();
+      cleanupUpdated?.();
+      cleanupVoided?.();
     };
   }, [cashierId, date, dateFilterMode, selectedYear, selectedMonth]);
 
