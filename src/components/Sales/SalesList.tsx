@@ -8,7 +8,6 @@ import { CashierSelector } from "../Cashier/CashierSelector";
 import CashierSalesList from "./CashierSalesList";
 import VoidList from "./VoidList";
 import { supabase } from "@/lib/supabase";
-import { isAsinProduct } from "../../../utils/parsers/isAsinProduct";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const months = [
@@ -171,7 +170,7 @@ export default function SalesList() {
       .map((sale: (typeof sales)[number]) => ({
         ...sale,
         SaleItem: sale.SaleItem.filter((item) => {
-          const isAsin = isAsinProduct(item.product.name);
+          const isAsin = item.product.name.toLowerCase().includes("asin");
           return (
             asinOtherFilter === "ALL" ||
             (asinOtherFilter === "ASIN" && isAsin) ||
