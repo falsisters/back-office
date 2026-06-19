@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface AddRowsDialogProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export default function AddRowsDialog({
     e.preventDefault();
 
     if (rowCount < 1 || rowCount > 100) {
-      alert("Please enter a number between 1 and 100");
+      toast.error("Please enter a number between 1 and 100");
       return;
     }
 

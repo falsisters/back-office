@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getProductsByCashier } from "@/lib/server/Products/getProductsByCashier";
+import { useStockStats } from "@/hooks/useStocks";
+import { extractNestError } from "@/lib/api/types";
+import { toast } from "sonner";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
-import { Toaster } from "@/components/ui/toaster";
 import { Loader2, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
@@ -14,63 +15,50 @@ import TransferHistory from "./TransferHistory";
 import { CashierSelector } from "../Cashier/CashierSelector";
 
 export default function StocksManagement() {
-  const [products, setProducts] = useState<ProductResponse[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ProductResponse[]>(
-    []
-  );
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"stocks" | "transfers">("stocks");
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
     null
   );
 
-  const fetchProducts = useCallback(async () => {
-    if (!selectedCashierId) {
-      setProducts([]);
-      setFilteredProducts([]);
-      return;
-    }
+  const {
+    data: stockData = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useStockStats();
 
-    setLoading(true);
-    try {
-      const result = await getProductsByCashier(selectedCashierId);
-      if (result.data) {
-        setProducts(result.data);
-        setFilteredProducts(result.data);
-        setError(null);
-      } else if (result.error) {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError("Failed to fetch products");
-      console.error("Error: ", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCashierId]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const products = useMemo(() => {
+    if (!selectedCashierId) return [];
+    if (!Array.isArray(stockData)) return [];
+    if (stockData.length > 0 && "SackPrice" in stockData[0]) {
+      return (stockData as ProductResponse[]).filter(
+        (p) => (p as any).cashierId === selectedCashierId
       );
-      setFilteredProducts(filtered);
     }
+    return stockData.filter(
+      (p: any) => p.cashierId === selectedCashierId
+    ) as ProductResponse[];
+  }, [stockData, selectedCashierId]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return products;
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }, [searchTerm, products]);
 
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(extractNestError(error));
+    }
+  }, [isError, error]);
+
   const handleProductUpdate = useCallback(() => {
-    setIsRefreshing(true);
-    fetchProducts().finally(() => setIsRefreshing(false));
-  }, [fetchProducts]);
+    refetch();
+  }, [refetch]);
 
   const handleClearSearch = () => {
     setSearchTerm("");
@@ -78,7 +66,7 @@ export default function StocksManagement() {
 
   const handleCashierSelect = (cashierId: string) => {
     setSelectedCashierId(cashierId);
-    setSearchTerm(""); // Clear search when switching cashiers
+    setSearchTerm("");
   };
 
   return (
@@ -110,18 +98,17 @@ export default function StocksManagement() {
               variant="outline"
               size="default"
               onClick={handleProductUpdate}
-              disabled={isRefreshing || !selectedCashierId}
+              disabled={isRefetching || !selectedCashierId}
               className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
             >
               <RefreshCw
                 size={18}
-                className={isRefreshing ? "animate-spin" : ""}
+                className={isRefetching ? "animate-spin" : ""}
               />
               Refresh
             </Button>
           </CardHeader>
           <CardContent className="space-y-8 pt-6 px-6">
-            {/* Cashier Selector */}
             <CashierSelector
               selectedCashierId={selectedCashierId}
               onCashierSelect={handleCashierSelect}
@@ -129,7 +116,6 @@ export default function StocksManagement() {
 
             {selectedCashierId && (
               <>
-                {/* Search bar implementation */}
                 <div className="flex items-center gap-4">
                   <div className="relative flex-1">
                     <SearchBar
@@ -153,49 +139,40 @@ export default function StocksManagement() {
                   </div>
                 </div>
 
-                {loading ? (
+                {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-16">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                     <p className="text-lg text-muted-foreground">
                       Loading stock data...
                     </p>
                   </div>
-                ) : error ? (
-                  <div className="bg-destructive/10 p-6 rounded-md border border-destructive/20 text-center">
-                    <p className="text-base text-destructive font-medium">
-                      {error}
+                ) : filteredProducts.length === 0 && searchTerm ? (
+                  <div className="text-center py-12 border border-dashed rounded-md">
+                    <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                    <p className="text-lg text-muted-foreground">
+                      No products found matching &quot;{searchTerm}&quot;
                     </p>
                     <Button
-                      variant="outline"
-                      size="default"
-                      onClick={handleProductUpdate}
-                      className="mt-4 border-primary/30 text-primary hover:bg-primary/10"
+                      variant="link"
+                      onClick={handleClearSearch}
+                      className="mt-4 text-base"
                     >
-                      Try Again
+                      Clear search
                     </Button>
+                  </div>
+                ) : filteredProducts.length === 0 && !isLoading ? (
+                  <div className="text-center py-12 border rounded-md bg-muted/20">
+                    <p className="text-muted-foreground mb-2 text-lg">
+                      No products found
+                    </p>
+                    <p className="text-muted-foreground">
+                      No stock data available for selected cashier
+                    </p>
                   </div>
                 ) : (
                   <>
-                    {filteredProducts.length === 0 && searchTerm ? (
-                      <div className="text-center py-12 border border-dashed rounded-md">
-                        <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                        <p className="text-lg text-muted-foreground">
-                          No products found matching &quot;{searchTerm}&quot;
-                        </p>
-                        <Button
-                          variant="link"
-                          onClick={handleClearSearch}
-                          className="mt-4 text-base"
-                        >
-                          Clear search
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <StocksTable products={filteredProducts} />
-                        <StockSummary products={filteredProducts} />
-                      </>
-                    )}
+                    <StocksTable products={filteredProducts} />
+                    <StockSummary products={filteredProducts} />
                   </>
                 )}
               </>
@@ -217,7 +194,6 @@ export default function StocksManagement() {
       ) : (
         <TransferHistory selectedCashierId={selectedCashierId} />
       )}
-      <Toaster />
     </>
   );
 }

@@ -31,7 +31,6 @@ const navItems = [
   { href: "/profits", label: "Profits", icon: DollarSign },
   { href: "/stocks", label: "Stocks", icon: Package2 },
   { href: "/kahon", label: "Kahon", icon: BoxIcon },
-  { href: "/usage", label: "Usage", icon: FileText },
 ];
 
 export function Sidebar() {

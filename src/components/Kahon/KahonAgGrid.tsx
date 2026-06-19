@@ -17,14 +17,14 @@ import type {
   PendingCellChange,
 } from "../../../utils/types/kahon.type";
 import {
-  addKahonCalculationRow,
-  batchUpdateKahonRowPositions,
-  deleteKahonRow,
-} from "@/lib/server/Kahon/manageKahonRows";
-import {
-  updateKahonCell,
-  batchUpdateKahonCells,
-} from "@/lib/server/Kahon/manageCells";
+  useCreateKahonRow,
+  useDeleteKahonRow,
+  useUpdateCell,
+  useBatchUpdateCells,
+  useReorderKahonRows,
+} from "@/hooks/useKahon";
+import { toast } from "sonner";
+import { extractNestError } from "@/lib/api/types";
 import {
   buildDependencyMap,
   findDependentCells,
@@ -112,6 +112,12 @@ export default function KahonAgGrid({
   >(new Map());
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFormulaPicker, setShowFormulaPicker] = useState(false);
+
+  const createRow = useCreateKahonRow();
+  const deleteRow = useDeleteKahonRow();
+  const updateCell = useUpdateCell();
+  const batchUpdateCells = useBatchUpdateCells();
+  const reorderRows = useReorderKahonRows();
 
   // Prepare grid data and build dependency map
   useEffect(() => {
@@ -357,9 +363,12 @@ export default function KahonAgGrid({
 
         // Apply updates via API - preserve formulas
         for (const update of updates) {
-          await updateKahonCell(update.cellId, {
-            value: update.newValue,
-            formula: update.formula, // Preserve the formula
+          await updateCell.mutateAsync({
+            cellId: update.cellId,
+            data: {
+              value: update.newValue,
+              formula: update.formula,
+            },
           });
         }
 
@@ -571,7 +580,7 @@ export default function KahonAgGrid({
 
     if (cellValue && cellValue.startsWith("=")) {
       if (!isValidFormula(cellValue)) {
-        alert("Invalid formula syntax");
+        toast.error("Invalid formula syntax");
         // Revert the change in the grid
         if (gridRef.current) {
           const api = gridRef.current.api;
@@ -617,7 +626,7 @@ export default function KahonAgGrid({
 
     try {
       const maxRow = Math.max(...sheetData.Rows.map((r) => r.rowIndex), 0);
-      await addKahonCalculationRow({
+      await createRow.mutateAsync({
         sheetId: sheetData.id,
         rowIndex: maxRow + 1,
       });
@@ -639,7 +648,7 @@ export default function KahonAgGrid({
 
       // Add rows sequentially
       for (let i = 0; i < count; i++) {
-        await addKahonCalculationRow({
+        await createRow.mutateAsync({
           sheetId: sheetData.id,
           rowIndex: actualStartIndex + i,
         });
@@ -649,7 +658,7 @@ export default function KahonAgGrid({
       onRefresh();
     } catch (error) {
       console.error("Failed to add multiple rows:", error);
-      alert("Failed to add rows");
+      toast.error("Failed to add rows");
     } finally {
       setIsLoading(false);
     }
@@ -667,7 +676,7 @@ export default function KahonAgGrid({
       // Save cell changes first
       if (pendingChanges.size > 0) {
         const cellChanges = Array.from(pendingChanges.values());
-        const cellResults = await batchUpdateKahonCells(cellChanges);
+        const cellResults = await batchUpdateCells.mutateAsync(cellChanges);
         results.push(...cellResults.results);
         errors.push(...cellResults.errors);
       }
@@ -681,7 +690,7 @@ export default function KahonAgGrid({
         }));
 
         try {
-          const reorderResult = await batchUpdateKahonRowPositions(
+          const reorderResult = await reorderRows.mutateAsync(
             positionUpdates
           );
           results.push(reorderResult);
@@ -693,7 +702,7 @@ export default function KahonAgGrid({
 
       if (errors.length > 0) {
         console.error("Some changes failed:", errors);
-        alert(
+        toast.error(
           `${errors.length} changes failed to save. Check console for details.`
         );
       }
@@ -707,7 +716,7 @@ export default function KahonAgGrid({
       }
     } catch (error) {
       console.error("Failed to save changes:", error);
-      alert("Failed to save changes");
+      toast.error("Failed to save changes");
     } finally {
       setIsSaving(false);
     }
@@ -751,7 +760,7 @@ export default function KahonAgGrid({
 
   const handleEditCell = () => {
     if (!selectedCellInfo) {
-      alert("Please select a cell first by clicking on it");
+      toast("Please select a cell first by clicking on it");
       return;
     }
     setShowCellEditor(true);
@@ -759,7 +768,7 @@ export default function KahonAgGrid({
 
   const handleEditColor = () => {
     if (!selectedCellInfo) {
-      alert("Please select a cell first by clicking on it");
+      toast("Please select a cell first by clicking on it");
       return;
     }
     setShowColorPicker(true);
@@ -767,7 +776,7 @@ export default function KahonAgGrid({
 
   const handleEditFormula = () => {
     if (!selectedCellInfo) {
-      alert("Please select a cell first by clicking on it");
+      toast("Please select a cell first by clicking on it");
       return;
     }
     setShowFormulaPicker(true);
@@ -775,7 +784,7 @@ export default function KahonAgGrid({
 
   const handleDeleteRow = async () => {
     if (!selectedCellInfo) {
-      alert("Please select a cell in the row you want to delete");
+      toast("Please select a cell in the row you want to delete");
       return;
     }
 
@@ -792,15 +801,15 @@ export default function KahonAgGrid({
       );
 
       if (existingRow) {
-        await deleteKahonRow(existingRow.id);
+        await deleteRow.mutateAsync(existingRow.id);
         setSelectedCellInfo(null);
         onRefresh();
       } else {
-        alert("Row not found");
+        toast.error("Row not found");
       }
     } catch (error) {
       console.error("Failed to delete row:", error);
-      alert("Failed to delete row");
+      toast.error("Failed to delete row");
     } finally {
       setIsLoading(false);
     }
@@ -861,13 +870,13 @@ export default function KahonAgGrid({
       } else {
         // If no cell exists, nothing to clear
         console.log("No existing cell found to clear");
-        alert("No cell to clear - cell doesn't exist in database");
+        toast.error("No cell to clear - cell doesn't exist in database");
       }
     } catch (error) {
       console.error("Failed to add clear operation to pending changes:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Failed to clear cell: ${errorMessage}`);
+      toast.error(`Failed to clear cell: ${errorMessage}`);
     }
   };
 
@@ -914,7 +923,7 @@ export default function KahonAgGrid({
 
     // Validate formula
     if (formula.startsWith("=") && !isValidFormula(formula)) {
-      alert("Invalid formula syntax");
+      toast.error("Invalid formula syntax");
       return;
     }
 
@@ -968,7 +977,7 @@ export default function KahonAgGrid({
 
     // Validate formula
     if (baseFormula.startsWith("=") && !isValidFormula(baseFormula)) {
-      alert("Invalid formula syntax");
+      toast.error("Invalid formula syntax");
       return;
     }
 
@@ -1080,13 +1089,13 @@ export default function KahonAgGrid({
     setSelectedCellInfo(null);
 
     if (formulasApplied > 0) {
-      alert(`Applied formula to ${formulasApplied} rows (pending save)`);
+      toast.success(`Applied formula to ${formulasApplied} rows (pending save)`);
 
       // Resolve dependent formulas for the changed column
       const cellRef = getColumnName(columnIndex) + selectedCellInfo.rowIndex;
       await resolveDependentFormulas(cellRef);
     } else {
-      alert("No valid data found for formula application");
+      toast.error("No valid data found for formula application");
     }
   };
 
@@ -1172,7 +1181,7 @@ export default function KahonAgGrid({
 
       if (!validation.isValid) {
         console.error("Row mapping validation failed:", validation.errors);
-        alert(`Cannot reorder rows: ${validation.errors.join(", ")}`);
+        toast.error(`Cannot reorder rows: ${validation.errors.join(", ")}`);
         return;
       }
 
@@ -1199,7 +1208,7 @@ export default function KahonAgGrid({
           "Merged mapping validation failed:",
           mergedValidation.errors
         );
-        alert(
+        toast.error(
           `Cannot apply row reordering: ${mergedValidation.errors.join(", ")}`
         );
         return;
@@ -1284,7 +1293,7 @@ export default function KahonAgGrid({
       );
     } catch (error) {
       console.error("Failed to track kahon row reorder:", error);
-      alert(
+      toast.error(
         `Failed to reorder rows: ${
           error instanceof Error ? error.message : "Unknown error"
         }`

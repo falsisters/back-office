@@ -1,18 +1,25 @@
-// app/kahon/page.tsx
-import { getUserData } from "@/lib/server/getUserData";
-import { redirect } from "next/navigation";
-import KahonManagement from "@/components/Kahon/KahonManagement";
-import { Suspense } from "react";
+"use client";
 
-export default async function KahonPage() {
-  let userData;
-  try {
-    userData = await getUserData();
-  } catch (error) {
-    if (!userData) {
-      redirect("/");
-    }
-    console.error(error, "Unauthorized");
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import KahonManagement from "@/components/Kahon/KahonManagement";
+
+export default function KahonPage() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  if (!isLoading && !user) {
+    router.push("/");
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="p-4">Loading...</div>
+      </div>
+    );
   }
 
   return (

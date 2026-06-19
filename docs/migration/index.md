@@ -153,32 +153,32 @@ Backend (NestJS)
 
 ### Phase 11: Stocks & Transfers
 
-- [ ] 11.1 Create `src/hooks/useStocks.ts`
-- [ ] 11.2 Rewrite `src/app/stocks/page.tsx` → client component
-- [ ] 11.3 Rewrite `StocksManagement.tsx` → use hooks
-- [ ] 11.4 Rewrite `TransferHistory.tsx` → use hooks
-- [ ] 11.5 Delete old server actions (4 files)
-- [ ] 11.6 Verify: stock stats, transfers list, filter by cashier/date
+- [x] 11.1 Create `src/hooks/useStocks.ts`
+- [x] 11.2 Rewrite `src/app/stocks/page.tsx` → client component
+- [x] 11.3 Rewrite `StocksManagement.tsx` → use hooks
+- [x] 11.4 Rewrite `TransferHistory.tsx` → use hooks
+- [x] 11.5 Delete old server actions (4 files)
+- [x] 11.6 Verify: stock stats, transfers list, filter by cashier/date
 
 ### Phase 12: Kahon (Spreadsheet)
 
-- [ ] 12.1 Create `src/hooks/useKahon.ts`
-- [ ] 12.2 Rewrite `src/app/kahon/` pages → client components
-- [ ] 12.3 Rewrite Kahon components → use hooks
-- [ ] 12.4 Delete old server actions (5 files)
-- [ ] 12.5 Verify: sheet CRUD, cells, rows, formulas
+- [x] 12.1 Create `src/hooks/useKahon.ts`
+- [x] 12.2 Rewrite `src/app/kahon/` pages → client components
+- [x] 12.3 Rewrite Kahon components → use hooks
+- [x] 12.4 Delete old server actions (5 files)
+- [x] 12.5 Verify: sheet CRUD, cells, rows, formulas
 
 ### ~~Phase 13: Storage~~ REMOVED
 
-- [~] 13.1 Delete `src/app/usage/page.tsx`
-- [~] 13.2 Delete `src/components/Usage/` (ClearStorage, ExportDatabase, UsageCard)
-- [~] 13.3 Delete `src/lib/server/Storage/index.ts`
-- [~] 13.4 Remove "Usage" link from sidebar
+- [x] 13.1 Delete `src/app/usage/page.tsx`
+- [x] 13.2 Delete `src/components/Usage/` (ClearStorage, ExportDatabase, UsageCard)
+- [x] 13.3 Delete `src/lib/server/Storage/index.ts`
+- [x] 13.4 Remove "Usage" link from sidebar
 
 ### ~~Phase 14: Database Export/Delete~~ REMOVED
 
-- [~] 14.1 Delete `src/lib/server/exportDatabase.ts`
-- [~] 14.2 Delete `src/lib/server/deleteDatabase.ts`
+- [x] 14.1 Delete `src/lib/server/exportDatabase.ts`
+- [x] 14.2 Delete `src/lib/server/deleteDatabase.ts`
 
 ### Phase 15: Cleanup
 
