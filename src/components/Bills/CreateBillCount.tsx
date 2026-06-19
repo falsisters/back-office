@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { format } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -29,7 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { createCashierBillCount } from "@/lib/server/BillCount/createCashierBillCount";
+import { useCreateCashierBillCount } from "@/hooks/useBillCounts";
 import {
   CreateBillCountSchema,
   type CreateBillCountType,
@@ -38,7 +37,7 @@ import {
 interface CreateBillCountsProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => Promise<void>;
+  onSuccess: () => void;
   selectedDate?: Date;
   cashierId: string;
   cashierName: string;
@@ -52,9 +51,8 @@ export function CreateBillCounts({
   cashierId,
   cashierName,
 }: CreateBillCountsProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createMutation = useCreateCashierBillCount();
 
-  // Utility function to prevent wheel events on number inputs
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
@@ -66,7 +64,7 @@ export function CreateBillCounts({
         ? format(selectedDate, "yyyy-MM-dd")
         : format(new Date(), "yyyy-MM-dd"),
       beginningBalance: 0,
-      showBeginningBalance: true, // Always true now
+      showBeginningBalance: true,
       bills: [
         { amount: 0, type: "THOUSAND" },
         { amount: 0, type: "FIVE_HUNDRED" },
@@ -78,18 +76,17 @@ export function CreateBillCounts({
     },
   });
 
-  const onSubmit = async (data: CreateBillCountType) => {
-    setIsSubmitting(true);
-    try {
-      await createCashierBillCount(cashierId, data);
-      await onSuccess();
-      onClose();
-      form.reset();
-    } catch (error) {
-      console.error("Failed to create bill count:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = (data: CreateBillCountType) => {
+    createMutation.mutate(
+      { cashierId, data },
+      {
+        onSuccess: () => {
+          onSuccess();
+          onClose();
+          form.reset();
+        },
+      }
+    );
   };
 
   const getBillTypeLabel = (type: string) => {
@@ -254,8 +251,8 @@ export function CreateBillCounts({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? (
                   <>
                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent border-white rounded-full"></div>
                     Saving...

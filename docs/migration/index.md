@@ -65,7 +65,7 @@ Backend (NestJS)
 - [x] 2.4 Rewrite `CreateCashier.tsx` → use `useCreateCashier` mutation
 - [x] 2.5 Rewrite `EditCashier.tsx` → use `useEditCashier` mutation
 - [x] 2.6 Rewrite `CashierSelector.tsx` → use `useCashiers` query
-- [ ] 2.7 Rewrite `DeleteConfirmDialog.tsx` → use `useDeleteCashier` mutation (UI only, no changes needed)
+- [x] 2.7 Rewrite `DeleteConfirmDialog.tsx` → use `useDeleteCashier` mutation (UI only, no changes needed)
 - [ ] 2.8 Delete old server actions (6 files)
 - [ ] 2.9 Verify: list, create, edit, delete cashiers
 
@@ -100,7 +100,7 @@ Backend (NestJS)
 - [x] 5.2 Rewrite `src/app/expenses/page.tsx` → client component
 - [x] 5.3 Rewrite `ExpenseList.tsx` → use `useExpenses` query
 - [x] 5.4 Rewrite `CreateExpense.tsx` → use `useCreateExpense` mutation
-- [ ] 5.5 Rewrite `ExpenseItem.tsx` → use `useDeleteExpense` mutation (no changes needed, onDelete callback pattern)
+- [x] 5.5 Rewrite `ExpenseItem.tsx` → use `useDeleteExpense` mutation (no changes needed, onDelete callback pattern)
 - [ ] 5.6 Delete old server actions (8 files)
 - [ ] 5.7 Verify: expense list, create, delete
 
@@ -114,43 +114,42 @@ Backend (NestJS)
 
 ### Phase 7: Employees
 
-- [ ] 7.1 Create `src/hooks/useEmployees.ts`
-- [ ] 7.2 Rewrite `src/app/employees/page.tsx` → client component
-- [ ] 7.3 Rewrite `src/app/employees/[id]/page.tsx` → client component
-- [ ] 7.4 Rewrite `EmployeeCard.tsx` → use hooks
-- [ ] 7.5 Rewrite `CreateNewEmployee.tsx` → use hooks
+- [x] 7.1 Create `src/hooks/useEmployees.ts`
+- [x] 7.2 Rewrite `src/app/employees/page.tsx` → client component
+- [x] 7.3 Rewrite `src/app/employees/[id]/page.tsx` → client component
+- [x] 7.4 Rewrite `EmployeeCard.tsx` → use hooks
+- [x] 7.5 Rewrite `CreateNewEmployee.tsx` → use hooks
 - [ ] 7.6 Delete old server actions (5 files)
 - [ ] 7.7 Verify: employee list, create, edit, delete, attendance
 
 ### Phase 8: Attachments
 
-- [ ] 8.1 Create `src/hooks/useAttachments.ts`
-- [ ] 8.2 Rewrite `src/app/attachments/page.tsx` → client component
-- [ ] 8.3 Rewrite `AttachmentList.tsx` → use `useAttachments` query
-- [ ] 8.4 Rewrite `CreateAttachments.tsx` → use `useCreateAttachment` mutation
-- [ ] 8.5 Rewrite `EditAttachments.tsx` → use `useEditAttachment` mutation
+- [x] 8.1 Create `src/hooks/useAttachments.ts`
+- [x] 8.2 Rewrite `src/app/attachments/page.tsx` → client component
+- [x] 8.3 Rewrite `AttachmentList.tsx` → use `useAttachments` query
+- [x] 8.4 Rewrite `CreateAttachments.tsx` → use `useCreateAttachment` mutation
+- [x] 8.5 Rewrite `EditAttachments.tsx` → use `useEditAttachment` mutation
 - [ ] 8.6 Delete old server actions (5 files)
 - [ ] 8.7 Verify: attachment CRUD, file upload
 
 ### Phase 9: Deliveries
 
-- [ ] 9.1 Create `src/hooks/useDeliveries.ts`
-- [ ] 9.2 Rewrite `src/app/deliveries/page.tsx` → client component
-- [ ] 9.3 Rewrite `DeliveryList.tsx` → use hooks
-- [ ] 9.4 Rewrite `CashierDeliveryList.tsx` → use hooks
-- [ ] 9.5 Rewrite `DeliveryItem.tsx` → use hooks (fix `alert()` → toast)
+- [x] 9.1 Create `src/hooks/useDeliveries.ts`
+- [x] 9.2 Rewrite `src/app/deliveries/page.tsx` → client component
+- [x] 9.3 Rewrite `DeliveryList.tsx` → use hooks
+- [x] 9.4 Rewrite `CashierDeliveryList.tsx` → DELETED (dead code, never imported)
+- [x] 9.5 Rewrite `DeliveryItem.tsx` → use hooks (fix `alert()` → toast)
 - [ ] 9.6 Delete old server actions (6 files)
 - [ ] 9.7 Verify: delivery list, create, delete, filter by cashier
 
 ### Phase 10: Bill Counts
 
-- [ ] 10.1 Create `src/hooks/useBillCounts.ts`
-- [ ] 10.2 Rewrite `src/app/kahon/page.tsx` → client component (if applicable)
-- [ ] 10.3 Rewrite `BillsList.tsx` → use hooks
-- [ ] 10.4 Rewrite `CreateBillCount.tsx` → use hooks
-- [ ] 10.5 Rewrite `EditBillCount.tsx` → use hooks
-- [ ] 10.6 Delete old server actions (8 files)
-- [ ] 10.7 Verify: bill count CRUD, filter by date
+- [x] 10.1 Create `src/hooks/useBillCounts.ts`
+- [x] 10.2 Rewrite `BillsList.tsx` → use hooks
+- [x] 10.3 Rewrite `CreateBillCount.tsx` → use hooks
+- [x] 10.4 Rewrite `EditBillCount.tsx` → use hooks
+- [ ] 10.5 Delete old server actions (8 files)
+- [ ] 10.6 Verify: bill count CRUD, filter by date
 
 ### Phase 11: Stocks & Transfers
 

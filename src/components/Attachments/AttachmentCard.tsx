@@ -4,22 +4,21 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FileIcon, ImageIcon, FileTextIcon, Trash2, Eye, Pencil } from "lucide-react"
 import type { Attachment } from "../../../utils/types/schema.type"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { EditAttachment } from "./EditAttachments"
 import { useState } from "react"
 import Image from "next/image"
 
 interface AttachmentCardProps {
   attachment: Attachment
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => void
   onView: () => void
-  onUpdate: (updatedAttachment: Attachment) => void
+  onUpdate: () => void
 }
 
 export function AttachmentCard({ attachment, onDelete, onView, onUpdate }: AttachmentCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const { toast } = useToast()
 
   const getFileIcon = () => {
     if (attachment.url.match(/\.(jpeg|jpg|gif|png)$/)) {
@@ -33,14 +32,10 @@ export function AttachmentCard({ attachment, onDelete, onView, onUpdate }: Attac
   const handleDelete = async () => {
     try {
       setIsDeleting(true)
-      await onDelete(attachment.id)
+      onDelete(attachment.id)
     } catch (error) {
       console.log("Error deleting attachment:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete attachment",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete attachment")
     } finally {
       setIsDeleting(false)
     }

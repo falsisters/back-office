@@ -10,7 +10,7 @@ import Image from "next/image"
 interface AttachmentDetailsProps {
   attachment: Attachment
   onClose: () => void
-  onUpdate: (updatedAttachment: Attachment) => void
+  onUpdate: () => void
 }
 
 export function AttachmentDetails({ attachment, onUpdate }: AttachmentDetailsProps) {

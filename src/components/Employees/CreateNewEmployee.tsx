@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -8,12 +8,10 @@ import {
   CreateEmployeeType,
 } from "../../../utils/types/Employee/addEmployee.type";
 import { EmployeeWithShiftsResponse } from "../../../utils/types/Employee/getEmployee.type";
-import { createEmployee } from "@/lib/server/Employee/addEmployee";
-import { editEmployee } from "@/lib/server/Employee/editEmployee";
+import { useCreateEmployee, useEditEmployee } from "@/hooks/useEmployees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 interface CreateNewEmployeeProps {
@@ -25,9 +23,11 @@ const CreateNewEmployee = ({
   initialData,
   onSuccess,
 }: CreateNewEmployeeProps) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
+  const createMutation = useCreateEmployee();
+  const editMutation = useEditEmployee();
   const isEditing = !!initialData;
+
+  const isPending = isEditing ? editMutation.isPending : createMutation.isPending;
 
   const {
     register,
@@ -54,31 +54,40 @@ const CreateNewEmployee = ({
     }
   }, [initialData, setValue, reset]);
 
-  const onSubmit = async (data: CreateEmployeeType) => {
-    if (isSubmitting) return;
+  const onSubmit = (data: CreateEmployeeType) => {
+    if (isPending) return;
 
-    setIsSubmitting(true);
-    try {
-      if (isEditing && initialData) {
-        await editEmployee(initialData.id, data);
-        toast.success("Employee updated successfully");
-      } else {
-        await createEmployee(data);
-        toast.success("Employee created successfully");
-        reset();
-      }
-
-      router.refresh();
-      onSuccess?.();
-    } catch (error) {
-      console.error("Employee operation error:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : `Failed to ${isEditing ? "update" : "create"} employee`
+    if (isEditing && initialData) {
+      editMutation.mutate(
+        { id: initialData.id, data },
+        {
+          onSuccess: () => {
+            reset();
+            onSuccess?.();
+          },
+          onError: (error) => {
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "Failed to update employee"
+            );
+          },
+        }
       );
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      createMutation.mutate(data, {
+        onSuccess: () => {
+          reset();
+          onSuccess?.();
+        },
+        onError: (error) => {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to create employee"
+          );
+        },
+      });
     }
   };
 
@@ -91,7 +100,7 @@ const CreateNewEmployee = ({
           placeholder="Enter employee name"
           {...register("name")}
           className={errors.name ? "border-destructive" : ""}
-          disabled={isSubmitting}
+          disabled={isPending}
         />
         {errors.name && (
           <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -105,7 +114,7 @@ const CreateNewEmployee = ({
           placeholder="Enter branch name"
           {...register("branch")}
           className={errors.branch ? "border-destructive" : ""}
-          disabled={isSubmitting}
+          disabled={isPending}
         />
         {errors.branch && (
           <p className="text-sm text-destructive">{errors.branch.message}</p>
@@ -115,10 +124,10 @@ const CreateNewEmployee = ({
       <div className="flex justify-end space-x-2">
         <Button
           type="submit"
-          disabled={isSubmitting || !isValid}
+          disabled={isPending || !isValid}
           className="w-full"
         >
-          {isSubmitting
+          {isPending
             ? isEditing
               ? "Updating..."
               : "Creating..."

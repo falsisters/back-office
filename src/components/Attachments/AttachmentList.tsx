@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAllAttachments } from "@/lib/server/Attachment/getAllAttachments";
-import { deleteAttachment } from "@/lib/server/Attachment/deleteAttachment";
-import type { GetAllAttachmentsPayload } from "../../../utils/types/Attachment/getAllAttachments.type";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useAttachments, useDeleteAttachment } from "@/hooks/useAttachments";
+import type { Attachment } from "../../../utils/types/schema.type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CalendarIcon, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { AttachmentCard } from "./AttachmentCard";
 import { CreateAttachment } from "./CreateAttachments";
 import { format } from "date-fns";
@@ -27,116 +26,47 @@ import { AttachmentDetails } from "./AttachmentDetails";
 import { SearchBar } from "../SearchBar";
 
 export function AttachmentList() {
-  const [attachments, setAttachments] = useState<GetAllAttachmentsPayload>([]);
-  const [filteredAttachments, setFilteredAttachments] =
-    useState<GetAllAttachmentsPayload>([]);
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedAttachment, setSelectedAttachment] = useState<
-    GetAllAttachmentsPayload[number] | null
-  >(null);
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
 
-  useEffect(() => {
-    fetchAttachments();
-  }, []);
+  const { data: attachments = [], isLoading, isError, error, refetch } = useAttachments();
+  const deleteMutation = useDeleteAttachment();
 
-  useEffect(() => {
-    if (attachments.length > 0) {
-      let filtered = [...attachments];
+  const handleDeleteAttachment = useCallback(
+    (id: string) => {
+      deleteMutation.mutate(id);
+    },
+    [deleteMutation]
+  );
 
-      if (date) {
-        filtered = filtered.filter((attachment) => {
-          const attachmentDate = new Date(attachment.createdAt);
-          return attachmentDate.toDateString() === date.toDateString();
-        });
-      }
+  const filteredAttachments = useMemo(() => {
+    let filtered = [...attachments];
 
-      setFilteredAttachments(filtered);
-    }
-  }, [attachments, date]);
-
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredAttachments(attachments);
-    } else {
-      const filtered = attachments.filter((attachment) =>
-        attachment.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredAttachments(filtered);
-    }
-  }, [searchTerm, attachments]);
-
-  const fetchAttachments = async () => {
-    try {
-      setIsLoading(true);
-      const data = await getAllAttachments();
-      setAttachments(data);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load attachments"
-      );
-      console.error("Error fetching attachments:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteAttachment = async (id: string) => {
-    try {
-      await deleteAttachment(id);
-      toast({
-        title: "Attachment deleted",
-        description: "The attachment has been successfully deleted.",
-      });
-      setAttachments(attachments.filter((attachment) => attachment.id !== id));
-    } catch (error) {
-      console.error("Error deleting: ", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete the attachment. Please try again.",
-        variant: "destructive",
+    if (date) {
+      filtered = filtered.filter((attachment) => {
+        const attachmentDate = new Date(attachment.createdAt);
+        return attachmentDate.toDateString() === date.toDateString();
       });
     }
-  };
 
-  const handleAttachmentCreated = (newAttachment: {
-    id: string;
-    name: string;
-    type:
-      | "EXPENSE_RECEIPT"
-      | "CHECKS_AND_BANK_TRANSFER"
-      | "INVENTORIES"
-      | "SUPPORTING_DOCUMENTS";
-    url: string;
-  }) => {
-    setAttachments((prev) => [
-      ...prev,
-      {
-        ...newAttachment,
-        userId: "",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
-    toast({
-      title: "Attachment created",
-      description: "New attachment has been successfully added.",
-    });
-  };
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((attachment) =>
+        attachment.name.toLowerCase().includes(term)
+      );
+    }
 
-  const handleAttachmentUpdated = (
-    updatedAttachment: GetAllAttachmentsPayload[number]
-  ) => {
-    setAttachments((prev) =>
-      prev.map((attachment) =>
-        attachment.id === updatedAttachment.id ? updatedAttachment : attachment
-      )
-    );
-  };
+    return filtered;
+  }, [attachments, date, searchTerm]);
+
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load attachments"
+      );
+    }
+  }, [isError, error]);
 
   if (isLoading) {
     return (
@@ -148,6 +78,7 @@ export function AttachmentList() {
       </div>
     );
   }
+
   const handleClearSearch = () => {
     setSearchTerm("");
   };
@@ -155,8 +86,7 @@ export function AttachmentList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <CreateAttachment onAttachmentCreated={handleAttachmentCreated} />
-        {/* Search bar implementation */}
+        <CreateAttachment />
         <div className="relative flex-1">
           <SearchBar
             searchTerm={searchTerm}
@@ -196,13 +126,15 @@ export function AttachmentList() {
         </Popover>
       </div>
 
-      {error ? (
+      {isError ? (
         <Card className="w-full border-red-200 shadow-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
+              <p className="text-red-500 mb-4">
+                {error instanceof Error ? error.message : "Failed to load attachments"}
+              </p>
               <Button
-                onClick={() => fetchAttachments()}
+                onClick={() => refetch()}
                 variant="outline"
                 className="border-primary text-primary hover:bg-primary/10"
               >
@@ -235,7 +167,7 @@ export function AttachmentList() {
               attachment={attachment}
               onDelete={handleDeleteAttachment}
               onView={() => setSelectedAttachment(attachment)}
-              onUpdate={handleAttachmentUpdated}
+              onUpdate={() => refetch()}
             />
           ))}
         </div>
@@ -254,7 +186,10 @@ export function AttachmentList() {
               <AttachmentDetails
                 attachment={selectedAttachment}
                 onClose={() => setSelectedAttachment(null)}
-                onUpdate={handleAttachmentUpdated}
+                onUpdate={() => {
+                  refetch();
+                  setSelectedAttachment(null);
+                }}
               />
             </>
           )}

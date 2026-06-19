@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
@@ -20,7 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { editCashierBillCount } from "@/lib/server/BillCount/editCashierBillCount";
+import { useEditCashierBillCount } from "@/hooks/useBillCounts";
 import {
   UpdateBillCountSchema,
   type UpdateBillCountType,
@@ -32,7 +31,7 @@ interface ConsolidatedEditBillCountsProps {
   onClose: () => void;
   billCount: GetBillCountForDatePayload;
   cashierId: string;
-  onSuccess: () => Promise<void>;
+  onSuccess: () => void;
 }
 
 export function EditBillCounts({
@@ -42,9 +41,8 @@ export function EditBillCounts({
   cashierId,
   onSuccess,
 }: ConsolidatedEditBillCountsProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const editMutation = useEditCashierBillCount();
 
-  // Utility function to prevent wheel events on number inputs
   const preventWheelChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
@@ -53,7 +51,7 @@ export function EditBillCounts({
     resolver: zodResolver(UpdateBillCountSchema),
     defaultValues: {
       beginningBalance: billCount?.beginningBalance || 0,
-      showBeginningBalance: true, // Always true now
+      showBeginningBalance: true,
       bills:
         billCount?.bills.map((bill) => ({
           amount: bill.amount,
@@ -62,19 +60,18 @@ export function EditBillCounts({
     },
   });
 
-  const onSubmit = async (data: UpdateBillCountType) => {
+  const onSubmit = (data: UpdateBillCountType) => {
     if (!billCount) return;
 
-    setIsSubmitting(true);
-    try {
-      await editCashierBillCount(cashierId, billCount.id, data);
-      await onSuccess();
-      onClose();
-    } catch (error) {
-      console.error("Failed to update bill count:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    editMutation.mutate(
+      { cashierId, id: billCount.id, data },
+      {
+        onSuccess: () => {
+          onSuccess();
+          onClose();
+        },
+      }
+    );
   };
 
   const getBillTypeLabel = (type: string) => {
@@ -106,7 +103,6 @@ export function EditBillCounts({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Beginning Balance Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-primary">
                 Beginning Balance
@@ -145,7 +141,6 @@ export function EditBillCounts({
               />
             </div>
 
-            {/* Bill Counts Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-primary">
                 Bill Counts
@@ -186,8 +181,8 @@ export function EditBillCounts({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={editMutation.isPending}>
+                {editMutation.isPending ? (
                   <>
                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent border-white rounded-full"></div>
                     Saving...

@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { createAttachment } from "@/lib/server/Attachment/createAttachment";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useCreateAttachment } from "@/hooks/useAttachments";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle, Upload } from "lucide-react";
+import { toast } from "sonner";
 import type { AttachmentType } from "../../../utils/types/schema.type";
 import {
   validateAttachmentFile,
@@ -22,57 +22,45 @@ import {
   formatFileSize,
 } from "@/lib/utils/fileValidation";
 
-export function CreateAttachment({
-  onAttachmentCreated,
-}: {
-  onAttachmentCreated: (newAttachment: {
-    id: string;
-    name: string;
-    type: AttachmentType;
-    url: string;
-  }) => void;
-}) {
+export function CreateAttachment() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<AttachmentType>("EXPENSE_RECEIPT");
   const [file, setFile] = useState<File | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const createMutation = useCreateAttachment();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setFileError(null);
 
     if (!file) {
-      setError("Please select a file to upload");
+      setFileError("Please select a file to upload");
       return;
     }
 
-    try {
-      setIsLoading(true);
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("type", type);
-      formData.append("file", file);
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("type", type);
+    formData.append("file", file);
 
-      const newAttachment = await createAttachment(formData);
-      onAttachmentCreated(newAttachment);
-      resetForm();
-      setOpen(false);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    createMutation.mutate(formData, {
+      onSuccess: () => {
+        resetForm();
+        setOpen(false);
+      },
+      onError: () => {
+        // Error toast handled by hook
+      },
+    });
   };
 
   const resetForm = () => {
     setName("");
     setType("EXPENSE_RECEIPT");
     setFile(null);
-    setError(null);
+    setFileError(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,12 +70,11 @@ export function CreateAttachment({
       const validation = validateAttachmentFile(file);
 
       if (!validation.isValid) {
-        setError(validation.error || "Invalid file");
+        setFileError(validation.error || "Invalid file");
         e.target.value = "";
         return;
       }
 
-      // Show file info and category
       if (validation.fileInfo) {
         const category = getFileTypeCategory(file.type);
         console.log(
@@ -98,7 +85,7 @@ export function CreateAttachment({
       }
 
       setFile(file);
-      setError(null); // Clear any previous errors
+      setFileError(null);
     } else {
       setFile(null);
     }
@@ -122,10 +109,10 @@ export function CreateAttachment({
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+        {fileError && (
+          <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-md text-sm">
+            {fileError}
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -196,10 +183,10 @@ export function CreateAttachment({
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={createMutation.isPending}
             className="w-full bg-secondary hover:bg-secondary/90 text-white"
           >
-            {isLoading ? "Uploading..." : "Upload Attachment"}
+            {createMutation.isPending ? "Uploading..." : "Upload Attachment"}
           </Button>
         </form>
       </DialogContent>

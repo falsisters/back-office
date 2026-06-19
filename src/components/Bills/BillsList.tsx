@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,51 +19,27 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { getCashierBillCountForDate } from "@/lib/server/BillCount/getCashierBillCountByDate";
+import { useBillCountsByCashier } from "@/hooks/useBillCounts";
 import { BillCountTableRow } from "./BillCountTableRow";
 import { CreateBillCounts } from "./CreateBillCount";
 import { CashierSelector } from "../CashierSelector";
-import type { GetBillCountForDatePayload } from "../../../utils/types/BillCount/getBillCountByDate.type";
 
 export function BillCountList() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedCashierId, setSelectedCashierId] = useState<string>("");
   const [selectedCashierName, setSelectedCashierName] = useState<string>("");
-  const [billCount, setBillCount] = useState<GetBillCountForDatePayload | null>(
-    null
-  );
-  const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  useEffect(() => {
-    if (selectedCashierId && date) {
-      fetchBillCount();
-    } else {
-      setBillCount(null);
-    }
-  }, [selectedCashierId, date]);
+  const formattedDate = date ? format(date, "yyyy-MM-dd") : undefined;
 
-  const fetchBillCount = async () => {
-    if (!selectedCashierId || !date) return;
-
-    setLoading(true);
-    try {
-      const formattedDate = format(date, "yyyy-MM-dd");
-      const data = await getCashierBillCountForDate(
-        selectedCashierId,
-        formattedDate
-      );
-      setBillCount(data);
-    } catch (error) {
-      console.error("Failed to fetch bill count:", error);
-      setBillCount(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: billCount,
+    isLoading: loading,
+    refetch,
+  } = useBillCountsByCashier(selectedCashierId, formattedDate);
 
   const handleRefresh = async () => {
-    await fetchBillCount();
+    await refetch();
   };
 
   const handleCashierSelect = (cashierId: string, cashierName: string) => {
@@ -71,10 +47,6 @@ export function BillCountList() {
     setSelectedCashierName(cashierName);
   };
 
-  // Check if we have data and if the bills array exists and has items
-  const hasData = billCount && billCount.bills && billCount.bills.length > 0;
-
-  // Helper function to get display date (use the selected date directly)
   const getDisplayDate = (selectedDate: Date | undefined) => {
     if (!selectedDate) return null;
     return selectedDate;
@@ -145,7 +117,10 @@ export function BillCountList() {
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : hasData ? (
+        ) : billCount != null && billCount.bills.length > 0 ? (
+          (() => {
+            const bc = billCount!;
+            return (
           <div className="space-y-6 mt-4">
             <div className="bg-primary/5 p-4 rounded-lg">
               <h3 className="font-medium text-primary mb-2">
@@ -161,7 +136,7 @@ export function BillCountList() {
                   Total Cash
                 </h3>
                 <p className="text-2xl font-bold text-primary">
-                  ₱{billCount.totalCash.toLocaleString()}
+                  ₱{bc.totalCash.toLocaleString()}
                 </p>
               </div>
               <div className="bg-muted/20 p-4 rounded-lg">
@@ -169,7 +144,7 @@ export function BillCountList() {
                   Total Expenses
                 </h3>
                 <p className="text-2xl font-bold text-red-600">
-                  ₱{billCount.totalExpenses.toLocaleString()}
+                  ₱{bc.totalExpenses.toLocaleString()}
                 </p>
               </div>
               <div className="bg-muted/20 p-4 rounded-lg">
@@ -177,7 +152,7 @@ export function BillCountList() {
                   Net Cash
                 </h3>
                 <p className="text-2xl font-bold text-orange-600">
-                  ₱{billCount.netCash.toLocaleString()}
+                  ₱{bc.netCash.toLocaleString()}
                 </p>
               </div>
               <div className="bg-muted/20 p-4 rounded-lg">
@@ -185,7 +160,7 @@ export function BillCountList() {
                   Bills Total
                 </h3>
                 <p className="text-2xl font-bold text-secondary">
-                  ₱{billCount.billsTotal.toLocaleString()}
+                  ₱{bc.billsTotal.toLocaleString()}
                 </p>
               </div>
               <div className="bg-muted/20 p-4 rounded-lg">
@@ -193,7 +168,7 @@ export function BillCountList() {
                   Coins Total
                 </h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  ₱{(billCount.coinsTotal ?? 0).toLocaleString()}
+                  ₱{(bc.coinsTotal ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -209,14 +184,13 @@ export function BillCountList() {
               </TableHeader>
               <TableBody>
                 <BillCountTableRow
-                  billCount={billCount}
+                  billCount={bc}
                   cashierId={selectedCashierId}
                   onRefresh={handleRefresh}
                 />
               </TableBody>
             </Table>
 
-            {/* New Summary Breakdown Section */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-primary mb-4">
                 Summary Breakdown
@@ -231,7 +205,7 @@ export function BillCountList() {
                       Total Cash (from Sales)
                     </span>
                     <span className="text-lg font-semibold text-primary">
-                      ₱{billCount.totalCash.toLocaleString()}
+                      ₱{bc.totalCash.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-blue-200">
@@ -239,7 +213,7 @@ export function BillCountList() {
                       Total Cash from Bills
                     </span>
                     <span className="text-lg font-semibold text-secondary">
-                      ₱{billCount.billsTotal.toLocaleString()}
+                      ₱{bc.billsTotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-blue-200">
@@ -247,7 +221,7 @@ export function BillCountList() {
                       Net Cash (Cash - Expenses)
                     </span>
                     <span className="text-lg font-semibold text-orange-600">
-                      ₱{billCount.netCash.toLocaleString()}
+                      ₱{bc.netCash.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -257,53 +231,47 @@ export function BillCountList() {
                     Summary Calculation
                   </h4>
                   <div className="bg-white/50 p-4 rounded border-l-4 border-l-primary">
-                    {/* Step 1: Total Cash from Bills (after beginning balance adjustment) */}
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">
                         Total Cash from Bills
                       </span>
                       <span className="font-medium">
-                        ₱{billCount.billsTotal.toLocaleString()}
+                        ₱{bc.billsTotal.toLocaleString()}
                       </span>
                     </div>
 
-                    {/* Step 1 Result */}
                     <div className="flex justify-between items-center py-1 text-sm border-t border-gray-200 mt-2 pt-2">
                       <span className="text-gray-700 font-medium">
                         Step 1 Result
                       </span>
                       <span className="font-semibold">
-                        ₱{billCount.billsTotal.toLocaleString()}
+                        ₱{bc.billsTotal.toLocaleString()}
                       </span>
                     </div>
 
-                    {/* Divider */}
                     <div className="border-t border-gray-300 my-3"></div>
 
-                    {/* Second calculation section */}
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">Step 1 Result</span>
                       <span className="font-medium">
-                        ₱{billCount.billsTotal.toLocaleString()}
+                        ₱{bc.billsTotal.toLocaleString()}
                       </span>
                     </div>
 
-                    {/* Add Expenses */}
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">+ Expenses</span>
                       <span className="font-medium text-green-600">
-                        + ₱{billCount.totalExpenses.toLocaleString()}
+                        + ₱{bc.totalExpenses.toLocaleString()}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center py-1 text-sm">
                       <span className="text-gray-600">- Beginning Balance</span>
                       <span className="font-medium text-green-600">
-                        - ₱{billCount.beginningBalance.toLocaleString()}
+                        - ₱{bc.beginningBalance.toLocaleString()}
                       </span>
                     </div>
 
-                    {/* Final Summary Total */}
                     <div className="flex justify-between items-center py-2 border-t-2 border-primary mt-3 pt-3">
                       <span className="text-base font-semibold text-gray-800">
                         Final Summary
@@ -311,21 +279,20 @@ export function BillCountList() {
                       <span className="text-xl font-bold text-primary">
                         ₱
                         {(() => {
-                          // Check if summaryStep1 already has beginning balance subtracted
-                          const step1HasBalanceSubtracted = billCount.showBeginningBalance && 
-                            (billCount.summaryStep1 === billCount.billsTotal - billCount.beginningBalance);
+                          const step1HasBalanceSubtracted = bc.showBeginningBalance && 
+                            (bc.summaryStep1 === bc.billsTotal - bc.beginningBalance);
                           
                           const finalValue = step1HasBalanceSubtracted
-                            ? billCount.summaryFinal  // Use as-is
-                            : billCount.summaryFinal - billCount.beginningBalance; // Subtract beginning balance
+                            ? bc.summaryFinal
+                            : bc.summaryFinal - bc.beginningBalance;
                           
                           console.log("🧮 FINAL CALCULATION DEBUG:", {
-                            showBeginningBalance: billCount.showBeginningBalance,
-                            billsTotal: billCount.billsTotal,
-                            beginningBalance: billCount.beginningBalance,
-                            summaryStep1: billCount.summaryStep1,
-                            summaryFinal: billCount.summaryFinal,
-                            expectedStep1: billCount.billsTotal - billCount.beginningBalance,
+                            showBeginningBalance: bc.showBeginningBalance,
+                            billsTotal: bc.billsTotal,
+                            beginningBalance: bc.beginningBalance,
+                            summaryStep1: bc.summaryStep1,
+                            summaryFinal: bc.summaryFinal,
+                            expectedStep1: bc.billsTotal - bc.beginningBalance,
                             step1HasBalanceSubtracted,
                             finalValue,
                             calculation: step1HasBalanceSubtracted ? "Use summaryFinal as-is" : "Subtract beginning balance"
@@ -340,6 +307,8 @@ export function BillCountList() {
               </div>
             </div>
           </div>
+            );
+          })()
         ) : (
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-4">

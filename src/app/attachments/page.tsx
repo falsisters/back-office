@@ -1,16 +1,24 @@
-import { AttachmentList } from "@/components/Attachments/AttachmentList"
-import { getUserData } from "@/lib/server/getUserData"
-import { redirect } from "next/navigation"
+"use client";
 
-export default async function AttachmentsPage() {
-  let userData
-  try {
-    userData = await getUserData()
-  } catch (error) {
-    if (!userData) {
-      redirect("/")
-    }
-    console.error(error, "Unauthorized")
+import { AttachmentList } from "@/components/Attachments/AttachmentList";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
+
+export default function AttachmentsPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    redirect("/login");
+    return null;
   }
 
   return (
@@ -20,5 +28,5 @@ export default async function AttachmentsPage() {
       </div>
       <AttachmentList />
     </div>
-  )
+  );
 }

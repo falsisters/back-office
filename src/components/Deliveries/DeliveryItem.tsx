@@ -12,9 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDeliveryById } from "@/lib/server/Deliveries/getDeliveryById";
+import { useDeleteDelivery } from "@/hooks/useDeliveries";
 import type { GetDeliveryByIdPayload } from "../../../utils/types/Deliveries/getDeliveryById.type";
-import { deleteDelivery } from "@/lib/server/Deliveries/deleteDelivery";
 import {
   Loader2,
   Trash2Icon,
@@ -28,52 +27,47 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface DeliveryItemProps {
   delivery: GetDeliveryByIdPayload;
-  onDelete: (deletedDeliveryId: string) => void;
 }
 
-export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
+export function DeliveryItem({ delivery }: DeliveryItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailedDelivery, setDetailedDelivery] =
     useState<GetDeliveryByIdPayload | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const deleteMutation = useDeleteDelivery();
 
   const handleViewDetails = async () => {
     try {
       setIsLoading(true);
-      const details = await getDeliveryById(delivery.id);
-      setDetailedDelivery(details);
+      const response = await fetch(`/api/delivery/${delivery.id}`);
+      if (!response.ok) throw new Error("Failed to fetch details");
+      const data = await response.json();
+      setDetailedDelivery(data);
       setIsModalOpen(true);
-    } catch (error) {
-      console.error("Failed to fetch delivery details:", error);
-      alert("Failed to fetch delivery details. Please try again.");
+    } catch {
+      toast.error("Failed to fetch delivery details. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleConfirmDelete = async () => {
-    try {
-      setIsDeleting(true);
-      // Optimistically update UI first
-      onDelete(delivery.id);
-
-      // Then perform the actual deletion
-      await deleteDelivery(delivery.id);
-    } catch (error) {
-      console.error("Failed to delete delivery:", error);
-      alert("Failed to delete delivery. Please try again.");
-    } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
-    }
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(delivery.id, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+      },
+      onError: () => {
+        toast.error("Failed to delete delivery. Please try again.");
+      },
+    });
   };
 
-  // Function to format sack type for display
   const formatSackType = (sackType: string) => {
     switch (sackType) {
       case "FIFTY_KG":
@@ -183,11 +177,15 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
               Delivery Details
             </DialogTitle>
             <DialogDescription className="text-sm">
-              ID: {detailedDelivery?.id}
+              ID: {delivery.id}
             </DialogDescription>
           </DialogHeader>
 
-          {detailedDelivery && (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : detailedDelivery ? (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -308,6 +306,10 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
                 )}
               </div>
             </div>
+          ) : (
+            <div className="flex justify-center items-center h-32">
+              <p className="text-muted-foreground">Delivery details will load here.</p>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -336,16 +338,16 @@ export function DeliveryItem({ delivery, onDelete }: DeliveryItemProps) {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
             >
-              {isDeleting ? (
+              {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Deleting...

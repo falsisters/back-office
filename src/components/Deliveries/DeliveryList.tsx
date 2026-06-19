@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { DeliveryItem } from "@/components/Deliveries/DeliveryItem";
 import { CashierSelector } from "@/components/Cashier/CashierSelector";
-import { getAllDeliveriesByCashierId } from "@/lib/server/Deliveries/getAllDeliveriesByCashierId";
+import { useDeliveriesByCashier } from "@/hooks/useDeliveries";
 import type { GetAllDeliveriesByCashierIdPayload } from "../../../utils/types/Deliveries/getAllDeliveriesByCashierId.type";
 import { format } from "date-fns";
 import { CalendarIcon, TruckIcon, Loader2 } from "lucide-react";
@@ -15,78 +15,29 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useToast } from "@/hooks/use-toast";
 
 export function DeliveryList() {
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
     null
   );
-  const [deliveries, setDeliveries] =
-    useState<GetAllDeliveriesByCashierIdPayload>([]);
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [filteredDeliveries, setFilteredDeliveries] =
-    useState<GetAllDeliveriesByCashierIdPayload>([]);
-  const [isLoadingDeliveries, setIsLoadingDeliveries] = useState(false);
-  const { toast } = useToast();
 
-  // Load deliveries when cashier is selected
-  useEffect(() => {
-    if (selectedCashierId) {
-      loadDeliveries(selectedCashierId);
-    }
-  }, [selectedCashierId]);
+  const { data: deliveries = [], isLoading } =
+    useDeliveriesByCashier(selectedCashierId ?? "");
 
-  // Filter deliveries by date
-  useEffect(() => {
-    let filtered = [...deliveries];
+  const filteredDeliveries = useMemo(() => {
+    if (!date) return deliveries;
 
-    if (date) {
-      filtered = filtered.filter((delivery) => {
-        const deliveryDate = new Date(delivery.createdAt);
-        return deliveryDate.toDateString() === date.toDateString();
-      });
-    }
-
-    setFilteredDeliveries(filtered);
-  }, [deliveries, date]);
-
-  const loadDeliveries = async (cashierId: string) => {
-    try {
-      setIsLoadingDeliveries(true);
-      const data = await getAllDeliveriesByCashierId(cashierId);
-      setDeliveries(data);
-    } catch (error) {
-      console.error("Error loading deliveries:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load deliveries. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingDeliveries(false);
-    }
-  };
-
-  const handleDeleteDelivery = (deletedDeliveryId: string) => {
-    const previousDeliveries = [...deliveries];
-    setDeliveries((prev) => prev.filter((d) => d.id !== deletedDeliveryId));
-
-    toast({
-      title: "Delivery deleted",
-      description: "The delivery has been successfully deleted.",
+    return deliveries.filter((delivery) => {
+      const deliveryDate = new Date(delivery.createdAt);
+      return deliveryDate.toDateString() === date.toDateString();
     });
-
-    return () => {
-      setDeliveries(previousDeliveries);
-    };
-  };
+  }, [deliveries, date]);
 
   const handleCashierSelect = (cashierId: string) => {
     setSelectedCashierId(cashierId);
-    setDeliveries([]);
   };
 
-  // Group deliveries by date
   const groupDeliveriesByDate = () => {
     const grouped: Record<string, GetAllDeliveriesByCashierIdPayload> = {};
 
@@ -114,7 +65,6 @@ export function DeliveryList() {
     <div className="p-4 space-y-6">
       <h1 className="text-3xl font-bold mb-4">Deliveries</h1>
 
-      {/* Cashier Selection */}
       <CashierSelector
         selectedCashierId={selectedCashierId}
         onCashierSelect={handleCashierSelect}
@@ -122,11 +72,10 @@ export function DeliveryList() {
 
       {selectedCashierId && (
         <>
-          {/* Date Filter */}
           <div className="rounded-lg border bg-card shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                {isLoadingDeliveries ? (
+                {isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading deliveries...
@@ -141,7 +90,7 @@ export function DeliveryList() {
                     variant="outline"
                     size="auto"
                     className="w-full sm:w-auto justify-start text-left font-normal"
-                    disabled={isLoadingDeliveries}
+                    disabled={isLoading}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                     {date ? (
@@ -163,8 +112,7 @@ export function DeliveryList() {
             </div>
           </div>
 
-          {/* Loading State */}
-          {isLoadingDeliveries ? (
+          {isLoading ? (
             <Card>
               <CardContent className="py-8">
                 <div className="flex flex-col items-center justify-center h-64">
@@ -211,7 +159,6 @@ export function DeliveryList() {
                           <DeliveryItem
                             key={delivery.id}
                             delivery={delivery}
-                            onDelete={handleDeleteDelivery}
                           />
                         ))}
                       </div>

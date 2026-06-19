@@ -1,10 +1,44 @@
+"use client";
+
 import React from "react";
-import { getAllEmployees } from "@/lib/server/Employee/getEmployee";
+import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/useEmployees";
 import EmployeesList from "@/components/Employees/EmployeesList";
 import AddEmployeeDialog from "@/components/Employees/AddEmployeeDialog";
+import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
 
-const EmployeesPage = async () => {
-  const employees = await getAllEmployees();
+const EmployeesPage = () => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    redirect("/login");
+    return null;
+  }
+
+  return <EmployeesPageContent />;
+};
+
+function EmployeesPageContent() {
+  const { data: employees, isLoading } = useEmployees();
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 space-y-6">
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -17,7 +51,7 @@ const EmployeesPage = async () => {
         </div>
         <AddEmployeeDialog />
       </div>
-      <EmployeesList employees={employees} />
+      <EmployeesList employees={employees || []} />
     </div>
   );
 };

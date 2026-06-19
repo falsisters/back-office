@@ -42,8 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { deleteEmployee } from "@/lib/server/Employee/deleteEmployee";
-import { toast } from "sonner";
+import { useDeleteEmployee } from "@/hooks/useEmployees";
 import CreateNewEmployee from "./CreateNewEmployee";
 
 interface EmployeeCardProps {
@@ -53,9 +52,9 @@ interface EmployeeCardProps {
 const EmployeeCard = ({ employee }: EmployeeCardProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
+  const deleteMutation = useDeleteEmployee();
 
   const activeShifts = employee.ShiftEmployee.filter(
     (se) => se.shift.endTime === null
@@ -82,27 +81,19 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
     setIsEditOpen(false);
   }, []);
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteEmployee(employee.id);
-      toast.success("Employee deleted successfully");
-      setIsDeleteOpen(false);
-      router.refresh();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete employee"
-      );
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  const handleDelete = useCallback(() => {
+    deleteMutation.mutate(employee.id, {
+      onSuccess: () => {
+        setIsDeleteOpen(false);
+      },
+    });
+  }, [employee.id, deleteMutation]);
 
   const handleDeleteCancel = useCallback(() => {
-    if (!isDeleting) {
+    if (!deleteMutation.isPending) {
       setIsDeleteOpen(false);
     }
-  }, [isDeleting]);
+  }, [deleteMutation.isPending]);
 
   return (
     <>
@@ -199,13 +190,13 @@ const EmployeeCard = ({ employee }: EmployeeCardProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
