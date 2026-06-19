@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  getProfitDashboardSummary,
-} from "@/lib/server/Profits/getProfitsByCashier";
+import { useState, useMemo } from "react";
+import { useProfitDashboardSummary } from "@/hooks/useProfits";
 import ProfitTracker from "@/components/Sales/ProfitTracker";
 import { type SackType } from "../../../utils/types/schema.type";
 import { SalesFilters } from "@/components/Sales/SalesFilter";
@@ -13,34 +11,10 @@ interface CashierProfitListProps {
   cashierId: string;
 }
 
-interface DashboardSummary {
-  date: string;
-  previousDaysProfit: {
-    sackTotal: number;
-    asinTotal: number;
-    overallTotal: number;
-    rawItems: any[];
-  };
-  currentDayProfit: {
-    sackTotal: number;
-    asinTotal: number;
-    overallTotal: number;
-    rawItems: any[];
-  };
-  overallProfit: number;
-}
-
 export default function CashierProfitList({
   cashierId,
 }: CashierProfitListProps) {
-  const [allProfitData, setAllProfitData] = useState<any>(null);
-  const [profitData, setProfitData] = useState<any>(null);
-  // Cache for day mode data (keyed by cashierId-date string)
-  const [daySummaryCache, setDaySummaryCache] = useState<Record<string, DashboardSummary>>({});
-  // Cache for month mode data (keyed by cashierId, today's summary for current month total)
-  const [monthSummaryCache, setMonthSummaryCache] = useState<Record<string, DashboardSummary>>({});
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
   const [selectedYear, setSelectedYear] = useState<number>(() =>
     new Date().getFullYear()
@@ -49,190 +23,65 @@ export default function CashierProfitList({
     () => new Date().getMonth() + 1
   );
 
-  const formattedSelectedMonth = `${selectedYear}-${String(
-    selectedMonth
-  ).padStart(2, "0")}`;
-
-  // Get today's date string for caching
   const getTodayDateStr = () => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   };
 
-  // Helper to update profitData for day mode
-  const updateDayProfitData = (summary: DashboardSummary) => {
-    setProfitData({
-      rawItems: summary.currentDayProfit.rawItems,
-      sacks: { totalProfit: summary.currentDayProfit.sackTotal },
-      asin: { totalProfit: summary.currentDayProfit.asinTotal },
-      overallTotal: summary.currentDayProfit.overallTotal,
-    });
-    setAllProfitData({
-      rawItems: [
-        ...summary.previousDaysProfit.rawItems,
-        ...summary.currentDayProfit.rawItems,
-      ],
-    });
-  };
+  const dateStr =
+    dateFilterMode === "day"
+      ? date
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+        : getTodayDateStr()
+      : getTodayDateStr();
 
-  // Helper to update profitData for month mode (uses overallProfit = monthly total)
-  const updateMonthProfitData = (summary: DashboardSummary) => {
+  const { data: summary, isLoading } = useProfitDashboardSummary(
+    cashierId,
+    dateStr
+  );
+
+  const profitData = useMemo(() => {
+    if (!summary) return null;
+
+    if (dateFilterMode === "day") {
+      return {
+        rawItems: summary.currentDayProfit.rawItems,
+        sacks: { totalProfit: summary.currentDayProfit.sackTotal },
+        asin: { totalProfit: summary.currentDayProfit.asinTotal },
+        overallTotal: summary.currentDayProfit.overallTotal,
+      };
+    }
+
     const allItems = [
       ...summary.previousDaysProfit.rawItems,
       ...summary.currentDayProfit.rawItems,
     ];
-    setProfitData({
+    return {
       rawItems: allItems,
-      sacks: { totalProfit: summary.previousDaysProfit.sackTotal + summary.currentDayProfit.sackTotal },
-      asin: { totalProfit: summary.previousDaysProfit.asinTotal + summary.currentDayProfit.asinTotal },
+      sacks: {
+        totalProfit:
+          summary.previousDaysProfit.sackTotal +
+          summary.currentDayProfit.sackTotal,
+      },
+      asin: {
+        totalProfit:
+          summary.previousDaysProfit.asinTotal +
+          summary.currentDayProfit.asinTotal,
+      },
       overallTotal: summary.overallProfit,
-    });
-  };
-
-  // Track the current request to prevent race conditions
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
-
-  // Effect for DAY mode - fetches when date changes
-  useEffect(() => {
-    if (dateFilterMode !== "day" || !cashierId || !date) return;
-
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const cacheKey = `${cashierId}-${dateStr}`;
-    
-    // Check cache first - no async needed (cache key includes cashierId)
-    if (daySummaryCache[cacheKey]) {
-      console.log("🔄 PROFITS: Using cached day data for:", cacheKey);
-      updateDayProfitData(daySummaryCache[cacheKey]);
-      setIsLoading(false);
-      return;
-    }
-
-    // Generate a unique request ID for this fetch
-    const requestId = `${dateStr}-${Date.now()}`;
-    setCurrentRequestId(requestId);
-
-    const loadDayProfits = async () => {
-      try {
-        setIsLoading(true);
-        console.log("🔄 PROFITS: Fetching day data for:", dateStr, "requestId:", requestId);
-        
-        const summary = await getProfitDashboardSummary(cashierId, dateStr);
-        
-        // Check if this request is still the current one (not stale)
-        setCurrentRequestId(currentId => {
-          if (currentId !== requestId) {
-            console.log("⚠️ PROFITS: Stale request ignored:", requestId, "current:", currentId);
-            return currentId; // Don't update state, request is stale
-          }
-          
-          console.log("📊 PROFITS: Day summary (valid):", summary);
-          
-          // Cache the result (with cashierId in key)
-          setDaySummaryCache(prev => ({ ...prev, [cacheKey]: summary }));
-          
-          // If this is today, also cache it as month summary for this cashier
-          if (dateStr === getTodayDateStr()) {
-            setMonthSummaryCache(prev => ({ ...prev, [cashierId]: summary }));
-          }
-          
-          updateDayProfitData(summary);
-          setIsLoading(false);
-          
-          return currentId;
-        });
-      } catch (error) {
-        console.error("❌ PROFITS: Error loading day profits:", error);
-        setIsLoading(false);
-      }
     };
+  }, [summary, dateFilterMode]);
 
-    loadDayProfits();
-  }, [cashierId, date, dateFilterMode]);
-
-  // Effect for MONTH mode - uses today's data for current month total
-  useEffect(() => {
-    if (dateFilterMode !== "month" || !cashierId) return;
-
-    const todayStr = getTodayDateStr();
-    const dayCacheKey = `${cashierId}-${todayStr}`;
-    
-    // Check if we have this cashier's data cached (from day mode or previous month load)
-    if (monthSummaryCache[cashierId] && monthSummaryCache[cashierId].date === todayStr) {
-      console.log("🔄 PROFITS: Using cached month data for cashier:", cashierId);
-      updateMonthProfitData(monthSummaryCache[cashierId]);
-      setIsLoading(false);
-      return;
-    }
-    
-    // Check if today's data is in day cache for this cashier
-    if (daySummaryCache[dayCacheKey]) {
-      console.log("🔄 PROFITS: Using today's day cache for month view, cashier:", cashierId);
-      const summary = daySummaryCache[dayCacheKey];
-      setMonthSummaryCache(prev => ({ ...prev, [cashierId]: summary }));
-      updateMonthProfitData(summary);
-      setIsLoading(false);
-      return;
-    }
-
-    // Generate a unique request ID
-    const requestId = `month-${todayStr}-${Date.now()}`;
-    setCurrentRequestId(requestId);
-
-    const loadMonthProfits = async () => {
-      try {
-        setIsLoading(true);
-        console.log("🔄 PROFITS: Fetching month data (today's summary):", todayStr);
-        
-        const summary = await getProfitDashboardSummary(cashierId, todayStr);
-        
-        // Check if this request is still the current one
-        setCurrentRequestId(currentId => {
-          if (currentId !== requestId) {
-            console.log("⚠️ PROFITS: Stale month request ignored:", requestId);
-            return currentId;
-          }
-          
-          console.log("📊 PROFITS: Month summary (valid):", summary);
-          
-          // Cache it with cashierId in keys
-          setMonthSummaryCache(prev => ({ ...prev, [cashierId]: summary }));
-          setDaySummaryCache(prev => ({ ...prev, [dayCacheKey]: summary }));
-          
-          updateMonthProfitData(summary);
-          setIsLoading(false);
-          
-          return currentId;
-        });
-      } catch (error) {
-        console.error("❌ PROFITS: Error loading month profits:", error);
-        setIsLoading(false);
-      }
-    };
-
-    loadMonthProfits();
-  }, [cashierId, dateFilterMode]);
-
-  // Transform profit data to match ProfitTracker expected format
   const transformProfitData = (data: any) => {
-    console.log("🔄 TRANSFORM: Starting transformation with data:", data);
+    if (!data?.rawItems) return [];
 
-    if (!data?.rawItems) {
-      console.log("⚠️ TRANSFORM: No rawItems in data");
-      return [];
-    }
-
-    console.log("🔄 TRANSFORM: Raw items to transform:", data.rawItems.length);
-
-    const transformed = data.rawItems
+    return data.rawItems
       .map((item: any) => {
-        // Proper sack type mapping based on the actual data structure
         let sackType: SackType | undefined;
 
         if (item.sackType) {
-          // Direct mapping from the database sackType field
           sackType = item.sackType as SackType;
         } else if (item.priceType) {
-          // Fallback mapping from priceType field
           switch (item.priceType) {
             case "50KG":
             case "FIFTY_KG":
@@ -251,7 +100,6 @@ export default function CashierProfitList({
           }
         }
 
-        // Ensure numeric values from the processed decimal strings
         const quantity =
           typeof item.quantity === "number"
             ? item.quantity
@@ -277,33 +125,15 @@ export default function CashierProfitList({
           specialProfit: 0,
         };
       })
-      .filter((item: any) => item.priceType === "sack"); // Only return sack items
-
-    console.log("✅ TRANSFORM: Transformed items:", transformed.length);
-    console.log("✅ TRANSFORM: Final transformed data:", transformed);
-
-    return transformed;
+      .filter((item: any) => item.priceType === "sack");
   };
 
-  // NEW: Get previous days profit data from dashboard summary (MTD excluding current day)
   const getPreviousDaysProfitData = () => {
-    // For day mode, use the cached day summary which has pre-calculated MTD data
-    if (dateFilterMode === "day" && date && cashierId) {
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const cacheKey = `${cashierId}-${dateStr}`;
-      const cachedSummary = daySummaryCache[cacheKey];
-      if (cachedSummary) {
-        console.log(
-          "🔄 PREVIOUS DAYS: Using cached day summary for cashier:", cashierId, "items count:",
-          cachedSummary.previousDaysProfit.rawItems.length
-        );
-        return transformProfitData({
-          rawItems: cachedSummary.previousDaysProfit.rawItems,
-        });
-      }
+    if (dateFilterMode === "day" && summary) {
+      return transformProfitData({
+        rawItems: summary.previousDaysProfit.rawItems,
+      });
     }
-
-    // For month mode, no previous days concept applies
     return [];
   };
 
@@ -346,7 +176,7 @@ export default function CashierProfitList({
               selectedDate={
                 dateFilterMode === "day"
                   ? date || new Date()
-                  : new Date(selectedYear, selectedMonth - 1, 1) // First day of selected month/year
+                  : new Date(selectedYear, selectedMonth - 1, 1)
               }
               dateFilterMode={dateFilterMode}
             />

@@ -11,8 +11,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { deleteProduct } from "@/lib/server/Products/deleteProduct";
-import { useToast } from "@/hooks/use-toast";
+import { useDeleteProduct } from "@/hooks/useProducts";
+import { toast } from "sonner";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 
 interface DeleteProductProps {
@@ -26,32 +26,17 @@ export default function DeleteProduct({
   productName,
   onProductDeleted,
 }: DeleteProductProps) {
-  const { toast } = useToast();
+  const deleteMutation = useDeleteProduct();
   const [isOpen, setIsOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    setIsDeleting(true);
     try {
-      // First perform the actual deletion
-      await deleteProduct(productId);
-
-      // Then update the UI
+      await deleteMutation.mutateAsync(productId);
       onProductDeleted();
-
-      toast({
-        title: "Product deleted successfully",
-        description: `${productName} has been removed`,
-      });
+      toast.success(`${productName} has been removed`);
       setIsOpen(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Deletion failed",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
+    } catch (_error) {
+      // Error toast handled by mutation's onError
     }
   };
 
@@ -90,7 +75,7 @@ export default function DeleteProduct({
           <Button
             variant="outline"
             onClick={() => setIsOpen(false)}
-            disabled={isDeleting}
+            disabled={deleteMutation.isPending}
             className="mt-2 sm:mt-0"
           >
             Cancel
@@ -98,10 +83,10 @@ export default function DeleteProduct({
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={isDeleting}
+            disabled={deleteMutation.isPending}
             className="gap-2"
           >
-            {isDeleting ? (
+            {deleteMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Deleting...

@@ -22,9 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { createProductForCashier } from "@/lib/server/Products/createProductForCashier";
+import { useCreateProductForCashier } from "@/hooks/useProducts";
 import { SackTypeEnum, type SackType } from "../../../utils/types/schema.type";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
@@ -39,7 +39,7 @@ export default function CreateProduct({
   selectedCashierId,
   onProductCreated,
 }: CreateProductProps) {
-  const { toast } = useToast();
+  const createMutation = useCreateProductForCashier();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [picture, setPicture] = useState<File | null>(null);
@@ -62,17 +62,14 @@ export default function CreateProduct({
     stock: number;
     profit?: number;
   } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Helper function to safely parse decimal values
   const parseDecimalValue = (value: string): number => {
     if (!value || value === "") return 0;
     const parsed = parseFloat(value);
     return isNaN(parsed) ? 0 : parsed;
   };
 
-  // Helper function to format decimal values for input display
   const formatDecimalForInput = (value: number | undefined): string => {
     if (value === undefined) return "";
     return value.toString();
@@ -93,10 +90,8 @@ export default function CreateProduct({
 
     if (!selectedCashierId) {
       newErrors.cashier = "Please select a cashier first";
-      toast({
-        title: "No cashier selected",
+      toast.error("No cashier selected", {
         description: "Please select a cashier before creating a product",
-        variant: "destructive",
       });
       return false;
     }
@@ -142,14 +137,11 @@ export default function CreateProduct({
 
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-
     try {
       const formData = new FormData();
       if (picture) formData.append("picture", picture);
       formData.append("name", name);
 
-      // Process sack prices with proper decimal handling
       formData.append(
         "sackPrice",
         JSON.stringify(
@@ -191,28 +183,21 @@ export default function CreateProduct({
         );
       }
 
-      const newProduct = await createProductForCashier(
-        selectedCashierId!,
-        formData
-      );
+      const newProduct = await createMutation.mutateAsync({
+        cashierId: selectedCashierId!,
+        formData,
+      });
 
       onProductCreated(newProduct);
 
-      toast({
-        title: "Product Created Successfully",
+      toast.success("Product Created Successfully", {
         description: `${name} has been added to your products`,
       });
 
       setIsOpen(false);
       resetForm();
-    } catch (error) {
-      toast({
-        title: "Error Creating Product",
-        variant: "destructive",
-        description: error instanceof Error ? error.message : "Unknown error",
-      });
-    } finally {
-      setIsSubmitting(false);
+    } catch (_error) {
+      // Error toast handled by mutation's onError
     }
   };
 
@@ -223,19 +208,15 @@ export default function CreateProduct({
       const validation = validateProductImage(file);
 
       if (!validation.isValid) {
-        toast({
-          title: "Invalid file",
+        toast.error("Invalid file", {
           description: validation.error,
-          variant: "destructive",
         });
         e.target.value = "";
         return;
       }
 
-      // Show file info in success message
       if (validation.fileInfo) {
-        toast({
-          title: "File selected",
+        toast.info("File selected", {
           description: `${validation.fileInfo.name} (${validation.fileInfo.sizeInMB}MB) ready for upload`,
         });
       }
@@ -258,7 +239,7 @@ export default function CreateProduct({
     );
 
     if (availableTypes.length === 0) {
-      toast({ title: "All sack types already added", variant: "destructive" });
+      toast.error("All sack types already added");
       return;
     }
 
@@ -282,7 +263,6 @@ export default function CreateProduct({
     e.currentTarget.blur();
   };
 
-  // Helper function to update sack prices with proper decimal handling
   const updateSackPrice = (index: number, field: string, value: any) => {
     setSackPrices((prev) => {
       const newSackPrices = [...prev];
@@ -308,7 +288,6 @@ export default function CreateProduct({
     });
   };
 
-  // Helper function to update special prices with proper decimal handling
   const updateSpecialPrice = (index: number, field: string, value: any) => {
     setSackPrices((prev) => {
       const newSackPrices = [...prev];
@@ -339,7 +318,6 @@ export default function CreateProduct({
     });
   };
 
-  // Helper function to update per kilo price with proper decimal handling
   const updatePerKiloPrice = (field: string, value: string) => {
     setPerKiloPrice((prev) => {
       const basePrice = prev || { price: 0, stock: 0 };
@@ -453,7 +431,6 @@ export default function CreateProduct({
 
             <Separator />
 
-            {/* Sack Prices Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Sack Prices</Label>
@@ -712,7 +689,6 @@ export default function CreateProduct({
 
             <Separator />
 
-            {/* Per Kilo Price Section */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">
                 Per Kilo Price (Optional)
@@ -773,16 +749,16 @@ export default function CreateProduct({
                 type="button"
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                disabled={isSubmitting}
+                disabled={createMutation.isPending}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !selectedCashierId}
+                disabled={createMutation.isPending || !selectedCashierId}
                 className="bg-secondary hover:bg-secondary/90 text-white"
               >
-                {isSubmitting ? (
+                {createMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...

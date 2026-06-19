@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCashierExpenseByDate } from "@/lib/server/Expense/getCashierExpensesByDate";
-import { deleteExpense } from "@/lib/server/Expense/deleteExpense";
-import type { GetAllExpensesPayload } from "../../../utils/types/Expense/getAllExpenses.type";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useExpensesByCashier, useDeleteExpense } from "@/hooks/useExpenses";
+import { useCashiers } from "@/hooks/useCashiers";
+import { toast } from "sonner";
 import { ExpenseItem } from "./ExpenseItem";
 import { CreateExpense } from "./CreateExpense";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Receipt } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -30,76 +29,39 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CashierSelector } from "../CashierSelector";
+import { CashierSelector } from "../Cashier/CashierSelector";
 
 export function ExpenseList() {
-  const [expense, setExpense] = useState<GetAllExpensesPayload[number] | null>(
-    null
-  );
   const [date, setDate] = useState<Date>(new Date());
   const [selectedCashierId, setSelectedCashierId] = useState<string>("");
-  const [selectedCashierName, setSelectedCashierName] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { data: cashiers = [] } = useCashiers();
+  const deleteMutation = useDeleteExpense();
 
-  useEffect(() => {
-    if (selectedCashierId) {
-      fetchExpenseByDate(date);
-    } else {
-      setExpense(null);
-    }
-  }, [date, selectedCashierId]);
+  const formattedDate = format(date, "yyyy-MM-dd");
 
-  const fetchExpenseByDate = async (selectedDate: Date) => {
-    if (!selectedCashierId) return;
+  const { data: expense, isLoading, isError, error, refetch } =
+    useExpensesByCashier(selectedCashierId, formattedDate);
 
-    try {
-      setIsLoading(true);
-      const formattedDate = format(selectedDate, "yyyy-MM-dd");
-      const data = await getCashierExpenseByDate(selectedCashierId, {
-        date: formattedDate,
-      });
-      setExpense(data || null);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load expenses");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const selectedCashierName =
+    cashiers.find((c) => c.id === selectedCashierId)?.name || "";
 
-  const handleCashierSelect = (cashierId: string, cashierName: string) => {
+  const handleCashierSelect = (cashierId: string) => {
     setSelectedCashierId(cashierId);
-    setSelectedCashierName(cashierName);
   };
 
   const handleDeleteExpense = async () => {
     if (!expense) return;
 
     try {
-      await deleteExpense(expense.id);
-      toast({
-        title: "Expense deleted",
-        description: "The expense has been successfully deleted.",
-      });
-      setExpense(null);
-    } catch (error) {
-      console.error("Error deleting: ", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete the expense. Please try again.",
-        variant: "destructive",
-      });
+      await deleteMutation.mutateAsync(expense.id);
+      toast.success("Expense deleted");
+    } catch (_error) {
+      // Error toast handled by mutation's onError
     }
   };
 
-  const handleExpenseCreated = (newExpense: GetAllExpensesPayload[number]) => {
-    setExpense(newExpense);
-    toast({
-      title: "Expense created",
-      description: "New expense has been successfully added.",
-    });
+  const handleExpenseCreated = () => {
+    toast.success("Expense created");
   };
 
   if (isLoading) {
@@ -115,7 +77,7 @@ export function ExpenseList() {
 
   const totalAmount =
     expense?.ExpenseItems.reduce(
-      (sum: number, item: any) => sum + Number(item.amount), // Ensure proper number conversion
+      (sum: number, item: any) => sum + Number(item.amount),
       0
     ) || 0;
 
@@ -123,10 +85,8 @@ export function ExpenseList() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <CashierSelector
-          selectedCashierId={selectedCashierId}
+          selectedCashierId={selectedCashierId || null}
           onCashierSelect={handleCashierSelect}
-          label="Select Cashier"
-          placeholder="Choose a cashier to manage expenses..."
         />
 
         <div className="space-y-2">
@@ -183,7 +143,7 @@ export function ExpenseList() {
                   {expense
                     ? `${
                         expense.ExpenseItems.length
-                      } items • Total: ₱${totalAmount.toFixed(2)}`
+                      } items Total: ₱${totalAmount.toFixed(2)}`
                     : "No expenses recorded"}
                 </p>
               </div>
@@ -199,13 +159,15 @@ export function ExpenseList() {
             />
           </div>
 
-          {error ? (
+          {isError ? (
             <Card className="w-full border-red-200 shadow-md">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-red-500 mb-4">{error}</p>
+                  <p className="text-red-500 mb-4">
+                    {error instanceof Error ? error.message : "Failed to load expenses"}
+                  </p>
                   <Button
-                    onClick={() => fetchExpenseByDate(date)}
+                    onClick={() => refetch()}
                     variant="outline"
                     className="border-primary text-primary hover:bg-primary/10"
                   >

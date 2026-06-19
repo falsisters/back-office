@@ -18,7 +18,7 @@ import {
   type SpecialPrice,
   SackTypeEnum,
 } from "../../../utils/types/schema.type";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type EditableSackPrice = Partial<SackPrice> & {
   profit?: number;
@@ -44,15 +44,13 @@ export default function SackPricesManager({
   deletedSpecialPriceIds,
   setDeletedSpecialPriceIds,
 }: SackPricesManagerProps) {
-  const { toast } = useToast();
-
   const addSackPrice = () => {
     const availableTypes = Object.values(SackTypeEnum.enum).filter(
       (type) => !sackPrices.some((sp) => sp.type === type)
     );
 
     if (availableTypes.length === 0) {
-      toast({ title: "All sack types already added", variant: "destructive" });
+      toast.error("All sack types already added");
       return;
     }
 

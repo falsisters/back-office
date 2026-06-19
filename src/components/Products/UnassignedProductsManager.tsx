@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getUnassignedProducts } from "@/lib/server/Products/getUnassignedProducts";
-import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
-import { assignCashierToProduct } from "@/lib/server/Products/assignCashierToProduct";
-import { useToast } from "@/hooks/use-toast";
+import {
+  useUnassignedProducts,
+  useAssignCashierToProduct,
+} from "@/hooks/useProducts";
+import { useCashiers } from "@/hooks/useCashiers";
+import { toast } from "sonner";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 import { AlertTriangle, Users, Package } from "lucide-react";
 import Image from "next/image";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
@@ -28,18 +29,15 @@ interface UnassignedProductsManagerProps {
 export default function UnassignedProductsManager({
   onProductsUpdated,
 }: UnassignedProductsManagerProps) {
-  const { toast } = useToast();
-  const [unassignedProducts, setUnassignedProducts] = useState<
-    ProductResponse[]
-  >([]);
-  const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
+  const { data: unassignedProducts = [], isLoading } =
+    useUnassignedProducts();
+  const { data: cashiers = [] } = useCashiers();
+  const assignMutation = useAssignCashierToProduct();
+
   const [selectedCashiers, setSelectedCashiers] = useState<
     Record<string, string>
   >({});
-  const [loading, setLoading] = useState(true);
-  const [assigning, setAssigning] = useState<Set<string>>(new Set());
 
-  // Helper function to safely parse price values from API
   const parseApiPrice = (value: any): number => {
     if (value === null || value === undefined) return 0;
     if (typeof value === "string") return parseFloat(value) || 0;
@@ -47,81 +45,36 @@ export default function UnassignedProductsManager({
     return 0;
   };
 
-  // Helper function to format currency display
   const formatCurrency = (value: any): string => {
     const numValue = parseApiPrice(value);
     return CurrencyCalculator.round(numValue).toFixed(2);
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [productsResult, cashiersResult] = await Promise.all([
-          getUnassignedProducts(),
-          getAllCashiersByUserId(),
-        ]);
-
-        if (productsResult.data) {
-          setUnassignedProducts(productsResult.data);
-        }
-        setCashiers(cashiersResult);
-      } catch (error) {
-        console.error("Error loading data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load unassigned products",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [toast]);
-
   const handleAssignCashier = async (productId: string) => {
     const cashierId = selectedCashiers[productId];
     if (!cashierId) {
-      toast({
-        title: "No cashier selected",
-        description: "Please select a cashier for this product",
-        variant: "destructive",
-      });
+      toast.error("Please select a cashier for this product");
       return;
     }
 
-    setAssigning((prev) => new Set(prev).add(productId));
     try {
-      await assignCashierToProduct(productId, cashierId);
-      setUnassignedProducts((prev) => prev.filter((p) => p.id !== productId));
+      await assignMutation.mutateAsync({ productId, cashierId });
       setSelectedCashiers((prev) => {
         const updated = { ...prev };
         delete updated[productId];
         return updated;
       });
       onProductsUpdated();
-      toast({
-        title: "Cashier assigned successfully",
-        description: "Product has been assigned to the selected cashier",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to assign cashier",
-        variant: "destructive",
-      });
-    } finally {
-      setAssigning((prev) => {
-        const updated = new Set(prev);
-        updated.delete(productId);
-        return updated;
-      });
+    } catch (_error) {
+      // Error toast handled by mutation's onError
     }
   };
 
-  if (loading) {
+  const isAssigning = (productId: string) =>
+    assignMutation.isPending &&
+    assignMutation.variables?.productId === productId;
+
+  if (isLoading) {
     return (
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="p-6">
@@ -188,7 +141,6 @@ export default function UnassignedProductsManager({
                     {product.perKiloPrice && ", Per kilo pricing"}
                   </span>
                 </div>
-                {/* Show pricing preview */}
                 <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
                   {product.SackPrice.length > 0 && (
                     <span>
@@ -231,12 +183,12 @@ export default function UnassignedProductsManager({
                 <Button
                   onClick={() => handleAssignCashier(product.id)}
                   disabled={
-                    !selectedCashiers[product.id] || assigning.has(product.id)
+                    !selectedCashiers[product.id] || isAssigning(product.id)
                   }
                   size="sm"
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
-                  {assigning.has(product.id) ? "Assigning..." : "Assign"}
+                  {isAssigning(product.id) ? "Assigning..." : "Assign"}
                 </Button>
               </div>
             </div>

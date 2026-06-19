@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,19 +21,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { editProduct } from "@/lib/server/Products/editProduct";
-import { getProductById } from "@/lib/server/Products/getProductById";
+import { useEditProduct, useProduct } from "@/hooks/useProducts";
+import { useCashiers } from "@/hooks/useCashiers";
 import {
   type SackPrice,
   type SpecialPrice,
 } from "../../../utils/types/schema.type";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import Image from "next/image";
 import type { ProductResponse } from "../../../utils/types/Products/getAllProductsByUserId.type";
 import { Edit, Loader2 } from "lucide-react";
 import { CurrencyCalculator } from "../../../utils/currencyCalculator";
-import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 import { validateProductImage } from "@/lib/utils/fileValidation";
 import SackPricesManager from "./SackPricesManager";
 
@@ -51,9 +49,7 @@ export default function EditProduct({
   productId,
   onProductUpdated,
 }: EditProductProps) {
-  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [product, setProduct] = useState<ProductResponse | null>(null);
   const [name, setName] = useState("");
   const [picture, setPicture] = useState<File | null>(null);
   const [picturePreview, setPicturePreview] = useState<string | null>(null);
@@ -64,22 +60,25 @@ export default function EditProduct({
     stock: number;
     profit?: number;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
   const [selectedCashierId, setSelectedCashierId] = useState<string | null>(
     null
   );
-  const [isLoadingCashiers, setIsLoadingCashiers] = useState(false);
-
-  // Track deleted IDs for proper backend deletion
   const [deletedSackPriceIds, setDeletedSackPriceIds] = useState<string[]>([]);
   const [deletedSpecialPriceIds, setDeletedSpecialPriceIds] = useState<
     string[]
   >([]);
 
-  // Helper function to safely parse decimal values from API
+  const { data: cashiers = [] } = useCashiers();
+
+  const {
+    data: product,
+    isLoading,
+    refetch: refetchProduct,
+  } = useProduct(isDialogOpen ? productId : "");
+
+  const editMutation = useEditProduct();
+
   const parseApiDecimal = (value: any): number => {
     if (value === null || value === undefined) return 0;
     if (typeof value === "string") return parseFloat(value) || 0;
@@ -87,88 +86,51 @@ export default function EditProduct({
     return 0;
   };
 
-  // Helper function to format decimal values for input display
   const formatDecimalForInput = (value: number | undefined | null): string => {
     if (value === undefined || value === null) return "";
     return value.toString();
   };
 
-  const loadProduct = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const result = await getProductById(productId);
-      if (result.data) {
-        const fetchedProduct = result.data;
-        setProduct(fetchedProduct);
-        setName(fetchedProduct.name);
-        setPicturePreview(fetchedProduct.picture);
-        setSelectedCashierId(fetchedProduct.cashier?.id || null);
-
-        // Handle SackPrice array with proper decimal parsing
-        setSackPrices(
-          fetchedProduct.SackPrice.map((sp: any) => ({
-            id: sp?.id,
-            type: sp?.type || "FIFTY_KG",
-            price: parseApiDecimal(sp?.price),
-            stock: parseApiDecimal(sp?.stock),
-            profit: sp?.profit ? parseApiDecimal(sp.profit) : undefined,
-            specialPrice: sp?.specialPrice
-              ? {
-                  id: sp.specialPrice?.id,
-                  price: parseApiDecimal(sp.specialPrice?.price),
-                  minimumQty: sp.specialPrice?.minimumQty || 0,
-                  profit: sp.specialPrice?.profit
-                    ? parseApiDecimal(sp.specialPrice.profit)
-                    : undefined,
-                }
-              : null,
-          }))
-        );
-
-        // Handle per kilo price with proper decimal parsing
-        if (fetchedProduct.perKiloPrice) {
-          setPerKiloPrice({
-            id: fetchedProduct.perKiloPrice.id,
-            price: parseApiDecimal(fetchedProduct.perKiloPrice.price),
-            stock: parseApiDecimal(fetchedProduct.perKiloPrice.stock),
-            profit: fetchedProduct.perKiloPrice.profit
-              ? parseApiDecimal(fetchedProduct.perKiloPrice.profit)
-              : undefined,
-          });
-        } else {
-          setPerKiloPrice(null);
-        }
-      }
-    } catch (error) {
-      console.error("Error: ", error);
-      toast({
-        title: "Error",
-        description: "Failed to load product",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [productId, toast]);
-
-  const loadCashiers = useCallback(async () => {
-    setIsLoadingCashiers(true);
-    try {
-      const cashiersList = await getAllCashiersByUserId();
-      setCashiers(cashiersList);
-    } catch (error) {
-      console.error("Error loading cashiers:", error);
-    } finally {
-      setIsLoadingCashiers(false);
-    }
-  }, []);
-
   useEffect(() => {
-    if (isDialogOpen && !product) {
-      loadProduct();
-      loadCashiers();
+    if (isDialogOpen && product) {
+      setName(product.name);
+      setPicturePreview(product.picture);
+      setSelectedCashierId(product.cashier?.id || null);
+
+      setSackPrices(
+        product.SackPrice.map((sp: any) => ({
+          id: sp?.id,
+          type: sp?.type || "FIFTY_KG",
+          price: parseApiDecimal(sp?.price),
+          stock: parseApiDecimal(sp?.stock),
+          profit: sp?.profit ? parseApiDecimal(sp.profit) : undefined,
+          specialPrice: sp?.specialPrice
+            ? {
+                id: sp.specialPrice?.id,
+                price: parseApiDecimal(sp.specialPrice?.price),
+                minimumQty: sp.specialPrice?.minimumQty || 0,
+                profit: sp.specialPrice?.profit
+                  ? parseApiDecimal(sp.specialPrice.profit)
+                  : undefined,
+              }
+            : null,
+        }))
+      );
+
+      if (product.perKiloPrice) {
+        setPerKiloPrice({
+          id: product.perKiloPrice.id,
+          price: parseApiDecimal(product.perKiloPrice.price),
+          stock: parseApiDecimal(product.perKiloPrice.stock),
+          profit: product.perKiloPrice.profit
+            ? parseApiDecimal(product.perKiloPrice.profit)
+            : undefined,
+        });
+      } else {
+        setPerKiloPrice(null);
+      }
     }
-  }, [isDialogOpen, product, loadProduct, loadCashiers]);
+  }, [isDialogOpen, product]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -177,19 +139,15 @@ export default function EditProduct({
       const validation = validateProductImage(file);
 
       if (!validation.isValid) {
-        toast({
-          title: "Invalid file",
+        toast.error("Invalid file", {
           description: validation.error,
-          variant: "destructive",
         });
         e.target.value = "";
         return;
       }
 
-      // Show file info in success message
       if (validation.fileInfo) {
-        toast({
-          title: "File selected",
+        toast.info("File selected", {
           description: `${validation.fileInfo.name} (${validation.fileInfo.sizeInMB}MB) ready for upload`,
         });
         e.target.value = "";
@@ -212,7 +170,6 @@ export default function EditProduct({
 
     if (!name.trim()) newErrors.name = "Product name is required";
 
-    // Only consider active sack prices for validation
     const hasSackPrices = sackPrices.length > 0;
     const hasPerKiloPrice =
       perKiloPrice && perKiloPrice.price > 0 && perKiloPrice.stock >= 0;
@@ -247,8 +204,6 @@ export default function EditProduct({
 
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-
     try {
       const formData = new FormData();
       formData.append("name", name);
@@ -261,7 +216,6 @@ export default function EditProduct({
         formData.append("cashierId", selectedCashierId);
       }
 
-      // Process sack prices with proper decimal handling
       const sackPricesData = sackPrices.map((sp) => ({
         id: sp.id,
         price: sp.price ? CurrencyCalculator.round(sp.price) : 0,
@@ -288,7 +242,6 @@ export default function EditProduct({
 
       formData.append("sackPrice", JSON.stringify(sackPricesData));
 
-      // Send deleted IDs separately
       if (deletedSackPriceIds.length > 0) {
         formData.append(
           "deletedSackPriceIds",
@@ -322,27 +275,19 @@ export default function EditProduct({
         formData.append("perKiloPrice", JSON.stringify(null));
       }
 
-      await editProduct(productId, formData);
+      await editMutation.mutateAsync({ id: productId, formData });
 
-      toast({
-        title: "Product Updated Successfully",
+      toast.success("Product Updated Successfully", {
         description: `${name} has been updated`,
       });
 
       onProductUpdated?.();
       setIsDialogOpen(false);
 
-      // Reset deletion tracking
       setDeletedSackPriceIds([]);
       setDeletedSpecialPriceIds([]);
-    } catch (error) {
-      toast({
-        title: "Error Updating Product",
-        description: error instanceof Error ? error.message : "Update failed",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+    } catch (_error) {
+      // Error toast handled by mutation's onError
     }
   };
 
@@ -350,8 +295,7 @@ export default function EditProduct({
     e.currentTarget.blur();
   };
 
-  // Helper function to safely update per kilo price
-  const updatePerKiloPrice = (field: string, value: string) => {
+  const updatePerKiloPriceField = (field: string, value: string) => {
     setPerKiloPrice((prev) => {
       const basePrice = prev || { price: 0, stock: 0 };
 
@@ -382,9 +326,7 @@ export default function EditProduct({
       onOpenChange={(open) => {
         setIsDialogOpen(open);
         if (!open) {
-          setProduct(null);
           setErrors({});
-          // Reset deletion tracking when dialog closes
           setDeletedSackPriceIds([]);
           setDeletedSpecialPriceIds([]);
         }
@@ -417,13 +359,11 @@ export default function EditProduct({
             </div>
           ) : product ? (
             <form onSubmit={handleSubmit} className="space-y-6 py-4">
-              {/* Cashier Assignment Section */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Assigned Cashier</Label>
                 <Select
                   value={selectedCashierId || ""}
                   onValueChange={setSelectedCashierId}
-                  disabled={isLoadingCashiers}
                 >
                   <SelectTrigger className="focus-visible:ring-primary">
                     <SelectValue placeholder="Select cashier..." />
@@ -443,7 +383,6 @@ export default function EditProduct({
 
               <Separator />
 
-              {/* Product Name */}
               <div className="space-y-2">
                 <Label htmlFor="edit-name" className="text-sm font-medium">
                   Product Name
@@ -463,7 +402,6 @@ export default function EditProduct({
                 )}
               </div>
 
-              {/* Product Image */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Current Image</Label>
                 {picturePreview && (
@@ -499,7 +437,6 @@ export default function EditProduct({
 
               <Separator />
 
-              {/* Sack Prices Manager */}
               <SackPricesManager
                 sackPrices={sackPrices}
                 setSackPrices={setSackPrices}
@@ -512,7 +449,6 @@ export default function EditProduct({
 
               <Separator />
 
-              {/* Per Kilo Price */}
               <div className="space-y-4">
                 <Label className="text-sm font-medium">
                   Per Kilo Price (Optional)
@@ -525,7 +461,7 @@ export default function EditProduct({
                       placeholder="Price per Kilo"
                       value={formatDecimalForInput(perKiloPrice?.price)}
                       onChange={(e) =>
-                        updatePerKiloPrice("price", e.target.value)
+                        updatePerKiloPriceField("price", e.target.value)
                       }
                       onWheel={preventWheelChange}
                       min="0"
@@ -541,7 +477,7 @@ export default function EditProduct({
                       placeholder="Stock"
                       value={formatDecimalForInput(perKiloPrice?.stock)}
                       onChange={(e) =>
-                        updatePerKiloPrice("stock", e.target.value)
+                        updatePerKiloPriceField("stock", e.target.value)
                       }
                       onWheel={preventWheelChange}
                       min="0"
@@ -557,7 +493,7 @@ export default function EditProduct({
                       placeholder="Profit (optional)"
                       value={formatDecimalForInput(perKiloPrice?.profit)}
                       onChange={(e) =>
-                        updatePerKiloPrice("profit", e.target.value)
+                        updatePerKiloPriceField("profit", e.target.value)
                       }
                       onWheel={preventWheelChange}
                       min="0"
@@ -573,16 +509,16 @@ export default function EditProduct({
                   type="button"
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
-                  disabled={isSubmitting}
+                  disabled={editMutation.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={editMutation.isPending}
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
-                  {isSubmitting ? (
+                  {editMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Updating...

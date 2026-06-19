@@ -83,31 +83,32 @@ Backend (NestJS)
 
 ### Phase 4: Products
 
-- [ ] 4.1 Create `src/hooks/useProducts.ts`
-- [ ] 4.2 Rewrite `src/app/products/page.tsx` → client component
-- [ ] 4.3 Rewrite `InventoryManagement.tsx` → use `useProducts` query
-- [ ] 4.4 Rewrite `CreateProduct.tsx` → use `useCreateProduct` mutation
-- [ ] 4.5 Rewrite `EditProduct.tsx` → use `useEditProduct` mutation
-- [ ] 4.6 Rewrite `DeleteProduct.tsx` → use `useDeleteProduct` mutation
-- [ ] 4.7 Rewrite `UnassignedProductsManager.tsx` → use hooks
-- [ ] 4.8 Delete old server actions (9 files)
-- [ ] 4.9 Verify: product CRUD, assign cashier, unassigned products
+- [x] 4.1 Create `src/hooks/useProducts.ts`
+- [x] 4.2 Rewrite `src/app/products/page.tsx` → client component
+- [x] 4.3 Rewrite `InventoryManagement.tsx` → use `useProducts` query
+- [x] 4.4 Rewrite `CreateProduct.tsx` → use `useCreateProduct` mutation
+- [x] 4.5 Rewrite `EditProduct.tsx` → use `useEditProduct` mutation
+- [x] 4.6 Rewrite `DeleteProduct.tsx` → use `useDeleteProduct` mutation
+- [x] 4.7 Rewrite `UnassignedProductsManager.tsx` → use hooks
+- [x] 4.8 Update `SackPricesManager.tsx` shadcn toast → sonner
+- [ ] 4.9 Delete old server actions (9 files)
+- [ ] 4.10 Verify: product CRUD, assign cashier, unassigned products
 
 ### Phase 5: Expenses
 
-- [ ] 5.1 Create `src/hooks/useExpenses.ts`
-- [ ] 5.2 Rewrite `src/app/expenses/page.tsx` → client component
-- [ ] 5.3 Rewrite `ExpenseList.tsx` → use `useExpenses` query
-- [ ] 5.4 Rewrite `CreateExpense.tsx` → use `useCreateExpense` mutation
-- [ ] 5.5 Rewrite `ExpenseItem.tsx` → use `useDeleteExpense` mutation
+- [x] 5.1 Create `src/hooks/useExpenses.ts`
+- [x] 5.2 Rewrite `src/app/expenses/page.tsx` → client component
+- [x] 5.3 Rewrite `ExpenseList.tsx` → use `useExpenses` query
+- [x] 5.4 Rewrite `CreateExpense.tsx` → use `useCreateExpense` mutation
+- [ ] 5.5 Rewrite `ExpenseItem.tsx` → use `useDeleteExpense` mutation (no changes needed, onDelete callback pattern)
 - [ ] 5.6 Delete old server actions (8 files)
 - [ ] 5.7 Verify: expense list, create, delete
 
 ### Phase 6: Profits
 
-- [ ] 6.1 Create `src/hooks/useProfits.ts`
-- [ ] 6.2 Rewrite `src/app/profits/page.tsx` → client component
-- [ ] 6.3 Rewrite `CashierProfitList.tsx` → use `useProfits` query
+- [x] 6.1 Create `src/hooks/useProfits.ts`
+- [x] 6.2 Rewrite `src/app/profits/page.tsx` → client component
+- [x] 6.3 Rewrite `CashierProfitList.tsx` → use `useProfits` query
 - [ ] 6.4 Delete old server action (1 file)
 - [ ] 6.5 Verify: profit list per cashier
 

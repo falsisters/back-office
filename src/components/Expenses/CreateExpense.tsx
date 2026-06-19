@@ -1,13 +1,14 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { createCashierExpense } from "@/lib/server/Expense/createCashierExpenses";
-import { getCashierExpenseByDate } from "@/lib/server/Expense/getCashierExpensesByDate";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  useCreateCashierExpense,
+  useExpensesByCashier,
+} from "@/hooks/useExpenses";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { PlusCircle } from "lucide-react";
 import type { CreateExpenseItemType } from "../../../utils/types/Expense/createExpense.type";
 import type { GetAllExpensesPayload } from "../../../utils/types/Expense/getAllExpenses.type";
@@ -38,68 +40,60 @@ export function CreateExpense({
     { name: "", amount: 0 },
   ]);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
 
-  const loadExistingData = useCallback(async () => {
-    setIsChecking(true);
-    try {
-      const formattedDate = format(currentDate, "yyyy-MM-dd");
-      const data = await getCashierExpenseByDate(cashierId, {
-        date: formattedDate,
-      });
+  const createMutation = useCreateCashierExpense();
 
-      if (data && data.ExpenseItems.length > 0) {
-        setExpenseItems(
-          data.ExpenseItems.map((item: { name: unknown; amount: unknown }) => ({
-            name: item.name,
-            amount: item.amount,
-          }))
-        );
-      } else {
-        setExpenseItems([{ name: "", amount: 0 }]);
-      }
-    } catch (err) {
-      console.error("Error loading existing expense:", err);
-      setExpenseItems([{ name: "", amount: 0 }]);
-    } finally {
-      setIsChecking(false);
-    }
-  }, [currentDate, cashierId]);
+  const formattedDate = format(currentDate, "yyyy-MM-dd");
+
+  const {
+    data: existingExpense,
+    isLoading: isChecking,
+  } = useExpensesByCashier(cashierId, open ? formattedDate : undefined);
+
+  const hasExistingItems =
+    existingExpense && existingExpense.ExpenseItems.length > 0;
 
   useEffect(() => {
     if (open) {
-      loadExistingData();
+      if (hasExistingItems) {
+        setExpenseItems(
+          existingExpense.ExpenseItems.map(
+            (item: { name: string; amount: number }) => ({
+              name: item.name,
+              amount: item.amount,
+            })
+          )
+        );
+      } else if (!isChecking) {
+        setExpenseItems([{ name: "", amount: 0 }]);
+      }
     } else {
       resetForm();
     }
-  }, [open, currentDate, loadExistingData]);
+  }, [open, currentDate, hasExistingItems, existingExpense, isChecking]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    try {
-      if (expenseItems.some((item) => !item.name.trim() || item.amount <= 0)) {
-        throw new Error(
-          "All expense items must have a name and a positive amount"
-        );
-      }
+    if (expenseItems.some((item) => !item.name.trim() || item.amount <= 0)) {
+      setError("All expense items must have a name and a positive amount");
+      return;
+    }
 
-      setIsLoading(true);
-      const formattedDate = format(currentDate, "yyyy-MM-dd");
-      const data = await createCashierExpense(cashierId, {
-        expenseItems,
-        date: formattedDate,
+    try {
+      const data = await createMutation.mutateAsync({
+        cashierId,
+        data: {
+          expenseItems,
+          date: formattedDate,
+        },
       });
       onExpenseCreated(data);
       setOpen(false);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
-      );
-    } finally {
-      setIsLoading(false);
+      toast.success("Expense created");
+    } catch (_error) {
+      // Error toast handled by mutation's onError
     }
   };
 
@@ -127,12 +121,10 @@ export function CreateExpense({
   ) => {
     const newItems = [...expenseItems];
     if (field === "amount") {
-      // Handle decimal conversion properly for amount field
       const numericValue =
         typeof value === "string" ? parseFloat(value) || 0 : value;
       newItems[index] = { ...newItems[index], [field]: numericValue };
     } else {
-      // For non-amount fields (like name), ensure we pass the correct type
       newItems[index] = { ...newItems[index], [field]: value as string };
     }
     setExpenseItems(newItems);
@@ -166,9 +158,9 @@ export function CreateExpense({
         ) : (
           <>
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
+                {error}
+              </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -193,7 +185,7 @@ export function CreateExpense({
                         }
                         required
                         className="focus-visible:ring-secondary"
-                        disabled={isLoading}
+                        disabled={createMutation.isPending}
                       />
                     </div>
                     <div className="flex-1 space-y-2">
@@ -217,13 +209,13 @@ export function CreateExpense({
                             updateExpenseItem(
                               index,
                               "amount",
-                              e.target.value // Pass string value to be converted in updateExpenseItem
+                              e.target.value
                             )
                           }
                           required
                           className="pl-8 focus-visible:ring-secondary"
                           placeholder="0.00"
-                          disabled={isLoading}
+                          disabled={createMutation.isPending}
                         />
                       </div>
                     </div>
@@ -232,7 +224,9 @@ export function CreateExpense({
                       variant="outline"
                       size="sm"
                       onClick={() => removeExpenseItem(index)}
-                      disabled={isLoading || expenseItems.length <= 1}
+                      disabled={
+                        createMutation.isPending || expenseItems.length <= 1
+                      }
                       className="border-red-300 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
                     >
                       Remove
@@ -246,7 +240,7 @@ export function CreateExpense({
                   type="button"
                   variant="outline"
                   onClick={addExpenseItem}
-                  disabled={isLoading}
+                  disabled={createMutation.isPending}
                   className="border-secondary/30 text-secondary hover:bg-secondary/10 hover:text-secondary transition-colors"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -257,16 +251,16 @@ export function CreateExpense({
                     type="button"
                     variant="outline"
                     onClick={() => setOpen(false)}
-                    disabled={isLoading}
+                    disabled={createMutation.isPending}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={createMutation.isPending}
                     className="bg-secondary hover:bg-secondary/90 text-white"
                   >
-                    {isLoading ? "Saving..." : "Save Expense"}
+                    {createMutation.isPending ? "Saving..." : "Save Expense"}
                   </Button>
                 </div>
               </DialogFooter>
