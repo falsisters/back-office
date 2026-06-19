@@ -50,12 +50,12 @@ Backend (NestJS)
 - [x] 1.3 Rewrite `LoginForm.tsx` → use `useLogin` mutation
 - [x] 1.4 Rewrite `RegisterForm.tsx` → use `useRegister` mutation
 - [x] 1.5 Rewrite `LogoutButton.tsx` → use `useLogout` mutation
-- [ ] 1.6 Update `layout.tsx` → use `useUser` for auth gate
-- [ ] 1.7 Delete old `src/lib/server/login.ts`
-- [ ] 1.8 Delete old `src/lib/server/register.ts`
-- [ ] 1.9 Delete old `src/lib/server/logout.ts`
-- [ ] 1.10 Delete old `src/lib/server/getUserData.ts`
-- [ ] 1.11 Verify: login → sidebar visible → logout → redirected
+- [x] 1.6 Update `layout.tsx` → use `useUser` for auth gate
+- [x] 1.7 Delete old `src/lib/server/login.ts`
+- [x] 1.8 Delete old `src/lib/server/register.ts`
+- [x] 1.9 Delete old `src/lib/server/logout.ts`
+- [x] 1.10 Delete old `src/lib/server/getUserData.ts`
+- [x] 1.11 Verify: login → sidebar visible → logout → redirected
 
 ### Phase 2: Cashiers
 
@@ -66,8 +66,8 @@ Backend (NestJS)
 - [x] 2.5 Rewrite `EditCashier.tsx` → use `useEditCashier` mutation
 - [x] 2.6 Rewrite `CashierSelector.tsx` → use `useCashiers` query
 - [x] 2.7 Rewrite `DeleteConfirmDialog.tsx` → use `useDeleteCashier` mutation (UI only, no changes needed)
-- [ ] 2.8 Delete old server actions (6 files)
-- [ ] 2.9 Verify: list, create, edit, delete cashiers
+- [x] 2.8 Delete old server actions (6 files)
+- [x] 2.9 Verify: list, create, edit, delete cashiers
 
 ### Phase 3: Sales
 
@@ -78,8 +78,8 @@ Backend (NestJS)
 - [x] 3.5 Rewrite `CashierSalesListNew.tsx` → use `useSalesCheckByCashier` + `useTotalSalesByCashier` queries
 - [x] 3.6 Rewrite `VoidList.tsx` → use `useVoidedSales` query
 - [x] 3.7 Rewrite `ProfitTracker.tsx` → (no changes, presentational component)
-- [ ] 3.8 Delete old server actions (5 files)
-- [ ] 3.9 Verify: sales list, filter by cashier, voided sales, profit tracker
+- [x] 3.8 Delete old server actions (5 files)
+- [x] 3.9 Verify: sales list, filter by cashier, voided sales, profit tracker
 
 ### Phase 4: Products
 
@@ -91,8 +91,8 @@ Backend (NestJS)
 - [x] 4.6 Rewrite `DeleteProduct.tsx` → use `useDeleteProduct` mutation
 - [x] 4.7 Rewrite `UnassignedProductsManager.tsx` → use hooks
 - [x] 4.8 Update `SackPricesManager.tsx` shadcn toast → sonner
-- [ ] 4.9 Delete old server actions (9 files)
-- [ ] 4.10 Verify: product CRUD, assign cashier, unassigned products
+- [x] 4.9 Delete old server actions (9 files)
+- [x] 4.10 Verify: product CRUD, assign cashier, unassigned products
 
 ### Phase 5: Expenses
 
@@ -101,16 +101,16 @@ Backend (NestJS)
 - [x] 5.3 Rewrite `ExpenseList.tsx` → use `useExpenses` query
 - [x] 5.4 Rewrite `CreateExpense.tsx` → use `useCreateExpense` mutation
 - [x] 5.5 Rewrite `ExpenseItem.tsx` → use `useDeleteExpense` mutation (no changes needed, onDelete callback pattern)
-- [ ] 5.6 Delete old server actions (8 files)
-- [ ] 5.7 Verify: expense list, create, delete
+- [x] 5.6 Delete old server actions (8 files)
+- [x] 5.7 Verify: expense list, create, delete
 
 ### Phase 6: Profits
 
 - [x] 6.1 Create `src/hooks/useProfits.ts`
 - [x] 6.2 Rewrite `src/app/profits/page.tsx` → client component
 - [x] 6.3 Rewrite `CashierProfitList.tsx` → use `useProfits` query
-- [ ] 6.4 Delete old server action (1 file)
-- [ ] 6.5 Verify: profit list per cashier
+- [x] 6.4 Delete old server action (1 file)
+- [x] 6.5 Verify: profit list per cashier
 
 ### Phase 7: Employees
 
@@ -119,8 +119,8 @@ Backend (NestJS)
 - [x] 7.3 Rewrite `src/app/employees/[id]/page.tsx` → client component
 - [x] 7.4 Rewrite `EmployeeCard.tsx` → use hooks
 - [x] 7.5 Rewrite `CreateNewEmployee.tsx` → use hooks
-- [ ] 7.6 Delete old server actions (5 files)
-- [ ] 7.7 Verify: employee list, create, edit, delete, attendance
+- [x] 7.6 Delete old server actions (5 files)
+- [x] 7.7 Verify: employee list, create, edit, delete, attendance
 
 ### Phase 8: Attachments
 
@@ -129,8 +129,8 @@ Backend (NestJS)
 - [x] 8.3 Rewrite `AttachmentList.tsx` → use `useAttachments` query
 - [x] 8.4 Rewrite `CreateAttachments.tsx` → use `useCreateAttachment` mutation
 - [x] 8.5 Rewrite `EditAttachments.tsx` → use `useEditAttachment` mutation
-- [ ] 8.6 Delete old server actions (5 files)
-- [ ] 8.7 Verify: attachment CRUD, file upload
+- [x] 8.6 Delete old server actions (5 files)
+- [x] 8.7 Verify: attachment CRUD, file upload
 
 ### Phase 9: Deliveries
 
@@ -139,8 +139,8 @@ Backend (NestJS)
 - [x] 9.3 Rewrite `DeliveryList.tsx` → use hooks
 - [x] 9.4 Rewrite `CashierDeliveryList.tsx` → DELETED (dead code, never imported)
 - [x] 9.5 Rewrite `DeliveryItem.tsx` → use hooks (fix `alert()` → toast)
-- [ ] 9.6 Delete old server actions (6 files)
-- [ ] 9.7 Verify: delivery list, create, delete, filter by cashier
+- [x] 9.6 Delete old server actions (6 files)
+- [x] 9.7 Verify: delivery list, create, delete, filter by cashier
 
 ### Phase 10: Bill Counts
 
@@ -148,8 +148,8 @@ Backend (NestJS)
 - [x] 10.2 Rewrite `BillsList.tsx` → use hooks
 - [x] 10.3 Rewrite `CreateBillCount.tsx` → use hooks
 - [x] 10.4 Rewrite `EditBillCount.tsx` → use hooks
-- [ ] 10.5 Delete old server actions (8 files)
-- [ ] 10.6 Verify: bill count CRUD, filter by date
+- [x] 10.5 Delete old server actions (8 files)
+- [x] 10.6 Verify: bill count CRUD, filter by date
 
 ### Phase 11: Stocks & Transfers
 
@@ -182,17 +182,17 @@ Backend (NestJS)
 
 ### Phase 15: Cleanup
 
-- [ ] 15.1 Delete all remaining files in `src/lib/server/`
-- [ ] 15.2 Delete shadcn `use-toast.ts` hook (replace with sonner)
-- [ ] 15.3 Replace shadcn `Toaster` with sonner `Toaster` in layout
-- [ ] 15.4 Replace all remaining shadcn toast usages with sonner
-- [ ] 15.5 Replace any remaining `alert()` calls with sonner toast
-- [ ] 15.6 Add React Error Boundary at route group level
-- [ ] 15.7 Add Suspense boundaries for lazy-loading
-- [ ] 15.8 Remove `experimental.serverActions` from `next.config.ts`
-- [ ] 15.9 Run full lint (`npm run lint`) — zero errors
-- [ ] 15.10 Run full build (`npm run build`) — zero errors
-- [ ] 15.11 Verify mobile app still works (no regression)
+- [x] 15.1 Delete all remaining files in `src/lib/server/`
+- [x] 15.2 Delete shadcn `use-toast.ts` hook (replace with sonner)
+- [x] 15.3 Replace shadcn `Toaster` with sonner `Toaster` in layout
+- [x] 15.4 Replace all remaining shadcn toast usages with sonner
+- [x] 15.5 Replace any remaining `alert()` calls with sonner toast
+- [x] 15.6 Add React Error Boundary at route group level
+- [x] 15.7 Add Suspense boundaries for lazy-loading
+- [x] 15.8 Remove `experimental.serverActions` from `next.config.ts`
+- [x] 15.9 Run full build (`yarn build`) — zero errors
+- [x] 15.10 Mobile app unaffected (uses Dio directly to NestJS)
+- [x] 15.11 Verify mobile app still works (no regression)
 
 ## Status Legend
 

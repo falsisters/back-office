@@ -1,24 +1,12 @@
 import LoginForm from "@/components/Login/LoginForm";
-import { getUserData } from "@/lib/server/getUserData";
-import { redirect } from "next/navigation";
+import { AuthGate } from "@/components/AuthGate";
 
-export default async function LoginPage() {
-  let isAuthenticated = false;
-  
-  try {
-    const userData = await getUserData();
-    isAuthenticated = !!userData;
-  } catch (error) {
-    console.error(error);
-  }
-  
-  if (isAuthenticated) {
-    redirect("/");
-  }
-
+export default function LoginPage() {
   return (
-    <div className="container mx-auto p-4">
-      <LoginForm />
-    </div>
+    <AuthGate requireAuth={false}>
+      <div className="container mx-auto p-4">
+        <LoginForm />
+      </div>
+    </AuthGate>
   );
 }

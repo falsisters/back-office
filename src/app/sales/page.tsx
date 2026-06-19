@@ -1,25 +1,16 @@
 import SalesList from "@/components/Sales/SalesList";
-import { Spinner } from "@/components/ui/spinner";
-import { getUserData } from "@/lib/server/getUserData";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { Spinner } from "@/components/ui/spinner";
+import { AuthGate } from "@/components/AuthGate";
 
-export default async function SalesPage() {
-  let userData;
-  try {
-    userData = await getUserData();
-  } catch (error) {
-    if (!userData) {
-      redirect("/");
-    }
-    console.error(error, "Unauthorized");
-  }
-
+export default function SalesPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Suspense fallback={<Spinner />}>
-        <SalesList />
-      </Suspense>
-    </div>
-  )
+    <AuthGate requireAuth>
+      <div className="container mx-auto px-4 py-8">
+        <Suspense fallback={<Spinner />}>
+          <SalesList />
+        </Suspense>
+      </div>
+    </AuthGate>
+  );
 }

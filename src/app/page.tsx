@@ -1,4 +1,6 @@
-import { getUserData } from "@/lib/server/getUserData";
+"use client";
+
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,20 +10,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { redirect } from "next/navigation";
+import { AuthGate } from "@/components/AuthGate";
+import { Spinner } from "@/components/ui/spinner";
 import { BillCountList } from "@/components/Bills/BillsList";
 
-export default async function Dashboard() {
-  let userData;
-  try {
-    userData = await getUserData();
-  } catch (error) {
-    if (!userData) {
-      redirect("/login");
-    }
-    console.error(error, "Unauthorized");
-  }
-  const user = { name: userData.name };
+function DashboardContent() {
+  const { user } = useAuth();
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -35,7 +29,7 @@ export default async function Dashboard() {
         <CardContent className="flex flex-col items-center p-6">
           <h2 className="text-4xl font-semibold text-gray-700">Welcome!</h2>
           <h2 className="text-4xl font-semibold text-gray-700 mb-10">
-            {user.name}
+            {user?.name}
           </h2>
           <div className="flex gap-4 w-full max-w-md">
             <Link href="/products" className="w-full">
@@ -57,5 +51,13 @@ export default async function Dashboard() {
         <BillCountList />
       </div>
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <AuthGate requireAuth>
+      <DashboardContent />
+    </AuthGate>
   );
 }

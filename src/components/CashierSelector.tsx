@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getCashiers } from "@/lib/server/Cashier/getCashiers";
+import { useCashiers } from "@/hooks/useCashiers";
 import {
   Select,
   SelectContent,
@@ -32,31 +31,9 @@ export function CashierSelector({
   label = "Select Cashier",
   placeholder = "Choose a cashier...",
 }: CashierSelectorProps) {
-  const [cashiers, setCashiers] = useState<Cashier[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: cashiers, isLoading, error } = useCashiers();
 
-  useEffect(() => {
-    const fetchCashiers = async () => {
-      try {
-        setLoading(true);
-        const data = await getCashiers();
-        setCashiers(data || []);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load cashiers"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCashiers();
-  }, []);
-
-  const selectedCashier = cashiers.find((c) => c.id === selectedCashierId);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-2">
         <Label>{label}</Label>
@@ -70,11 +47,14 @@ export function CashierSelector({
       <div className="space-y-2">
         <Label>{label}</Label>
         <div className="p-2 text-sm text-destructive bg-destructive/10 rounded-md">
-          {error}
+          {error instanceof Error ? error.message : "Failed to load cashiers"}
         </div>
       </div>
     );
   }
+
+  const cashierList = cashiers || [];
+  const selectedCashier = cashierList.find((c) => c.id === selectedCashierId);
 
   return (
     <div className="space-y-2">
@@ -90,7 +70,7 @@ export function CashierSelector({
       <Select
         value={selectedCashierId}
         onValueChange={(value) => {
-          const cashier = cashiers.find((c) => c.id === value);
+          const cashier = cashierList.find((c) => c.id === value);
           if (cashier) {
             onCashierSelect(value, cashier.name);
           }
@@ -100,7 +80,7 @@ export function CashierSelector({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {cashiers.map((cashier) => (
+          {cashierList.map((cashier) => (
             <SelectItem key={cashier.id} value={cashier.id}>
               <div className="flex items-center gap-2">
                 <span>{cashier.name}</span>
