@@ -13,14 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { editCashier } from "@/lib/server/Cashier/editCashier";
-import { useToast } from "@/hooks/use-toast";
+import { useEditCashier } from "@/hooks/useCashiers";
 import { Checkbox } from "@/components/ui/checkbox";
 import type {
   Cashier,
   CashierPermissions,
 } from "../../../utils/types/schema.type";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 const permissionTypes: CashierPermissions[] = [
   "SALES",
@@ -47,14 +46,12 @@ export function EditCashier({
   onClose,
   onCashierUpdated,
 }: EditCashierProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const editCashier = useEditCashier();
   const [name, setName] = useState(cashier.name);
   const [accessKey, setAccessKey] = useState(cashier.accessKey);
   const [permissions, setPermissions] = useState<CashierPermissions[]>(
     cashier.permissions
   );
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -66,27 +63,17 @@ export function EditCashier({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
-    try {
-      setIsLoading(true);
-      const updatedCashier = await editCashier(cashier.id, {
-        name,
-        accessKey,
-        permissions,
-      });
-
-      onCashierUpdated(updatedCashier);
-      toast({
-        title: "Success",
-        description: "Cashier updated successfully",
-      });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update cashier");
-    } finally {
-      setIsLoading(false);
-    }
+    editCashier.mutate(
+      { id: cashier.id, data: { name, accessKey, permissions } },
+      {
+        onSuccess: (updatedCashier) => {
+          onCashierUpdated(updatedCashier);
+          toast.success("Cashier updated successfully");
+          onClose();
+        },
+      }
+    );
   };
 
   return (
@@ -100,12 +87,6 @@ export function EditCashier({
             Update cashier information and permissions
           </DialogDescription>
         </DialogHeader>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -163,10 +144,10 @@ export function EditCashier({
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={editCashier.isPending}
             className="w-full bg-primary hover:bg-primary/90 text-white"
           >
-            {isLoading ? "Saving..." : "Save Changes"}
+            {editCashier.isPending ? "Saving..." : "Save Changes"}
           </Button>
         </form>
       </DialogContent>

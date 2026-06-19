@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSalesByCashier } from "@/lib/server/Sales/getSalesByCashier";
+import { useSalesByCashier } from "@/hooks/useSales";
 import SalesSummary from "./SalesSummary";
 import type { PaymentMethodEnum } from "../../../utils/types/schema.type";
 import type { GetAllSalesByUserIdPayload } from "../../../utils/types/Sales/getAllSalesByUserId.type";
@@ -9,6 +9,7 @@ import { SalesFilters } from "./SalesFilter";
 import { SalesDateGroup } from "./SalesDateGroup";
 import { NoSalesFound } from "./NoSalesFound";
 import { LoadingSales } from "./LoadingSales";
+import { useQueryClient } from "@tanstack/react-query";
 
 const months = [
   "January",
@@ -34,7 +35,7 @@ export default function CashierSalesList({
   cashierId,
   refreshTrigger,
 }: CashierSalesListProps) {
-  const [sales, setSales] = useState<GetAllSalesByUserIdPayload>([]);
+  const queryClient = useQueryClient();
   const [filteredSales, setFilteredSales] =
     useState<GetAllSalesByUserIdPayload>([]);
   const [productFilter, setProductFilter] = useState("");
@@ -51,7 +52,6 @@ export default function CashierSalesList({
     "ALL" | "DISCOUNTED" | "NOT_DISCOUNTED"
   >("ALL");
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"perSale" | "perProduct">("perSale");
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
   const [selectedYear, setSelectedYear] = useState<number>(() =>
@@ -65,58 +65,21 @@ export default function CashierSalesList({
     selectedMonth
   ).padStart(2, "0")}`;
 
-  // Format date for API call - always use YYYY-MM-DD format
-  // Backend filters by this date (defaults to today in Manila time if not provided)
   const formatDateForAPI = (inputDate?: Date) => {
-    // Always use YYYY-MM-DD format for API calls
     const targetDate = inputDate || new Date();
     return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
   };
 
-  // Separate function to refresh data without loading state
-  const refreshSalesData = async () => {
-    if (!cashierId) return;
+  const { data: sales = [], isLoading } = useSalesByCashier(
+    cashierId,
+    formatDateForAPI(date)
+  );
 
-    try {
-      const apiDate = formatDateForAPI(date);
-      // Bypass cache for real-time updates
-      const data = await getSalesByCashier(cashierId, apiDate, true);
-      setSales(data);
-      // No client-side filtering needed - backend already filters by date
-      setFilteredSales(data);
-    } catch (error) {
-      console.error("Error refreshing cashier sales:", error);
-    }
-  };
-
-  useEffect(() => {
-    const loadSales = async () => {
-      if (!cashierId) return;
-
-      try {
-        setIsLoading(true);
-        const apiDate = formatDateForAPI(date);
-        // Fetch sales for the specific date from backend
-        const data = await getSalesByCashier(cashierId, apiDate, false);
-        setSales(data);
-        // No client-side date filtering needed - backend already filters by date
-        setFilteredSales(data);
-      } catch (error) {
-        console.error("Error loading sales:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSales();
-  }, [cashierId, date, dateFilterMode, selectedYear, selectedMonth]);
-
-  // Effect to handle refresh trigger from parent
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
-      refreshSalesData();
+      queryClient.invalidateQueries({ queryKey: ["sales", "cashier", cashierId] });
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, cashierId, queryClient]);
 
   useEffect(() => {
     // Date filtering is now handled by backend

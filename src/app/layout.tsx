@@ -3,6 +3,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { getUserData } from "@/lib/server/getUserData";
 import { Poppins } from "next/font/google";
 import AgGridProvider from "@/components/providers/AgGridProvider";
+import { QueryProvider } from "@/lib/api/query-provider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata = {
@@ -36,19 +38,22 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.className} antialiased`}>
-        <AgGridProvider>
-          {user ? (
-            <div className="min-h-screen flex flex-col md:flex-row">
-              <Sidebar />
-              <main className="flex-1 overflow-y-auto md:p-8 p-4">
-                {children}
-              </main>
-            </div>
-          ) : (
-            // When no user, render children without the sidebar
-            <div className="min-h-screen">{children}</div>
-          )}
-        </AgGridProvider>
+        <QueryProvider>
+          <AgGridProvider>
+            {user ? (
+              <div className="min-h-screen flex flex-col md:flex-row">
+                <Sidebar />
+                <main className="flex-1 overflow-y-auto md:p-8 p-4">
+                  {children}
+                </main>
+              </div>
+            ) : (
+              // When no user, render children without the sidebar
+              <div className="min-h-screen">{children}</div>
+            )}
+          </AgGridProvider>
+          <Toaster richColors closeButton />
+        </QueryProvider>
       </body>
     </html>
   );

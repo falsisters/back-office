@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAllCashiersByUserId } from "@/lib/server/Cashier/getAllCashiersByUserId";
-import { deleteCashier } from "@/lib/server/Cashier/deleteCashier";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
+import type { Cashier } from "../../../utils/types/schema.type";
 import {
   Card,
   CardContent,
@@ -20,72 +17,20 @@ import {
 } from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useCashiers, useDeleteCashier } from "@/hooks/useCashiers";
 import { CashierTableRow } from "./CashierTable";
 import { CreateCashier } from "./CreateCashier";
 
 export function CashierList() {
-  const [cashiers, setCashiers] = useState<GetAllCashiersByUserIdPayload>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { data: cashiers = [], isLoading, isError, error } = useCashiers();
+  const deleteCashier = useDeleteCashier();
 
-  useEffect(() => {
-    fetchCashiers();
-  }, []);
-
-  const fetchCashiers = async () => {
-    try {
-      setIsLoading(true);
-      console.log("Fetching all cashiers...");
-      const data = await getAllCashiersByUserId();
-      console.log("Fetched cashiers:", data);
-      setCashiers(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load cashiers");
-      console.error("Error fetching cashiers:", err);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleDeleteCashier = (id: string) => {
+    return deleteCashier.mutateAsync(id);
   };
 
-  const handleDeleteCashier = async (id: string) => {
-    try {
-      await deleteCashier(id);
-      toast({
-        title: "Cashier deleted",
-        description: "The cashier has been successfully deleted.",
-      });
-      setCashiers(cashiers.filter((cashier) => cashier.id !== id));
-    } catch (error) {
-      console.error("Error deleting: ", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete the cashier. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCashierCreated = (
-    newCashier: GetAllCashiersByUserIdPayload[number]
-  ) => {
-    setCashiers((prevCashiers) => [...prevCashiers, newCashier]);
-    toast({
-      title: "Cashier created",
-      description: "New cashier has been successfully added.",
-    });
-  };
-
-  const handleCashierUpdated = (
-    updatedCashier: GetAllCashiersByUserIdPayload[number]
-  ) => {
-    setCashiers((prevCashiers) =>
-      prevCashiers.map((cashier) =>
-        cashier.id === updatedCashier.id ? updatedCashier : cashier
-      )
-    );
+  const handleCashierUpdated = (_updatedCashier: Cashier) => {
+    // Query invalidation happens in the mutation's onSuccess
   };
 
   if (isLoading) {
@@ -101,20 +46,15 @@ export function CashierList() {
 
   return (
     <div className="space-y-6">
-      <CreateCashier onCashierCreated={handleCashierCreated} />
+      <CreateCashier />
 
-      {error ? (
+      {isError ? (
         <Card className="w-full border-red-200 shadow-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button
-                onClick={() => fetchCashiers()}
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                Try Again
-              </Button>
+              <p className="text-red-500 mb-4">
+                {error instanceof Error ? error.message : "Failed to load cashiers"}
+              </p>
             </div>
           </CardContent>
         </Card>

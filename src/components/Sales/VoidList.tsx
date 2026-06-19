@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getVoidedSalesByUser } from "@/lib/server/Sales/getVoidedSalesByUser";
+import { useState } from "react";
+import { useVoidedSales } from "@/hooks/useSales";
 import type { GetVoidedSalesByUserPayload } from "../../../utils/types/Sales/getVoidedSalesByUser.type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,8 +37,7 @@ const months = [
 type DateFilterMode = "day" | "month";
 
 export default function VoidList() {
-  const [voidedSales, setVoidedSales] = useState<GetVoidedSalesByUserPayload>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: voidedSales = [], isLoading } = useVoidedSales();
   
   // Filter states
   const [dateFilterMode, setDateFilterMode] = useState<DateFilterMode>("day");
@@ -46,22 +45,6 @@ export default function VoidList() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    const loadVoidedSales = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getVoidedSalesByUser();
-        setVoidedSales(data);
-      } catch (error) {
-        console.error("Error loading voided sales:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadVoidedSales();
-  }, []);
 
   // Filter voided sales based on date and search query
   const filteredSales = voidedSales.filter((sale) => {

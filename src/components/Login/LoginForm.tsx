@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,42 +11,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { login } from "@/lib/server/login";
+import { useLogin } from "@/hooks/useAuth";
 import {
   type LoginFormData,
   LoginFormDataSchema,
 } from "../../../utils/types/login.type";
 
 export default function LoginForm() {
-  const router = useRouter();
+  const login = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+    setValidationError(null);
 
     try {
       const formData: LoginFormData = { email, password };
-      const validatedData = LoginFormDataSchema.parse(formData);
-      await login(validatedData);
-      router.push("/");
+      LoginFormDataSchema.parse(formData);
+      login.mutate(formData);
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setValidationError(error.message);
       } else {
-        setError("An unexpected error occurred");
+        setValidationError("Invalid form data");
       }
-      console.error("Login failed:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const isLoading = login.isPending;
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -63,10 +57,10 @@ export default function LoginForm() {
           <CardDescription>Back Office Login</CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+          {validationError && (
+            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              {validationError}
+            </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

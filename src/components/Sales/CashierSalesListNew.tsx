@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getSalesCheckByCashier,
-  getTotalSalesByCashier,
-  SalesCheckItem,
-  TotalSalesResponse,
-} from "@/lib/server/Sales/getSalesCheck";
+import { useSalesCheckByCashier, useTotalSalesByCashier } from "@/hooks/useSales";
+import type { SalesCheckItem, TotalSalesResponse } from "@/hooks/useSales";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,10 +35,8 @@ export default function CashierSalesListNew({
   cashierId,
   refreshTrigger,
 }: CashierSalesListNewProps) {
-  const [salesCheck, setSalesCheck] = useState<SalesCheckItem[]>([]);
-  const [totalSales, setTotalSales] = useState<TotalSalesResponse | null>(null);
+  const queryClient = useQueryClient();
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
   const [dateFilterMode, setDateFilterMode] = useState<"day" | "month">("day");
   const [selectedYear, setSelectedYear] = useState<number>(() =>
     new Date().getFullYear()
@@ -51,61 +46,22 @@ export default function CashierSalesListNew({
   );
   const { on } = useSocket();
 
-  // Format date for API call - always use YYYY-MM-DD format
-  // Backend filters by this date (defaults to today in Manila time if not provided)
   const formatDateForAPI = (inputDate?: Date) => {
-    // Always use YYYY-MM-DD format for API calls
     const targetDate = inputDate || new Date();
     return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
   };
 
-  const refreshSalesData = async () => {
+  const apiDate = formatDateForAPI(date);
+  const { data: salesCheckData = [], isLoading: isLoadingCheck } = useSalesCheckByCashier(cashierId, apiDate);
+  const { data: totalSalesData, isLoading: isLoadingTotal } = useTotalSalesByCashier(cashierId, apiDate);
+
+  const isLoading = isLoadingCheck || isLoadingTotal;
+
+  const refreshSalesData = () => {
     if (!cashierId) return;
-
-    try {
-      const apiDate = formatDateForAPI(date);
-      const [salesCheckData, totalSalesData] = await Promise.all([
-        getSalesCheckByCashier(cashierId, apiDate, true),
-        getTotalSalesByCashier(cashierId, apiDate, true),
-      ]);
-
-      setSalesCheck(salesCheckData);
-      setTotalSales(totalSalesData);
-    } catch (error) {
-      console.error("Error refreshing cashier sales:", error);
-    }
+    queryClient.invalidateQueries({ queryKey: ["sales", "check", cashierId] });
+    queryClient.invalidateQueries({ queryKey: ["sales", "total", cashierId] });
   };
-
-  useEffect(() => {
-    const loadSales = async () => {
-      if (!cashierId) return;
-
-      try {
-        setIsLoading(true);
-        const apiDate = formatDateForAPI(date);
-
-        const [salesCheckData, totalSalesData] = await Promise.all([
-          getSalesCheckByCashier(cashierId, apiDate, false),
-          getTotalSalesByCashier(cashierId, apiDate, false),
-        ]);
-
-        setSalesCheck(salesCheckData);
-        setTotalSales(totalSalesData);
-      } catch (error) {
-        console.error("Error loading sales:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSales();
-  }, [cashierId, date, dateFilterMode, selectedYear, selectedMonth]);
-
-  useEffect(() => {
-    if (refreshTrigger && refreshTrigger > 0) {
-      refreshSalesData();
-    }
-  }, [refreshTrigger]);
 
   useEffect(() => {
     const cleanupCreated = on("sale:created", () => refreshSalesData());
@@ -153,7 +109,7 @@ export default function CashierSalesListNew({
       ) : (
         <>
           {/* Sales Check Summary */}
-          {salesCheck.length > 0 && (
+          {salesCheckData.length > 0 && (
             <Card className="shadow-md border-t-4 border-t-primary">
               <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-transparent">
                 <CardTitle className="text-primary flex items-center gap-2">
@@ -163,7 +119,7 @@ export default function CashierSalesListNew({
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-4">
-                  {salesCheck.map((product, index) => (
+                  {salesCheckData.map((product, index) => (
                     <Card key={index} className="border-l-4 border-l-secondary">
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-center">
@@ -233,7 +189,7 @@ export default function CashierSalesListNew({
           )}
 
           {/* Total Sales Details */}
-          {totalSales && (
+          {totalSalesData && (
             <Card className="shadow-md border-t-4 border-t-secondary">
               <CardHeader className="pb-2 bg-gradient-to-r from-secondary/5 to-transparent">
                 <CardTitle className="text-secondary flex items-center gap-2">
@@ -255,7 +211,7 @@ export default function CashierSalesListNew({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {totalSales.items.map((item) => (
+                    {totalSalesData.items.map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/20">
                         <TableCell className="font-mono text-sm">
                           {item.formattedTime}
@@ -307,7 +263,7 @@ export default function CashierSalesListNew({
                             Total Quantity
                           </p>
                           <p className="font-semibold">
-                            {totalSales.summary.totalQuantity}
+                            {totalSalesData.summary.totalQuantity}
                           </p>
                         </div>
                       </div>
@@ -322,7 +278,7 @@ export default function CashierSalesListNew({
                           <p className="font-semibold text-secondary">
                             ₱
                             {parseFloat(
-                              totalSales.summary.totalAmount
+                              totalSalesData.summary.totalAmount
                             ).toLocaleString()}
                           </p>
                         </div>
@@ -336,7 +292,7 @@ export default function CashierSalesListNew({
                           <p className="font-semibold text-green-600">
                             ₱
                             {parseFloat(
-                              totalSales.summary.paymentTotals.cash
+                              totalSalesData.summary.paymentTotals.cash
                             ).toLocaleString()}
                           </p>
                         </div>
@@ -353,10 +309,10 @@ export default function CashierSalesListNew({
                             ₱
                             {(
                               parseFloat(
-                                totalSales.summary.paymentTotals.check
+                                totalSalesData.summary.paymentTotals.check
                               ) +
                               parseFloat(
-                                totalSales.summary.paymentTotals.bankTransfer
+                                totalSalesData.summary.paymentTotals.bankTransfer
                               )
                             ).toLocaleString()}
                           </p>
@@ -369,9 +325,10 @@ export default function CashierSalesListNew({
             </Card>
           )}
 
-          {salesCheck.length === 0 && !totalSales && <NoSalesFound />}
+          {salesCheckData.length === 0 && !totalSalesData && <NoSalesFound />}
         </>
       )}
     </div>
   );
 }
+

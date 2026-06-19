@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { createCashier } from "@/lib/server/Cashier/createCashier";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useCreateCashier } from "@/hooks/useCashiers";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import type { CashierPermissions } from "../../../utils/types/schema.type";
-import type { GetAllCashiersByUserIdPayload } from "../../../utils/types/Cashier/getAllCashiersByUserId.type";
 
 const permissionTypes: CashierPermissions[] = [
   "SALES",
@@ -33,47 +31,39 @@ const permissionTypes: CashierPermissions[] = [
   "VOID",
 ];
 
-export function CreateCashier({
-  onCashierCreated,
-}: {
-  onCashierCreated: (newCashier: GetAllCashiersByUserIdPayload[number]) => void;
-}) {
+export function CreateCashier() {
+  const createCashier = useCreateCashier();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [accessKey, setAccessKey] = useState("");
   const [permissions, setPermissions] = useState<CashierPermissions[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setValidationError(null);
 
-    try {
-      setIsLoading(true);
-      const formattedCashier = await createCashier({
-        name,
-        accessKey,
-        permissions,
-      });
-
-      onCashierCreated(formattedCashier);
-      resetForm();
-      setOpen(false);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
-      );
-    } finally {
-      setIsLoading(false);
+    if (permissions.length === 0) {
+      setValidationError("At least one permission is required");
+      return;
     }
+
+    createCashier.mutate(
+      { name, accessKey, permissions },
+      {
+        onSuccess: () => {
+          resetForm();
+          setOpen(false);
+        },
+      }
+    );
   };
 
   const resetForm = () => {
     setName("");
     setAccessKey("");
     setPermissions([]);
-    setError(null);
+    setValidationError(null);
   };
 
   return (
@@ -94,10 +84,10 @@ export function CreateCashier({
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+        {validationError && (
+          <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+            {validationError}
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,10 +146,10 @@ export function CreateCashier({
 
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={createCashier.isPending}
             className="w-full bg-secondary hover:bg-secondary/90 text-white"
           >
-            {isLoading ? "Creating..." : "Create Cashier"}
+            {createCashier.isPending ? "Creating..." : "Create Cashier"}
           </Button>
         </form>
       </DialogContent>

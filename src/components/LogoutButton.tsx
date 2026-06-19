@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { logout } from "../lib/server/logout"
+import { useLogout } from "@/hooks/useAuth"
 import { LogOut } from "lucide-react"
 import {
   AlertDialog,
@@ -16,17 +16,11 @@ import {
 } from "./ui/alert-dialog"
 
 export default function LogoutButton() {
+  const logout = useLogout()
   const [isHovered, setIsHovered] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   
-  const handleLogout = async () => {
-    setIsLoggingOut(true)
-    try {
-      await logout()
-    } catch (error) {
-      console.error("Logout error:", error)
-      setIsLoggingOut(false)
-    }
+  const handleLogout = () => {
+    logout.mutate()
   }
 
   return (
@@ -83,10 +77,10 @@ export default function LogoutButton() {
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleLogout}
-            disabled={isLoggingOut}
+            disabled={logout.isPending}
             className="bg-destructive hover:bg-destructive/90"
           >
-            {isLoggingOut ? "Logging out..." : "Logout"}
+            {logout.isPending ? "Logging out..." : "Logout"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

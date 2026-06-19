@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,21 +11,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { register } from "@/lib/server/register";
+import { useRegister } from "@/hooks/useAuth";
 import {
   type RegisterFormData,
   RegisterFormDataSchema,
 } from "../../../utils/types/register.type";
 
 export default function RegisterForm() {
-  const router = useRouter();
+  const register = useRegister();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -39,10 +36,11 @@ export default function RegisterForm() {
   const passwordsMatch =
     password === confirmPassword && confirmPassword.length > 0;
 
+  const isLoading = register.isPending;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+    setValidationError(null);
 
     try {
       const formData: RegisterFormData = {
@@ -52,17 +50,13 @@ export default function RegisterForm() {
         confirmPassword,
       };
       const validatedData = RegisterFormDataSchema.parse(formData);
-      await register(validatedData);
-      router.push("/");
+      register.mutate(validatedData);
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setValidationError(error.message);
       } else {
-        setError("An unexpected error occurred");
+        setValidationError("An unexpected error occurred");
       }
-      console.error("Registration failed:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -84,10 +78,10 @@ export default function RegisterForm() {
           <CardDescription>Back Office Registration</CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+          {validationError && (
+            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              {validationError}
+            </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
