@@ -7,7 +7,6 @@
 | `src/lib/server/Transfers/getAllTransfers.ts` | `useTransfers` query |
 | `src/lib/server/Transfers/getTransfersByCashier.ts` | `useTransfersByCashier` query |
 | `src/lib/server/Transfers/getTransfersByCashierWithDate.ts` | `useTransfersByCashier` query (with date) |
-| `src/lib/server/Storage/index.ts` | `useStorageUsage`, `useExportStorage`, `useClearStorage` (moved to useStorage) |
 
 ## New Hook API
 
@@ -39,32 +38,11 @@ export function useStockStats() {
     queryFn: () => apiClient.get('/api/stock/statistics').then(r => r.data),
   });
 }
-
-export function useStorageUsage() {
-  return useQuery({
-    queryKey: ['storage', 'usage'],
-    queryFn: () => apiClient.get('/api/storage/usage').then(r => r.data),
-  });
-}
-
-export function useExportStorage() {
-  return useMutation({
-    mutationFn: () => apiClient.get('/api/storage/export'),
-  });
-}
-
-export function useClearStorage() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => apiClient.delete('/api/storage/clear'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['storage'] }),
-  });
-}
 ```
 
 ## Pages to update
 
-- [ ] `src/app/stocks/page.tsx` → Add `"use client"`, use `useAuth()` for auth gate
+- [ ] `src/app/stocks/page.tsx` → Add `"use client"`, replace `getUserData` with `useAuth()` gate
 
 ## Components to update
 
@@ -74,7 +52,6 @@ export function useClearStorage() {
 ## Special Considerations
 
 - **Timezone logic** in `getAllTransfers.ts` — Same fix as Sales. Move to shared utility, apply client-side.
-- **Storage** module lives in `Storage/index.ts` but is closely related to Stocks. Consider merging into `useStocks.ts` or keeping separate `useStorage.ts`.
 
 ## Verification
 
@@ -82,7 +59,4 @@ export function useClearStorage() {
 - [ ] Filter by cashier works
 - [ ] Filter by date works
 - [ ] Stock stats display correctly
-- [ ] Storage usage displays correctly
-- [ ] Export storage works
-- [ ] Clear storage works
 - [ ] Error toast shows API error message

@@ -1,26 +1,25 @@
-# Storage Migration
+# Storage → REMOVED
 
-## Current files to replace
+**Status:** This feature is being removed entirely. No migration needed.
 
-| Old (server action) | New (hook) |
-|----------------------|------------|
-| `src/lib/server/Storage/index.ts` | `useStorage` hooks (shared with Stocks) |
+## Files to delete
 
-## New Hook API
+- `src/app/usage/page.tsx`
+- `src/components/Usage/ClearStorage.tsx`
+- `src/components/Usage/ExportDatabase.tsx`
+- `src/components/Usage/UsageCard.tsx`
+- `src/lib/server/Storage/index.ts`
+- `src/lib/server/exportDatabase.ts`
+- `src/lib/server/deleteDatabase.ts`
 
-Already defined in `11-stocks-transfers.md`:
+## Sidebar / Navigation
 
-- `useStorageUsage()` — query for storage size
-- `useExportStorage()` — mutation to trigger export
-- `useClearStorage()` — mutation to clear storage
+Remove the "Usage" link from `src/components/Sidebar.tsx`.
 
-## Components to update
+## Backend endpoints (no longer called)
 
-Storage data is displayed in the Stocks/Storage management UI. No separate page exists.
-
-## Verification
-
-- [ ] Storage usage displays in MB/GB
-- [ ] Export storage downloads a file
-- [ ] Clear storage clears and refreshes usage
-- [ ] Error toast shows API error message
+- `GET /storage/usage`
+- `GET /storage/export`
+- `DELETE /storage/clear`
+- `GET /storage/db-export`
+- `DELETE /storage/db-delete`

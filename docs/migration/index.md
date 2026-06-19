@@ -168,26 +168,24 @@ Backend (NestJS)
 - [ ] 12.4 Delete old server actions (5 files)
 - [ ] 12.5 Verify: sheet CRUD, cells, rows, formulas
 
-### Phase 13: Storage
+### ~~Phase 13: Storage~~ REMOVED
 
-- [ ] 13.1 Create `src/hooks/useStorage.ts`
-- [ ] 13.2 Rewrite storage components → use hooks
-- [ ] 13.3 Delete old server actions (1 file)
-- [ ] 13.4 Verify: storage usage, export, clear
+- [~] 13.1 Delete `src/app/usage/page.tsx`
+- [~] 13.2 Delete `src/components/Usage/` (ClearStorage, ExportDatabase, UsageCard)
+- [~] 13.3 Delete `src/lib/server/Storage/index.ts`
+- [~] 13.4 Remove "Usage" link from sidebar
 
-### Phase 14: Database Export/Delete
+### ~~Phase 14: Database Export/Delete~~ REMOVED
 
-- [ ] 14.1 Add to `useStorage.ts` or separate hook
-- [ ] 14.2 Delete old `src/lib/server/exportDatabase.ts`
-- [ ] 14.3 Delete old `src/lib/server/deleteDatabase.ts`
-- [ ] 14.4 Verify: export and delete database
+- [~] 14.1 Delete `src/lib/server/exportDatabase.ts`
+- [~] 14.2 Delete `src/lib/server/deleteDatabase.ts`
 
 ### Phase 15: Cleanup
 
 - [ ] 15.1 Delete all remaining files in `src/lib/server/`
 - [ ] 15.2 Delete shadcn `use-toast.ts` hook (replace with sonner)
 - [ ] 15.3 Replace shadcn `Toaster` with sonner `Toaster` in layout
-- [ ] 15.4 Replace all shadcn toast usages with sonner across components
+- [ ] 15.4 Replace all remaining shadcn toast usages with sonner
 - [ ] 15.5 Replace any remaining `alert()` calls with sonner toast
 - [ ] 15.6 Add React Error Boundary at route group level
 - [ ] 15.7 Add Suspense boundaries for lazy-loading
